@@ -1,4 +1,4 @@
-# CS308 Online Store Setup Guide 😉- Group 24
+# CS308 Online Store Setup Guide- Group 24
 
 This README explains how to set up and run the project locally for development.
 
