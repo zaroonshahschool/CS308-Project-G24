@@ -1,20 +1,34 @@
+import { Link, useLocation } from "react-router-dom";
+
 const NAV_LINKS = [
-  "Limited Editions",
-  "Catalogue",
-  "New Releases",
-  "Collections",
-  "Fiction",
-  "Non-Fiction",
-  "Gifts",
+  { label: "Limited Editions",  to: "#" },
+  { label: "Catalogue",         to: "/catalogue" },
+  { label: "New Releases",      to: "#" },
+  { label: "Collections",       to: "#" },
+  { label: "Fiction",           to: "#" },
+  { label: "Non-Fiction",       to: "#" },
+  { label: "Gifts",             to: "#" },
 ];
 
 export default function Nav() {
+  const { pathname } = useLocation();
+
   return (
     <nav className="nav">
       <div className="nav-inner">
-        {NAV_LINKS.map((item) => (
-          <a key={item} href="#">{item}</a>
-        ))}
+        {NAV_LINKS.map(({ label, to }) =>
+          to.startsWith("/") ? (
+            <Link
+              key={label}
+              to={to}
+              className={pathname === to ? "nav-link--active" : ""}
+            >
+              {label}
+            </Link>
+          ) : (
+            <a key={label} href={to}>{label}</a>
+          )
+        )}
         <a href="#" style={{ marginLeft: "auto", color: "var(--text-mid)" }}>Admin</a>
         <a href="#" style={{ color: "var(--text-mid)" }}>Sign In</a>
       </div>
