@@ -1,3 +1,56 @@
+# Local Database Configuration
+
+Before running the backend, each team member must create their own local database config file.
+
+This project uses a shared `application.properties` file for common Spring Boot settings, but database username and password are kept local so that one person's PostgreSQL credentials do not affect the rest of the team.
+
+---
+
+## Setup
+
+### 1. Create the local config file
+
+Create this file manually:
+```bash
+backend/src/main/resources/application-local.properties
+```
+
+### 2. Add your PostgreSQL credentials
+```properties
+spring.datasource.username=YOUR_DB_USERNAME
+spring.datasource.password=YOUR_DB_PASSWORD
+```
+
+If your PostgreSQL password is empty, you can leave it blank:
+```properties
+spring.datasource.username=YOUR_DB_USERNAME
+spring.datasource.password=
+```
+
+### 3. Make sure your local database exists
+
+The backend is configured to connect to:
+```
+jdbc:postgresql://localhost:5432/mystore
+```
+
+So you must have a local PostgreSQL database named `mystore`.
+
+---
+
+## Important Notes
+
+> **Do not** commit `application-local.properties` to version control.
+>
+> **Do not** put your personal database credentials into `application.properties`.
+
+| File | Scope | Committed? |
+|---|---|---|
+| `application.properties` | Shared across the team | Yes |
+| `application-local.properties` | Only for your own machine | No |
+
+This setup prevents local credential conflicts when pulling updates from `main`.
+
 # CS308 Online Store Setup Guide- Group 24
 
 This README explains how to set up and run the project locally for development.
