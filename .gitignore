@@ -17,3 +17,5 @@ backend/target/
 # Environment
 .env
 .env.*
+# Local database credentials
+backend/src/main/resources/application.properties
