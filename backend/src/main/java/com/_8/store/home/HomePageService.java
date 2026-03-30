@@ -1,101 +1,161 @@
 package com._8.store.home;
 
-import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
+
+import org.springframework.stereotype.Service;
+import com._8.store.entity.Category;
+import com._8.store.entity.Product;
+import com._8.store.repository.CategoryRepository;
+import com._8.store.repository.ProductRepository;
+import org.springframework.stereotype.Service;
+import java.util.ArrayList;
 import java.util.List;
+
 
 @Service
 public class HomePageService {
 
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+
+    private static final String[] LIBRARY_ICONS = {"⟡", "⌂", "◌", "✦", "✺", "✧"};
+    private static final String[] LIBRARY_CARD_CLASSES = {
+            "library-card-1", "library-card-2", "library-card-3",
+            "library-card-4", "library-card-1", "library-card-2"
+    };
+
+    public HomePageService(ProductRepository productRepository, CategoryRepository categoryRepository) {
+        this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
+    }
+
     public HomePageResponse getHomePage() {
+        List<Product> allProducts = productRepository.findAllByOrderByCreatedAtDesc();
+        List<Category> allCategories = categoryRepository.findAllByOrderByDisplayOrderAscNameAsc();
+
+        Product heroProduct = productRepository.findFirstByFeaturedTrueOrderByCreatedAtDesc()
+                .orElseGet(() -> allProducts.isEmpty() ? null : allProducts.get(0));
+
+        Product editorsChoiceProduct = productRepository.findFirstByEditorChoiceTrueOrderByCreatedAtDesc()
+                .orElseGet(() -> allProducts.isEmpty() ? null : allProducts.get(0));
+
+        List<Product> notableSource = productRepository.findTop5ByNewArrivalTrueOrderByCreatedAtDesc();
+        if (notableSource.isEmpty()) {
+            notableSource = allProducts.stream().limit(5).toList();
+        }
+
+        List<HomePageResponse.LibraryCollection> libraries = new ArrayList<>();
+        for (int i = 0; i < allCategories.size(); i++) {
+            libraries.add(toLibraryCollection(allCategories.get(i), i));
+        }
+
+        List<HomePageResponse.FeaturedBook> notableBooks = notableSource.stream()
+                .map(this::toFeaturedBook)
+                .toList();
+
         return new HomePageResponse(
-                new HomePageResponse.HeroSection(
-                        "Masterpiece Edition",
-                        "The Secret History",
-                        "A collector's edition curated for readers who want literary fiction, tactile design, and a display-worthy spine.",
-                        new BigDecimal("39.99"),
-                        "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=900&auto=format&fit=crop",
-                        "Explore Edition",
-                        "/catalogue"
-                ),
+                toHeroSection(heroProduct),
+                libraries,
+                notableBooks,
+                toEditorsChoice(editorsChoiceProduct),
+                getValueProps()
+        );
+    }
+
+    private HomePageResponse.HeroSection toHeroSection(Product product) {
+        if (product == null) {
+            return new HomePageResponse.HeroSection(
+                    "Masterpiece Edition",
+                    "Aurelia Editions",
+                    "A collector-focused bookstore experience built around refined editions and curated shelves.",
+                    null,
+                    null,
+                    "Explore Edition",
+                    "/catalogue"
+            );
+        }
+
+        return new HomePageResponse.HeroSection(
+                "Masterpiece Edition",
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getImageUrl(),
+                "Explore Edition",
+                "/catalogue"
+        );
+    }
+
+    private HomePageResponse.LibraryCollection toLibraryCollection(Category category, int index) {
+        String icon = LIBRARY_ICONS[index % LIBRARY_ICONS.length];
+        String cardClass = LIBRARY_CARD_CLASSES[index % LIBRARY_CARD_CLASSES.length];
+
+        return new HomePageResponse.LibraryCollection(
+                category.getName(),
+                icon,
+                cardClass
+        );
+    }
+
+    private HomePageResponse.FeaturedBook toFeaturedBook(Product product) {
+        return new HomePageResponse.FeaturedBook(
+                product.getId(),
+                product.getName(),
+                product.getAuthor(),
+                product.getPrice(),
+                product.getImageUrl(),
+                product.getDescription()
+        );
+    }
+
+    private HomePageResponse.EditorsChoice toEditorsChoice(Product product) {
+        if (product == null) {
+            return new HomePageResponse.EditorsChoice(
+                    null,
+                    "Curated Classics",
+                    "A featured shelf built from our bookstore database.",
+                    null,
+                    null,
+                    List.of(
+                            "Editorially selected titles",
+                            "Database-backed catalogue",
+                            "Ready for frontend integration"
+                    ),
+                    "/catalogue"
+            );
+        }
+
+        return new HomePageResponse.EditorsChoice(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getImageUrl(),
                 List.of(
-                        new HomePageResponse.LibraryCollection("Science Fiction & Fantasy", "⟡", "library-card-1"),
-                        new HomePageResponse.LibraryCollection("History & Antiquity", "⌂", "library-card-2"),
-                        new HomePageResponse.LibraryCollection("Classic Fiction", "◌", "library-card-3"),
-                        new HomePageResponse.LibraryCollection("Mystery & Crime", "✦", "library-card-4")
+                        "Category: " + product.getCategory().getName(),
+                        product.getStock() > 0 ? product.getStock() + " copies in stock" : "Currently out of stock",
+                        "Curated by Aurelia Editions"
                 ),
-                List.of(
-                        new HomePageResponse.FeaturedBook(
-                                1L,
-                                "The Midnight Library",
-                                "Matt Haig",
-                                new BigDecimal("24.99"),
-                                "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop",
-                                "A reflective modern novel about regret, possibility, and second chances."
-                        ),
-                        new HomePageResponse.FeaturedBook(
-                                2L,
-                                "Dune",
-                                "Frank Herbert",
-                                new BigDecimal("29.99"),
-                                "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=400&auto=format&fit=crop",
-                                "Epic political science fiction with a world dense enough to reward rereading."
-                        ),
-                        new HomePageResponse.FeaturedBook(
-                                3L,
-                                "Sapiens",
-                                "Yuval Noah Harari",
-                                new BigDecimal("27.99"),
-                                "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=400&auto=format&fit=crop",
-                                "A brisk big-picture history of humankind across culture, biology, and systems."
-                        ),
-                        new HomePageResponse.FeaturedBook(
-                                4L,
-                                "The Name of the Rose",
-                                "Umberto Eco",
-                                new BigDecimal("32.99"),
-                                "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=400&auto=format&fit=crop",
-                                "A literary mystery balancing theology, politics, and murder investigation."
-                        ),
-                        new HomePageResponse.FeaturedBook(
-                                5L,
-                                "SPQR: A History of Ancient Rome",
-                                "Mary Beard",
-                                new BigDecimal("34.99"),
-                                "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=400&auto=format&fit=crop",
-                                "A modern history of Rome that stays readable without flattening complexity."
-                        )
+                "/catalogue"
+        );
+    }
+
+    private List<HomePageResponse.ValueProposition> getValueProps() {
+        return List.of(
+                new HomePageResponse.ValueProposition(
+                        "Exquisite Packaging",
+                        "Every order is carefully wrapped in bespoke protective packaging.",
+                        "package"
                 ),
-                new HomePageResponse.EditorsChoice(
-                        6L,
-                        "One Hundred Years of Solitude",
-                        "A flagship edition for readers building a shelf of essential modern classics.",
-                        new BigDecimal("18.99"),
-                        "https://images.unsplash.com/photo-1474932430478-367dbb6832c1?q=80&w=400&auto=format&fit=crop",
-                        List.of(
-                                "Archival-inspired cover treatment",
-                                "Acid-free premium paper stock",
-                                "Notes on translation and publication context"
-                        ),
-                        "/catalogue"
+                new HomePageResponse.ValueProposition(
+                        "Worldwide Delivery",
+                        "Secure, trackable shipping to bibliophiles across the globe.",
+                        "globe"
                 ),
-                List.of(
-                        new HomePageResponse.ValueProposition(
-                                "Exquisite Packaging",
-                                "Every order is carefully wrapped in bespoke protective packaging.",
-                                "package"
-                        ),
-                        new HomePageResponse.ValueProposition(
-                                "Worldwide Delivery",
-                                "Secure, trackable shipping to bibliophiles across the globe.",
-                                "globe"
-                        ),
-                        new HomePageResponse.ValueProposition(
-                                "The Aurelia Guarantee",
-                                "Uncompromising quality in typography, illustration, and binding.",
-                                "shield"
-                        )
+                new HomePageResponse.ValueProposition(
+                        "The Aurelia Guarantee",
+                        "Uncompromising quality in typography, illustration, and binding.",
+                        "shield"
                 )
         );
     }
