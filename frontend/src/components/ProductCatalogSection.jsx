@@ -1,29 +1,59 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { products, CATEGORIES } from "../data/products";
 
-function ProductCard({ product, onAddToCart }) {
+const HASH_TO_CATEGORY = {
+  "#fiction-filter": "Fiction",
+  "#non-fiction-filter": "Non-Fiction",
+};
+
+function getCategoryButtonId(category) {
+  return `${category.toLowerCase().replace(/\s+/g, "-")}-filter`;
+}
+
+function ProductCard({ product, onAddToCart, reviews }) {
   const outOfStock = product.stock === 0;
+  const averageRating =
+    reviews.length > 0
+      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+      : null;
 
   return (
     <div className={`catalog-card${outOfStock ? " catalog-card--oos" : ""}`}>
-      <div className="catalog-cover-wrap">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="catalog-cover"
-          loading="lazy"
-        />
-        {outOfStock && (
-          <div className="catalog-oos-badge">
-            <span>Out of Stock</span>
-          </div>
-        )}
-      </div>
+      <Link to={`/catalogue/${product.id}`} className="catalog-cover-link" aria-label={`View details for ${product.name}`}>
+        <div className="catalog-cover-wrap">
+          <img
+            src={product.image}
+            alt={product.name}
+            className="catalog-cover"
+            loading="lazy"
+          />
+          {outOfStock && (
+            <div className="catalog-oos-badge">
+              <span>Out of Stock</span>
+            </div>
+          )}
+        </div>
+      </Link>
 
       <div className="catalog-card-info">
         <p className="catalog-card-cat">{product.category}</p>
-        <h3 className="catalog-card-title">{product.name}</h3>
+        <h3 className="catalog-card-title">
+          <Link to={`/catalogue/${product.id}`} className="catalog-title-link">
+            {product.name}
+          </Link>
+        </h3>
         <p className="catalog-card-author">{product.author}</p>
+        <div className="catalog-rating-row">
+          {averageRating ? (
+            <>
+              <span className="catalog-rating-stars" aria-hidden="true">{"\u2605".repeat(Math.round(averageRating))}</span>
+              <span className="catalog-rating-text">{averageRating.toFixed(1)} | {reviews.length} rating{reviews.length !== 1 ? "s" : ""}</span>
+            </>
+          ) : (
+            <span className="catalog-rating-text">No ratings yet</span>
+          )}
+        </div>
 
         <div className="catalog-card-meta">
           <span className="catalog-card-price">${product.price.toFixed(2)}</span>
@@ -45,13 +75,30 @@ function ProductCard({ product, onAddToCart }) {
   );
 }
 
-export default function ProductCatalogSection({ onAddToCart }) {
+export default function ProductCatalogSection({ onAddToCart, reviewsByProduct = {} }) {
+  const { hash } = useLocation();
   const [activeCategory, setActiveCategory] = useState("All");
+
+  useEffect(() => {
+    const nextCategory = HASH_TO_CATEGORY[hash];
+
+    if (!nextCategory) return;
+
+    setActiveCategory(nextCategory);
+
+    requestAnimationFrame(() => {
+      document.getElementById(getCategoryButtonId(nextCategory))?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "center",
+      });
+    });
+  }, [hash]);
 
   const filtered =
     activeCategory === "All"
       ? products
-      : products.filter((p) => p.category === activeCategory);
+      : products.filter((product) => product.category === activeCategory);
 
   return (
     <section className="section-catalog">
@@ -62,18 +109,19 @@ export default function ProductCatalogSection({ onAddToCart }) {
             Exceptional titles, thoughtfully selected
           </p>
         </div>
-        <a href="#" className="section-link">View all →</a>
+        <a href="#" className="section-link">View all</a>
       </div>
 
       <div className="catalog-tabs-wrap">
         <div className="catalog-tabs">
-          {CATEGORIES.map((cat) => (
+          {CATEGORIES.map((category) => (
             <button
-              key={cat}
-              className={`catalog-tab${activeCategory === cat ? " catalog-tab--active" : ""}`}
-              onClick={() => setActiveCategory(cat)}
+              key={category}
+              id={getCategoryButtonId(category)}
+              className={`catalog-tab${activeCategory === category ? " catalog-tab--active" : ""}`}
+              onClick={() => setActiveCategory(category)}
             >
-              {cat}
+              {category}
             </button>
           ))}
         </div>
@@ -84,6 +132,7 @@ export default function ProductCatalogSection({ onAddToCart }) {
           <ProductCard
             key={product.id}
             product={product}
+            reviews={reviewsByProduct[product.id] ?? []}
             onAddToCart={onAddToCart}
           />
         ))}

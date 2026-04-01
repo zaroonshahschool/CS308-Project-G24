@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import "./styles/global.css";
 
@@ -8,10 +8,20 @@ import Footer        from "./components/Footer";
 import CartDrawer    from "./components/CartDrawer";
 import HomePage      from "./pages/HomePage";
 import CataloguePage from "./pages/CataloguePage";
+import ProductDetailPage from "./pages/ProductDetailPage";
+import { initialReviewsByProduct } from "./data/reviews";
 
 export default function App() {
   const [cartItems, setCartItems] = useState([]);
   const [cartOpen,  setCartOpen]  = useState(false);
+  const [reviewsByProduct, setReviewsByProduct] = useState(() => {
+    const storedReviews = window.localStorage.getItem("aurelia-reviews");
+    return storedReviews ? JSON.parse(storedReviews) : initialReviewsByProduct;
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem("aurelia-reviews", JSON.stringify(reviewsByProduct));
+  }, [reviewsByProduct]);
 
   function addToCart(product) {
     setCartItems((prev) => {
@@ -38,6 +48,20 @@ export default function App() {
     );
   }
 
+  function submitReview(productId, reviewInput) {
+    const newReview = {
+      id: `${productId}-${Date.now()}`,
+      ...reviewInput,
+      status: "pending",
+      submittedAt: new Date().toISOString().slice(0, 10),
+    };
+
+    setReviewsByProduct((prev) => ({
+      ...prev,
+      [productId]: [...(prev[productId] ?? []), newReview],
+    }));
+  }
+
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
 
   return (
@@ -47,7 +71,20 @@ export default function App() {
 
       <Routes>
         <Route path="/"          element={<HomePage />} />
-        <Route path="/catalogue" element={<CataloguePage onAddToCart={addToCart} />} />
+        <Route
+          path="/catalogue"
+          element={<CataloguePage onAddToCart={addToCart} reviewsByProduct={reviewsByProduct} />}
+        />
+        <Route
+          path="/catalogue/:productId"
+          element={
+            <ProductDetailPage
+              onAddToCart={addToCart}
+              reviewsByProduct={reviewsByProduct}
+              onSubmitReview={submitReview}
+            />
+          }
+        />
       </Routes>
 
       <Footer />

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import ProductCatalogSection from "../components/ProductCatalogSection";
 
-export default function CataloguePage({ onAddToCart }) {
+export default function CataloguePage({ onAddToCart, reviewsByProduct }) {
   return (
     <main>
       <div className="catalogue-breadcrumb">
@@ -12,7 +12,7 @@ export default function CataloguePage({ onAddToCart }) {
           Back to Home
         </Link>
       </div>
-      <ProductCatalogSection onAddToCart={onAddToCart} />
+      <ProductCatalogSection onAddToCart={onAddToCart} reviewsByProduct={reviewsByProduct} />
     </main>
   );
 }

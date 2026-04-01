@@ -5,8 +5,6 @@ const NAV_LINKS = [
   { label: "Catalogue",         to: "/catalogue" },
   { label: "New Releases",      to: "#" },
   { label: "Collections",       to: "#" },
-  { label: "Fiction",           to: "#" },
-  { label: "Non-Fiction",       to: "#" },
   { label: "Gifts",             to: "#" },
 ];
 
@@ -21,7 +19,7 @@ export default function Nav() {
             <Link
               key={label}
               to={to}
-              className={pathname === to ? "nav-link--active" : ""}
+              className={pathname === to.split("#")[0] ? "nav-link--active" : ""}
             >
               {label}
             </Link>
