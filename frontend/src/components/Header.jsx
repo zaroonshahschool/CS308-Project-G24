@@ -3,19 +3,12 @@ import { Link } from "react-router-dom";
 export default function Header({ cartCount = 0, onCartOpen }) {
   return (
     <>
-      {/* ── Announcement Bar ── */}
-      <div className="announcement-bar">
-        COMPLIMENTARY PREMIUM SHIPPING ON ALL INTERNATIONAL ORDERS OVER $300
-      </div>
+      
 
       {/* ── Header ── */}
       <header className="header">
         <div className="header-inner">
-          <div className="header-left">
-            <button className="currency-btn">
-              USD $ <span style={{ fontSize: 10 }}>▾</span>
-            </button>
-          </div>
+          
 
           <Link to="/" className="logo">
             <span className="logo-wordmark">AURELIA</span>
