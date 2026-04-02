@@ -29,9 +29,34 @@ function ReviewCard({ review }) {
   );
 }
 
-export default function ProductDetailPage({ onAddToCart, reviewsByProduct, onSubmitReview }) {
+function WishlistButton({ active, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`wishlist-toggle wishlist-toggle--detail${active ? " wishlist-toggle--active" : ""}`}
+      onClick={onClick}
+      aria-label={active ? "Remove from wishlist" : "Add to wishlist"}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+      </svg>
+    </button>
+  );
+}
+
+export default function ProductDetailPage({
+  onAddToCart,
+  onSubmitReview,
+  onToggleWishlist,
+  reviewsByProduct,
+  stockByProduct,
+  wishlistProductIds,
+}) {
   const { productId } = useParams();
-  const product = getProductById(productId);
+  const baseProduct = getProductById(productId);
+  const product = baseProduct
+    ? { ...baseProduct, stock: stockByProduct[baseProduct.id] ?? baseProduct.stock }
+    : null;
   const [formState, setFormState] = useState({
     reviewer: "",
     rating: 5,
@@ -49,7 +74,9 @@ export default function ProductDetailPage({ onAddToCart, reviewsByProduct, onSub
     : 0;
   const relatedProducts = products
     .filter((candidate) => candidate.category === product?.category && candidate.id !== product?.id)
-    .slice(0, 3);
+    .slice(0, 3)
+    .map((candidate) => ({ ...candidate, stock: stockByProduct[candidate.id] ?? candidate.stock }));
+  const inWishlist = product ? wishlistProductIds.includes(product.id) : false;
 
   if (!product) {
     return (
@@ -101,9 +128,14 @@ export default function ProductDetailPage({ onAddToCart, reviewsByProduct, onSub
         </div>
 
         <div className="product-detail-copy">
-          <p className="product-detail-kicker">{product.category}</p>
-          <h1 className="product-detail-title">{product.name}</h1>
-          <p className="product-detail-author">by {product.author}</p>
+          <div className="product-detail-headline">
+            <div>
+              <p className="product-detail-kicker">{product.category}</p>
+              <h1 className="product-detail-title">{product.name}</h1>
+              <p className="product-detail-author">by {product.author}</p>
+            </div>
+            <WishlistButton active={inWishlist} onClick={() => onToggleWishlist(product.id)} />
+          </div>
 
           <div className="product-detail-rating-summary">
             <RatingStars rating={Math.round(averageRating || 0)} />

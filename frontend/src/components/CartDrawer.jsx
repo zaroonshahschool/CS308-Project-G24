@@ -1,4 +1,4 @@
-export default function CartDrawer({ items, isOpen, onClose, onRemove, onUpdateQty }) {
+export default function CartDrawer({ items, isOpen, onCheckout, onClose, onRemove, onUpdateQty }) {
   const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
   const itemCount = items.reduce((sum, item) => sum + item.qty, 0);
 
@@ -52,7 +52,7 @@ export default function CartDrawer({ items, isOpen, onClose, onRemove, onUpdateQ
 
                   <div className="cart-item-bottom">
                     <div className="cart-qty-control">
-                      <button className="qty-btn" onClick={() => onUpdateQty(item.id, -1)}>−</button>
+                      <button className="qty-btn" onClick={() => onUpdateQty(item.id, -1)}>-</button>
                       <span className="qty-value">{item.qty}</span>
                       <button className="qty-btn" onClick={() => onUpdateQty(item.id, 1)}>+</button>
                     </div>
@@ -77,8 +77,8 @@ export default function CartDrawer({ items, isOpen, onClose, onRemove, onUpdateQ
               <span className="cart-subtotal-label">Subtotal</span>
               <span className="cart-subtotal-value">${total.toFixed(2)}</span>
             </div>
-            <p className="cart-shipping-note">Shipping &amp; taxes calculated at checkout</p>
-            <button className="cart-checkout-btn">Proceed to Checkout</button>
+            <p className="cart-shipping-note">Customer checkout places a new order in account history.</p>
+            <button className="cart-checkout-btn" onClick={onCheckout}>Proceed to Checkout</button>
           </div>
         )}
       </aside>

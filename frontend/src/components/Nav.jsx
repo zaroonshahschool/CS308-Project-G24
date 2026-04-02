@@ -5,7 +5,6 @@ const NAV_LINKS = [
   { label: "Catalogue",         to: "/catalogue" },
   { label: "New Releases",      to: "#" },
   { label: "Collections",       to: "#" },
-  { label: "Gifts",             to: "#" },
 ];
 
 export default function Nav() {

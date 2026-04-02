@@ -1,7 +1,13 @@
 import { Link } from "react-router-dom";
 import ProductCatalogSection from "../components/ProductCatalogSection";
 
-export default function CataloguePage({ onAddToCart, reviewsByProduct }) {
+export default function CataloguePage({
+  onAddToCart,
+  onToggleWishlist,
+  reviewsByProduct,
+  stockByProduct,
+  wishlistProductIds,
+}) {
   return (
     <main>
       <div className="catalogue-breadcrumb">
@@ -12,7 +18,13 @@ export default function CataloguePage({ onAddToCart, reviewsByProduct }) {
           Back to Home
         </Link>
       </div>
-      <ProductCatalogSection onAddToCart={onAddToCart} reviewsByProduct={reviewsByProduct} />
+      <ProductCatalogSection
+        onAddToCart={onAddToCart}
+        onToggleWishlist={onToggleWishlist}
+        reviewsByProduct={reviewsByProduct}
+        stockByProduct={stockByProduct}
+        wishlistProductIds={wishlistProductIds}
+      />
     </main>
   );
 }
