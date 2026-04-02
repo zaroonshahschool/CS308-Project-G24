@@ -154,7 +154,8 @@ cd backend
 On Windows, use:
 
 ```bash
-mvnw.cmd spring-boot:run
+cd backend
+.\mvnw.cmd spring-boot:run
 ```
 
 Wait until you see `Started StoreApplication` in the terminal. The backend runs on **http://localhost:8080**.
