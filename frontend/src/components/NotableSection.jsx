@@ -1,7 +1,12 @@
-// TODO: Replace BOOK_PLACEHOLDERS with real data fetched from DB
+import { Link } from "react-router-dom";
+
 const BOOK_PLACEHOLDERS = [1, 2, 3, 4, 5];
 
-export default function NotableSection() {
+function formatPrice(price) {
+  return typeof price === "number" ? `$${price.toFixed(2)}` : "";
+}
+
+export default function NotableSection({ books }) {
   return (
     <section className="section-notable">
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 80px" }}>
@@ -10,16 +15,23 @@ export default function NotableSection() {
       </div>
 
       <div className="books-grid">
-        {BOOK_PLACEHOLDERS.map((n) => (
-          <div key={n} className="book-card">
-            {/* Cover placeholder — will be replaced with book.coverImage from DB */}
-            <div className="book-cover-placeholder" />
-            {/* Text placeholders — will render book.title, book.author, book.price */}
-            <span className="text-ph title-ph" />
-            <span className="text-ph author-ph" />
-            <span className="text-ph price-ph-sm" />
-          </div>
-        ))}
+        {books?.length
+          ? books.map((book) => (
+              <Link key={book.id} to="/catalogue" className="book-card">
+                <img src={book.coverImage} alt={book.title} className="book-cover" />
+                <span className="book-title">{book.title}</span>
+                <span className="book-author">{book.author}</span>
+                <span className="book-price">{formatPrice(book.price)}</span>
+              </Link>
+            ))
+          : BOOK_PLACEHOLDERS.map((n) => (
+              <div key={n} className="book-card">
+                <div className="book-cover-placeholder" />
+                <span className="text-ph title-ph" />
+                <span className="text-ph author-ph" />
+                <span className="text-ph price-ph-sm" />
+              </div>
+            ))}
       </div>
 
       <div className="notable-divider" />
