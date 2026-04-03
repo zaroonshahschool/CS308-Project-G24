@@ -11,6 +11,7 @@ import CataloguePage from "./pages/CataloguePage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import WishlistPage from "./pages/WishlistPage";
 import AccountPage from "./pages/AccountPage";
+import AdminPage from "./pages/AdminPage";
 import { initialReviewsByProduct } from "./data/reviews";
 import { getInitialOrders, getInitialStockByProduct, initialCustomer } from "./data/customer";
 
@@ -263,6 +264,7 @@ export default function App() {
             />
           }
         />
+        <Route path="/admin" element={<AdminPage />} />
         <Route
           path="/account"
           element={
