@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { CATEGORIES, products } from "../data/products";
+import { fetchCategories, fetchProducts } from "../services/catalogApi";
 
 const HASH_TO_CATEGORY = {
   "#fiction-filter": "Fiction",
@@ -25,7 +25,9 @@ function normalizeSearchValue(value) {
 function getPopularityScore(reviews) {
   if (reviews.length === 0) return 0;
 
-  const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+  const averageRating =
+    reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+
   return reviews.length * 20 + averageRating;
 }
 
@@ -54,12 +56,19 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, reviews, wishlist
 
   return (
     <div className={`catalog-card${outOfStock ? " catalog-card--oos" : ""}`}>
-      <Link to={`/catalogue/${product.id}`} className="catalog-cover-link" aria-label={`View details for ${product.name}`}>
+      <Link
+        to={`/catalogue/${product.id}`}
+        className="catalog-cover-link"
+        aria-label={`View details for ${product.name}`}
+      >
         <div className="catalog-cover-wrap">
-          <WishlistButton active={inWishlist} onClick={(event) => {
-            event.preventDefault();
-            onToggleWishlist(product.id);
-          }} />
+          <WishlistButton
+            active={inWishlist}
+            onClick={(event) => {
+              event.preventDefault();
+              onToggleWishlist(product.id);
+            }}
+          />
           <img
             src={product.image}
             alt={product.name}
@@ -82,11 +91,16 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, reviews, wishlist
           </Link>
         </h3>
         <p className="catalog-card-author">{product.author}</p>
+
         <div className="catalog-rating-row">
           {averageRating ? (
             <>
-              <span className="catalog-rating-stars" aria-hidden="true">{"\u2605".repeat(Math.round(averageRating))}</span>
-              <span className="catalog-rating-text">{averageRating.toFixed(1)} | {reviews.length} rating{reviews.length !== 1 ? "s" : ""}</span>
+              <span className="catalog-rating-stars" aria-hidden="true">
+                {"\u2605".repeat(Math.round(averageRating))}
+              </span>
+              <span className="catalog-rating-text">
+                {averageRating.toFixed(1)} | {reviews.length} rating{reviews.length !== 1 ? "s" : ""}
+              </span>
             </>
           ) : (
             <span className="catalog-rating-text">No ratings yet</span>
@@ -122,14 +136,50 @@ export default function ProductCatalogSection({
 }) {
   const { hash } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+
   const [activeCategory, setActiveCategory] = useState("All");
+  const [categories, setCategories] = useState(["All"]);
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [error, setError] = useState("");
 
   const searchQuery = searchParams.get("search") ?? "";
   const sortOption = searchParams.get("sort") ?? "relevance";
 
   useEffect(() => {
-    const nextCategory = HASH_TO_CATEGORY[hash];
+    let ignore = false;
 
+    async function loadCategories() {
+      try {
+        setLoadingCategories(true);
+        const categoryDtos = await fetchCategories();
+
+        if (ignore) return;
+
+        const categoryNames = categoryDtos.map((category) => category.name);
+        const uniqueCategories = ["All", ...categoryNames.filter((name) => name !== "All")];
+        setCategories(uniqueCategories);
+      } catch (err) {
+        if (!ignore) {
+          setError(err.message || "Failed to load categories.");
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingCategories(false);
+        }
+      }
+    }
+
+    loadCategories();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const nextCategory = HASH_TO_CATEGORY[hash];
     if (!nextCategory) return;
 
     setActiveCategory(nextCategory);
@@ -142,6 +192,36 @@ export default function ProductCatalogSection({
       });
     });
   }, [hash]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadProducts() {
+      try {
+        setLoadingProducts(true);
+        setError("");
+        const data = await fetchProducts(activeCategory);
+
+        if (ignore) return;
+        setProducts(data);
+      } catch (err) {
+        if (!ignore) {
+          setError(err.message || "Failed to load catalogue.");
+          setProducts([]);
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingProducts(false);
+        }
+      }
+    }
+
+    loadProducts();
+
+    return () => {
+      ignore = true;
+    };
+  }, [activeCategory]);
 
   function updateSearchParams(nextValues) {
     const nextParams = new URLSearchParams(searchParams);
@@ -160,12 +240,10 @@ export default function ProductCatalogSection({
   const visibleProducts = useMemo(() => {
     const normalizedQuery = normalizeSearchValue(searchQuery);
 
-    let result =
-      activeCategory === "All"
-        ? products.map((product) => ({ ...product, stock: stockByProduct[product.id] ?? product.stock }))
-        : products
-            .filter((product) => product.category === activeCategory)
-            .map((product) => ({ ...product, stock: stockByProduct[product.id] ?? product.stock }));
+    let result = products.map((product) => ({
+      ...product,
+      stock: stockByProduct[product.id] ?? product.stock,
+    }));
 
     if (normalizedQuery) {
       result = result.filter((product) => {
@@ -190,7 +268,7 @@ export default function ProductCatalogSection({
     }
 
     return result;
-  }, [activeCategory, reviewsByProduct, searchQuery, sortOption, stockByProduct]);
+  }, [products, reviewsByProduct, searchQuery, sortOption, stockByProduct]);
 
   return (
     <section className="section-catalog">
@@ -223,20 +301,23 @@ export default function ProductCatalogSection({
             onChange={(event) => updateSearchParams({ sort: event.target.value })}
           >
             {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
           </select>
         </label>
       </div>
 
       <div className="catalog-results-summary">
-        {visibleProducts.length} result{visibleProducts.length !== 1 ? "s" : ""}
-        {searchQuery ? ` for "${searchQuery}"` : ""}
+        {loadingProducts
+          ? "Loading results..."
+          : `${visibleProducts.length} result${visibleProducts.length !== 1 ? "s" : ""}${searchQuery ? ` for "${searchQuery}"` : ""}`}
       </div>
 
       <div className="catalog-tabs-wrap">
         <div className="catalog-tabs">
-          {CATEGORIES.map((category) => (
+          {(loadingCategories ? ["All"] : categories).map((category) => (
             <button
               key={category}
               id={getCategoryButtonId(category)}
@@ -249,7 +330,17 @@ export default function ProductCatalogSection({
         </div>
       </div>
 
-      {visibleProducts.length > 0 ? (
+      {error ? (
+        <div className="catalog-empty-state">
+          <h3 className="catalog-empty-title">Catalogue could not be loaded</h3>
+          <p className="catalog-empty-text">{error}</p>
+        </div>
+      ) : loadingProducts ? (
+        <div className="catalog-empty-state">
+          <h3 className="catalog-empty-title">Loading catalogue...</h3>
+          <p className="catalog-empty-text">Please wait while the books are fetched from the database.</p>
+        </div>
+      ) : visibleProducts.length > 0 ? (
         <div className="catalog-grid">
           {visibleProducts.map((product) => (
             <ProductCard
@@ -265,7 +356,9 @@ export default function ProductCatalogSection({
       ) : (
         <div className="catalog-empty-state">
           <h3 className="catalog-empty-title">No matching editions found</h3>
-          <p className="catalog-empty-text">Try a different title keyword, broader description term, or another sort option.</p>
+          <p className="catalog-empty-text">
+            Try a different title keyword, broader description term, or another category.
+          </p>
         </div>
       )}
     </section>
