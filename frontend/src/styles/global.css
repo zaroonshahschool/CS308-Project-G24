@@ -1319,6 +1319,42 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
 .review-field textarea:focus {
   border-color: var(--gold);
 }
+.review-field--readonly input {
+  background: #f4f0e8;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+.profile-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.profile-saved-indicator {
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.profile-saved-indicator {
+  color: #2e7d32;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.profile-saved-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #2e7d32;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+}
 .review-form .btn-primary {
   margin-top: 4px;
 }

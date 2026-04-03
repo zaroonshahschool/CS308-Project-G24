@@ -9,6 +9,12 @@ const NAV_LINKS = [
 
 export default function Nav() {
   const { pathname } = useLocation();
+  const token = window.localStorage.getItem("auth_token");
+
+  function handleLogout() {
+    window.localStorage.removeItem("auth_token");
+    window.localStorage.removeItem("auth_role");
+  }
 
   return (
     <nav className="nav">
@@ -26,8 +32,12 @@ export default function Nav() {
             <a key={label} href={to}>{label}</a>
           )
         )}
-        <a href="#" style={{ marginLeft: "auto", color: "var(--text-mid)" }}>Admin</a>
-        <a href="#" style={{ color: "var(--text-mid)" }}>Sign In</a>
+        <Link to="/dashboard" style={{ marginLeft: "auto", color: "var(--text-mid)" }}>Admin</Link>
+        {token ? (
+          <Link to="/" style={{ color: "var(--text-mid)" }} onClick={handleLogout}>Sign Out</Link>
+        ) : (
+          <Link to="/login" style={{ color: "var(--text-mid)" }}>Sign In</Link>
+        )}
       </div>
     </nav>
   );

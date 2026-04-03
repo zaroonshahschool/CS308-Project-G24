@@ -1,135 +1,239 @@
-import { useEffect, useState } from "react";
-import { Route, Routes, useNavigate } from "react-router-dom";
-import "./styles/global.css";
-
+import { useEffect, useRef, useState } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import "./App.css";
+import CartDrawer from "./components/CartDrawer";
+import Footer from "./components/Footer";
 import Header from "./components/Header";
 import Nav from "./components/Nav";
-import Footer from "./components/Footer";
-import CartDrawer from "./components/CartDrawer";
-import HomePage from "./pages/HomePage";
-import CataloguePage from "./pages/CataloguePage";
-import ProductDetailPage from "./pages/ProductDetailPage";
-import WishlistPage from "./pages/WishlistPage";
-import AccountPage from "./pages/AccountPage";
+import { initialCustomer, getInitialOrders, getInitialStockByProduct } from "./data/customer";
+import { products } from "./data/products";
 import { initialReviewsByProduct } from "./data/reviews";
-import { getInitialOrders, getInitialStockByProduct, initialCustomer } from "./data/customer";
+import AccountPage from "./pages/AccountPage";
+import CataloguePage from "./pages/CataloguePage";
+import DashboardPage from "./pages/DashboardPage";
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
+import RegisterPage from "./pages/RegisterPage";
+import WishlistPage from "./pages/WishlistPage";
+
+function getStoredArray(key) {
+  const rawValue = window.localStorage.getItem(key);
+  return rawValue ? JSON.parse(rawValue) : [];
+}
+
+function generateCustomerId() {
+  return String(Math.floor(1000000 + Math.random() * 9000000));
+}
+
+function getStoredCustomer() {
+  const rawValue = window.localStorage.getItem("customer_profile");
+
+  if (!rawValue) {
+    return initialCustomer;
+  }
+
+  try {
+    return { ...initialCustomer, ...JSON.parse(rawValue) };
+  } catch {
+    return initialCustomer;
+  }
+}
+
+function ProtectedRoute({ children }) {
+  const token = window.localStorage.getItem("auth_token");
+  const location = useLocation();
+
+  if (token) {
+    return children;
+  }
+
+  const next = `${location.pathname}${location.search}`;
+  return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
+}
+
+function StoreLayout({ children, cartCount, wishlistCount, onCartOpen }) {
+  return (
+    <>
+      <Header cartCount={cartCount} wishlistCount={wishlistCount} onCartOpen={onCartOpen} />
+      <Nav />
+      {children}
+      <Footer />
+    </>
+  );
+}
+
+function CheckoutGate({ onCheckoutSuccess }) {
+  const navigate = useNavigate();
+  const hasProcessed = useRef(false);
+
+  useEffect(() => {
+    if (hasProcessed.current) {
+      return;
+    }
+
+    hasProcessed.current = true;
+    onCheckoutSuccess();
+    navigate("/account", { replace: true });
+  }, [navigate, onCheckoutSuccess]);
+
+  return null;
+}
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [cartItems, setCartItems] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [reviewsByProduct, setReviewsByProduct] = useState(() => {
-    const storedReviews = window.localStorage.getItem("aurelia-reviews");
-    return storedReviews ? JSON.parse(storedReviews) : initialReviewsByProduct;
-  });
-  const [wishlistProductIds, setWishlistProductIds] = useState(() => {
-    const storedWishlist = window.localStorage.getItem("aurelia-wishlist");
-    return storedWishlist ? JSON.parse(storedWishlist) : [];
-  });
-  const [customer, setCustomer] = useState(() => {
-    const storedCustomer = window.localStorage.getItem("aurelia-customer");
-    return storedCustomer ? JSON.parse(storedCustomer) : initialCustomer;
-  });
-  const [orders, setOrders] = useState(() => {
-    const storedOrders = window.localStorage.getItem("aurelia-orders");
-    return storedOrders ? JSON.parse(storedOrders) : getInitialOrders();
-  });
-  const [stockByProduct, setStockByProduct] = useState(() => {
-    const storedStock = window.localStorage.getItem("aurelia-stock");
-    return storedStock ? JSON.parse(storedStock) : getInitialStockByProduct();
-  });
+  const [wishlistProductIds, setWishlistProductIds] = useState(() => getStoredArray("wishlist_product_ids"));
+  const [reviewsByProduct, setReviewsByProduct] = useState(initialReviewsByProduct);
+  const [customer, setCustomer] = useState(getStoredCustomer);
+  const [orders, setOrders] = useState(getInitialOrders);
+  const [stockByProduct, setStockByProduct] = useState(getInitialStockByProduct);
+
+  const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
 
   useEffect(() => {
-    window.localStorage.setItem("aurelia-reviews", JSON.stringify(reviewsByProduct));
-  }, [reviewsByProduct]);
+    const authEmail = window.localStorage.getItem("auth_email");
+    const registeredEmail = window.localStorage.getItem("last_registered_email");
+    const storedCustomer = getStoredCustomer();
+    const nextEmail = authEmail || registeredEmail || storedCustomer.email || "";
 
-  useEffect(() => {
-    window.localStorage.setItem("aurelia-wishlist", JSON.stringify(wishlistProductIds));
-  }, [wishlistProductIds]);
+    setCustomer((currentCustomer) => {
+      const nextCustomer = {
+        ...storedCustomer,
+        id: storedCustomer.id || currentCustomer.id || generateCustomerId(),
+        email: nextEmail,
+      };
 
-  useEffect(() => {
-    window.localStorage.setItem("aurelia-customer", JSON.stringify(customer));
-  }, [customer]);
+      const currentSnapshot = JSON.stringify(currentCustomer);
+      const nextSnapshot = JSON.stringify(nextCustomer);
 
-  useEffect(() => {
-    window.localStorage.setItem("aurelia-orders", JSON.stringify(orders));
-  }, [orders]);
+      if (currentSnapshot === nextSnapshot) {
+        return currentCustomer;
+      }
 
-  useEffect(() => {
-    window.localStorage.setItem("aurelia-stock", JSON.stringify(stockByProduct));
-  }, [stockByProduct]);
+      window.localStorage.setItem("customer_profile", JSON.stringify(nextCustomer));
+      return nextCustomer;
+    });
+  }, [location.pathname]);
 
-  function addToCart(product) {
+  function persistWishlist(nextWishlist) {
+    setWishlistProductIds(nextWishlist);
+    window.localStorage.setItem("wishlist_product_ids", JSON.stringify(nextWishlist));
+  }
+
+  function handleToggleWishlist(productId) {
+    persistWishlist(
+      wishlistProductIds.includes(productId)
+        ? wishlistProductIds.filter((id) => id !== productId)
+        : [...wishlistProductIds, productId]
+    );
+  }
+
+  function handleAddToCart(product) {
     const availableStock = stockByProduct[product.id] ?? product.stock;
 
-    if (availableStock === 0) return;
+    if (availableStock <= 0) {
+      return;
+    }
 
-    setCartItems((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
+    setCartItems((currentItems) => {
+      const existingItem = currentItems.find((item) => item.id === product.id);
 
-      if (existing) {
-        if (existing.qty >= availableStock) {
-          return prev;
-        }
-
-        return prev.map((item) =>
-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
+      if (existingItem) {
+        return currentItems.map((item) =>
+          item.id === product.id
+            ? { ...item, qty: Math.min(item.qty + 1, availableStock) }
+            : item
         );
       }
 
-      return [...prev, { ...product, stock: availableStock, qty: 1 }];
+      return [...currentItems, { ...product, stock: availableStock, qty: 1 }];
     });
 
     setCartOpen(true);
   }
 
-  function removeFromCart(id) {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-  }
-
-  function updateQty(id, delta) {
-    setCartItems((prev) =>
-      prev
+  function handleUpdateCartQty(productId, delta) {
+    setCartItems((currentItems) =>
+      currentItems
         .map((item) => {
-          if (item.id !== id) return item;
+          if (item.id !== productId) {
+            return item;
+          }
 
           const availableStock = stockByProduct[item.id] ?? item.stock;
           const nextQty = Math.max(0, Math.min(item.qty + delta, availableStock));
-
           return { ...item, qty: nextQty };
         })
         .filter((item) => item.qty > 0)
     );
   }
 
-  function submitReview(productId, reviewInput) {
-    const newReview = {
+  function handleRemoveFromCart(productId) {
+    setCartItems((currentItems) => currentItems.filter((item) => item.id !== productId));
+  }
+
+  function handleSubmitReview(productId, reviewInput) {
+    const nextReview = {
       id: `${productId}-${Date.now()}`,
-      ...reviewInput,
-      status: "pending",
+      reviewer: reviewInput.reviewer.trim(),
+      rating: reviewInput.rating,
+      comment: reviewInput.comment.trim(),
+      status: reviewInput.comment.trim() ? "pending" : "approved",
       submittedAt: new Date().toISOString().slice(0, 10),
     };
 
-    setReviewsByProduct((prev) => ({
-      ...prev,
-      [productId]: [...(prev[productId] ?? []), newReview],
+    setReviewsByProduct((currentReviews) => ({
+      ...currentReviews,
+      [productId]: [...(currentReviews[productId] ?? []), nextReview],
     }));
   }
 
-  function toggleWishlist(productId) {
-    setWishlistProductIds((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
+  function handleUpdateCustomer(nextCustomer) {
+    window.localStorage.setItem("customer_profile", JSON.stringify(nextCustomer));
+    setCustomer(nextCustomer);
+  }
+
+  function handleCancelOrder(orderId) {
+    setOrders((currentOrders) =>
+      currentOrders.map((order) =>
+        order.id === orderId ? { ...order, status: "cancelled" } : order
+      )
     );
   }
 
-  function placeOrder() {
-    if (cartItems.length === 0) return;
+  function handleReturnOrderItem(orderId, itemId) {
+    setOrders((currentOrders) =>
+      currentOrders.map((order) => {
+        if (order.id !== orderId) {
+          return order;
+        }
 
-    const newOrder = {
-      id: `ORD-${new Date().toISOString().slice(0, 10)}-${Date.now().toString().slice(-4)}`,
-      placedAt: new Date().toISOString().slice(0, 10),
+        const updatedItems = order.items.map((item) =>
+          item.id === itemId ? { ...item, returnedAt: new Date().toISOString().slice(0, 10) } : item
+        );
+
+        return {
+          ...order,
+          status: "partially-returned",
+          items: updatedItems,
+        };
+      })
+    );
+  }
+
+  function createOrderFromCart() {
+    if (cartItems.length === 0) {
+      navigate("/catalogue");
+      return;
+    }
+
+    const placedAt = new Date().toISOString().slice(0, 10);
+    const nextOrder = {
+      id: `ORD-${Date.now()}`,
+      placedAt,
       status: "processing",
       total: cartItems.reduce((sum, item) => sum + item.price * item.qty, 0),
       items: cartItems.map((item) => ({
@@ -145,147 +249,130 @@ export default function App() {
       })),
     };
 
-    setOrders((prev) => [newOrder, ...prev]);
-    setStockByProduct((prev) => {
-      const next = { ...prev };
+    setOrders((currentOrders) => [nextOrder, ...currentOrders]);
+    setStockByProduct((currentStock) => {
+      const nextStock = { ...currentStock };
+
       cartItems.forEach((item) => {
-        next[item.id] = Math.max(0, (next[item.id] ?? item.stock) - item.qty);
+        nextStock[item.id] = Math.max(0, (nextStock[item.id] ?? item.stock) - item.qty);
       });
-      return next;
+
+      return nextStock;
     });
     setCartItems([]);
     setCartOpen(false);
+  }
+
+  function handleCheckout() {
+    const token = window.localStorage.getItem("auth_token");
+
+    if (!token) {
+      navigate("/login?next=/checkout");
+      setCartOpen(false);
+      return;
+    }
+
+    createOrderFromCart();
     navigate("/account");
   }
 
-  function cancelOrder(orderId) {
-    const order = orders.find((entry) => entry.id === orderId);
-    if (!order || order.status !== "processing") return;
-
-    setOrders((prev) =>
-      prev.map((entry) =>
-        entry.id === orderId
-          ? { ...entry, status: "cancelled", cancelledAt: new Date().toISOString().slice(0, 10) }
-          : entry
-      )
-    );
-
-    setStockByProduct((prev) => {
-      const next = { ...prev };
-      order.items.forEach((item) => {
-        next[item.productId] = (next[item.productId] ?? 0) + item.qty;
-      });
-      return next;
-    });
-  }
-
-  function returnOrderItem(orderId, itemId) {
-    const order = orders.find((entry) => entry.id === orderId);
-    const item = order?.items.find((entry) => entry.id === itemId);
-
-    if (!order || !item || order.status === "cancelled" || item.returnedAt) return;
-
-    const returnedAt = new Date().toISOString().slice(0, 10);
-
-    setOrders((prev) =>
-      prev.map((entry) => {
-        if (entry.id !== orderId) return entry;
-
-        const nextItems = entry.items.map((orderItem) =>
-          orderItem.id === itemId ? { ...orderItem, returnedAt } : orderItem
-        );
-        const allReturned = nextItems.every((orderItem) => Boolean(orderItem.returnedAt));
-
-        return {
-          ...entry,
-          items: nextItems,
-          status: allReturned ? "returned" : "partially returned",
-        };
-      })
-    );
-
-    setStockByProduct((prev) => ({
-      ...prev,
-      [item.productId]: (prev[item.productId] ?? 0) + item.qty,
-    }));
-  }
-
-  function updateCustomer(nextCustomer) {
-    setCustomer(nextCustomer);
-  }
-
-  const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
-
   return (
     <>
-      <Header
-        cartCount={cartCount}
-        wishlistCount={wishlistProductIds.length}
-        onCartOpen={() => setCartOpen(true)}
-      />
-      <Nav />
-
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/"
+          element={
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <HomePage />
+            </StoreLayout>
+          }
+        />
         <Route
           path="/catalogue"
           element={
-            <CataloguePage
-              onAddToCart={addToCart}
-              onToggleWishlist={toggleWishlist}
-              reviewsByProduct={reviewsByProduct}
-              stockByProduct={stockByProduct}
-              wishlistProductIds={wishlistProductIds}
-            />
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <CataloguePage
+                onAddToCart={handleAddToCart}
+                onToggleWishlist={handleToggleWishlist}
+                reviewsByProduct={reviewsByProduct}
+                stockByProduct={stockByProduct}
+                wishlistProductIds={wishlistProductIds}
+              />
+            </StoreLayout>
           }
         />
         <Route
           path="/catalogue/:productId"
           element={
-            <ProductDetailPage
-              onAddToCart={addToCart}
-              onSubmitReview={submitReview}
-              onToggleWishlist={toggleWishlist}
-              reviewsByProduct={reviewsByProduct}
-              stockByProduct={stockByProduct}
-              wishlistProductIds={wishlistProductIds}
-            />
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <ProductDetailPage
+                onAddToCart={handleAddToCart}
+                onSubmitReview={handleSubmitReview}
+                onToggleWishlist={handleToggleWishlist}
+                reviewsByProduct={reviewsByProduct}
+                stockByProduct={stockByProduct}
+                wishlistProductIds={wishlistProductIds}
+              />
+            </StoreLayout>
           }
         />
         <Route
           path="/wishlist"
           element={
-            <WishlistPage
-              onAddToCart={addToCart}
-              onToggleWishlist={toggleWishlist}
-              stockByProduct={stockByProduct}
-              wishlistProductIds={wishlistProductIds}
-            />
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <WishlistPage
+                onAddToCart={handleAddToCart}
+                onToggleWishlist={handleToggleWishlist}
+                stockByProduct={stockByProduct}
+                wishlistProductIds={wishlistProductIds}
+              />
+            </StoreLayout>
           }
         />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/account"
           element={
-            <AccountPage
-              customer={customer}
-              orders={orders}
-              onCancelOrder={cancelOrder}
-              onReturnOrderItem={returnOrderItem}
-              onUpdateCustomer={updateCustomer}
-            />
+            <ProtectedRoute>
+              <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+                <AccountPage
+                  customer={customer}
+                  orders={orders}
+                  onCancelOrder={handleCancelOrder}
+                  onReturnOrderItem={handleReturnOrderItem}
+                  onUpdateCustomer={handleUpdateCustomer}
+                />
+              </StoreLayout>
+            </ProtectedRoute>
           }
         />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <CheckoutGate onCheckoutSuccess={createOrderFromCart} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-
-      <Footer />
 
       <CartDrawer
         items={cartItems}
         isOpen={cartOpen}
-        onCheckout={placeOrder}
+        onCheckout={handleCheckout}
         onClose={() => setCartOpen(false)}
-        onRemove={removeFromCart}
-        onUpdateQty={updateQty}
+        onRemove={handleRemoveFromCart}
+        onUpdateQty={handleUpdateCartQty}
       />
     </>
   );

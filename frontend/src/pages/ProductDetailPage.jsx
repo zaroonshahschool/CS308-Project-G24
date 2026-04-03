@@ -188,7 +188,7 @@ export default function ProductDetailPage({
       <section className="product-detail-reviews">
         <div className="product-detail-section-head">
           <div>
-            <p className="section-tag">Requirement 5</p>
+           
             <h2 className="section-title">Ratings & Comments</h2>
           </div>
           <p className="section-subtitle">Ratings are counted immediately. Comments remain hidden until manager approval.</p>

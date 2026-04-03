@@ -77,7 +77,7 @@ export default function CartDrawer({ items, isOpen, onCheckout, onClose, onRemov
               <span className="cart-subtotal-label">Subtotal</span>
               <span className="cart-subtotal-value">${total.toFixed(2)}</span>
             </div>
-            <p className="cart-shipping-note">Customer checkout places a new order in account history.</p>
+            <p className="cart-shipping-note">Browsing is open to everyone. Customers only need to sign in when placing an order and payment.</p>
             <button className="cart-checkout-btn" onClick={onCheckout}>Proceed to Checkout</button>
           </div>
         )}
