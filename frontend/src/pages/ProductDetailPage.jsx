@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { fetchProductById, fetchProducts } from "../services/catalogApi";
+import { getProductById, products } from "../data/products";
 
 function RatingStars({ rating }) {
   return (
@@ -53,63 +53,16 @@ export default function ProductDetailPage({
   wishlistProductIds,
 }) {
   const { productId } = useParams();
-  const [product, setProduct] = useState(null);
-  const [relatedProducts, setRelatedProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const baseProduct = getProductById(productId);
+  const product = baseProduct
+    ? { ...baseProduct, stock: stockByProduct[baseProduct.id] ?? baseProduct.stock }
+    : null;
   const [formState, setFormState] = useState({
     reviewer: "",
     rating: 5,
     comment: "",
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadProduct() {
-      try {
-        setLoading(true);
-        setError("");
-        const dbProduct = await fetchProductById(productId);
-        if (ignore) return;
-
-        const withStock = {
-          ...dbProduct,
-          stock: stockByProduct[dbProduct.id] ?? dbProduct.stock,
-        };
-        setProduct(withStock);
-
-        const categoryProducts = await fetchProducts(dbProduct.category);
-        if (ignore) return;
-
-        setRelatedProducts(
-          categoryProducts
-            .filter((candidate) => candidate.id !== dbProduct.id)
-            .slice(0, 3)
-            .map((candidate) => ({
-              ...candidate,
-              stock: stockByProduct[candidate.id] ?? candidate.stock,
-            }))
-        );
-      } catch (err) {
-        if (!ignore) {
-          setError(err.message || "Failed to load product.");
-          setProduct(null);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadProduct();
-
-    return () => {
-      ignore = true;
-    };
-  }, [productId, stockByProduct]);
 
   const productReviews = reviewsByProduct[Number(productId)] ?? [];
   const approvedReviews = useMemo(
@@ -119,23 +72,13 @@ export default function ProductDetailPage({
   const averageRating = productReviews.length
     ? productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length
     : 0;
+  const relatedProducts = products
+    .filter((candidate) => candidate.category === product?.category && candidate.id !== product?.id)
+    .slice(0, 3)
+    .map((candidate) => ({ ...candidate, stock: stockByProduct[candidate.id] ?? candidate.stock }));
   const inWishlist = product ? wishlistProductIds.includes(product.id) : false;
 
-  if (loading) {
-    return (
-      <main className="product-detail-page">
-        <div className="catalogue-breadcrumb">
-          <Link to="/catalogue" className="breadcrumb-link">Back to Catalogue</Link>
-        </div>
-        <section className="product-missing">
-          <h1 className="section-title">Loading edition...</h1>
-          <p className="section-subtitle">Fetching this book from the database.</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (error || !product) {
+  if (!product) {
     return (
       <main className="product-detail-page">
         <div className="catalogue-breadcrumb">
@@ -143,7 +86,7 @@ export default function ProductDetailPage({
         </div>
         <section className="product-missing">
           <h1 className="section-title">Edition not found</h1>
-          <p className="section-subtitle">{error || "The title you requested could not be located in the current catalogue."}</p>
+          <p className="section-subtitle">The title you requested could not be located in the current catalogue.</p>
         </section>
       </main>
     );
@@ -224,19 +167,19 @@ export default function ProductDetailPage({
           <dl className="product-detail-specs">
             <div>
               <dt>Model</dt>
-              <dd>{product.model || "—"}</dd>
+              <dd>{product.model}</dd>
             </div>
             <div>
               <dt>Serial Number</dt>
-              <dd>{product.serialNumber || "—"}</dd>
+              <dd>{product.serialNumber}</dd>
             </div>
             <div>
               <dt>Warranty Status</dt>
-              <dd>{product.warrantyStatus || "—"}</dd>
+              <dd>{product.warrantyStatus}</dd>
             </div>
             <div>
               <dt>Distributor</dt>
-              <dd>{product.distributor || "—"}</dd>
+              <dd>{product.distributor}</dd>
             </div>
           </dl>
         </div>

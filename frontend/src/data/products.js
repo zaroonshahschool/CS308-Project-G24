@@ -1,4 +1,4 @@
-/*export const CATEGORIES = [
+export const CATEGORIES = [
   "All", "Fiction", "Non-Fiction",
   "Science Fiction", "Mystery", "History",
 ];
@@ -218,4 +218,4 @@ export const products = [
 
 export function getProductById(productId) {
   return products.find((product) => product.id === Number(productId));
-}*/
+}

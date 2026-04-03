@@ -1,7 +1,6 @@
 package com._8.store.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 public record ProductDto(
         Long id,
@@ -11,14 +10,6 @@ public record ProductDto(
         BigDecimal price,
         Integer stock,
         String imageUrl,
-        String category,
-        String model,
-        String serialNumber,
-        String warrantyStatus,
-        String distributor,
-        boolean featured,
-        boolean editorChoice,
-        boolean newArrival,
-        LocalDateTime createdAt
+        String category
 ) {
 }

@@ -57,15 +57,7 @@ public class CatalogService {
                 product.getPrice(),
                 product.getStock(),
                 product.getImageUrl(),
-                product.getCategory().getName(),
-                product.getModel(),
-                product.getSerialNumber(),
-                product.getWarrantyStatus(),
-                product.getDistributor(),
-                product.isFeatured(),
-                product.isEditorChoice(),
-                product.isNewArrival(),
-                product.getCreatedAt()
+                product.getCategory().getName()
         );
     }
 

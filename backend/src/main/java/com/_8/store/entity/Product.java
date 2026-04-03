@@ -31,18 +31,6 @@ public class Product {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
-    @Column(length = 100)
-    private String model;
-
-    @Column(name = "serial_number", length = 150)
-    private String serialNumber;
-
-    @Column(name = "warranty_status", length = 255)
-    private String warrantyStatus;
-
-    @Column(length = 255)
-    private String distributor;
-
     @Column(nullable = false)
     private boolean featured;
 
@@ -62,33 +50,15 @@ public class Product {
     public Product() {
     }
 
-    public Product(
-            String name,
-            String author,
-            String description,
-            BigDecimal price,
-            Integer stock,
-            String imageUrl,
-            String model,
-            String serialNumber,
-            String warrantyStatus,
-            String distributor,
-            boolean featured,
-            boolean editorChoice,
-            boolean newArrival,
-            LocalDateTime createdAt,
-            Category category
-    ) {
+    public Product(String name, String author, String description, BigDecimal price, Integer stock,
+                   String imageUrl, boolean featured, boolean editorChoice, boolean newArrival,
+                   LocalDateTime createdAt, Category category) {
         this.name = name;
         this.author = author;
         this.description = description;
         this.price = price;
         this.stock = stock;
         this.imageUrl = imageUrl;
-        this.model = model;
-        this.serialNumber = serialNumber;
-        this.warrantyStatus = warrantyStatus;
-        this.distributor = distributor;
         this.featured = featured;
         this.editorChoice = editorChoice;
         this.newArrival = newArrival;
@@ -122,22 +92,6 @@ public class Product {
 
     public String getImageUrl() {
         return imageUrl;
-    }
-
-    public String getModel() {
-        return model;
-    }
-
-    public String getSerialNumber() {
-        return serialNumber;
-    }
-
-    public String getWarrantyStatus() {
-        return warrantyStatus;
-    }
-
-    public String getDistributor() {
-        return distributor;
     }
 
     public boolean isFeatured() {
@@ -186,22 +140,6 @@ public class Product {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
-    }
-
-    public void setModel(String model) {
-        this.model = model;
-    }
-
-    public void setSerialNumber(String serialNumber) {
-        this.serialNumber = serialNumber;
-    }
-
-    public void setWarrantyStatus(String warrantyStatus) {
-        this.warrantyStatus = warrantyStatus;
-    }
-
-    public void setDistributor(String distributor) {
-        this.distributor = distributor;
     }
 
     public void setFeatured(boolean featured) {

@@ -1,48 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchProducts } from "../services/catalogApi";
+import { products } from "../data/products";
 
 export default function WishlistPage({ onAddToCart, onToggleWishlist, stockByProduct, wishlistProductIds }) {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadProducts() {
-      try {
-        setLoading(true);
-        setError("");
-        const data = await fetchProducts();
-        if (ignore) return;
-        setProducts(data);
-      } catch (err) {
-        if (!ignore) {
-          setError(err.message || "Failed to load wishlist products.");
-          setProducts([]);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadProducts();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  const wishlistProducts = useMemo(
-    () =>
-      products
-        .filter((product) => wishlistProductIds.includes(product.id))
-        .map((product) => ({ ...product, stock: stockByProduct[product.id] ?? product.stock })),
-    [products, stockByProduct, wishlistProductIds]
-  );
+  const wishlistProducts = products
+    .filter((product) => wishlistProductIds.includes(product.id))
+    .map((product) => ({ ...product, stock: stockByProduct[product.id] ?? product.stock }));
 
   return (
     <main className="customer-page">
@@ -59,17 +21,7 @@ export default function WishlistPage({ onAddToCart, onToggleWishlist, stockByPro
           <p className="section-subtitle">Saved editions stay here so customers can revisit them later.</p>
         </div>
 
-        {error ? (
-          <div className="customer-empty">
-            <h2 className="customer-empty-title">Wishlist could not be loaded</h2>
-            <p className="customer-empty-text">{error}</p>
-          </div>
-        ) : loading ? (
-          <div className="customer-empty">
-            <h2 className="customer-empty-title">Loading wishlist...</h2>
-            <p className="customer-empty-text">Fetching saved books from the database.</p>
-          </div>
-        ) : wishlistProducts.length > 0 ? (
+        {wishlistProducts.length > 0 ? (
           <div className="wishlist-grid">
             {wishlistProducts.map((product) => (
               <article key={product.id} className="wishlist-card">
