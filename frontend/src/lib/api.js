@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8080";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() || "";
 
 export async function apiFetch(path, options = {}) {
   const token = window.localStorage.getItem("auth_token");
@@ -13,9 +13,10 @@ export async function apiFetch(path, options = {}) {
   }
 
   let response;
+  const requestUrl = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
 
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
+    response = await fetch(requestUrl, {
       ...options,
       headers,
     });
