@@ -6,7 +6,7 @@ import Footer from "./components/Footer";
 import Header from "./components/Header";
 import Nav from "./components/Nav";
 import { initialCustomer, getInitialOrders, getInitialStockByProduct } from "./data/customer";
-import { products } from "./data/products";
+import AdminPage from "./pages/AdminPage";
 import { initialReviewsByProduct } from "./data/reviews";
 import AccountPage from "./pages/AccountPage";
 import CataloguePage from "./pages/CataloguePage";
@@ -331,6 +331,7 @@ export default function App() {
         />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route
           path="/account"
           element={

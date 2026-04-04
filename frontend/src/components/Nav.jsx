@@ -1,10 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 
 const NAV_LINKS = [
-  { label: "Limited Editions",  to: "#" },
-  { label: "Catalogue",         to: "/catalogue" },
-  { label: "New Releases",      to: "#" },
-  { label: "Collections",       to: "#" },
+  { label: "Limited Editions", to: "#" },
+  { label: "Catalogue", to: "/catalogue" },
+  { label: "New Releases", to: "#" },
+  { label: "Collections", to: "#" },
 ];
 
 export default function Nav() {
@@ -32,7 +32,12 @@ export default function Nav() {
             <a key={label} href={to}>{label}</a>
           )
         )}
-        <Link to="/dashboard" style={{ marginLeft: "auto", color: "var(--text-mid)" }}>Admin</Link>
+        <Link
+          to="/admin"
+          style={{ marginLeft: "auto", color: pathname === "/admin" ? "var(--accent)" : "var(--text-mid)" }}
+        >
+          Admin
+        </Link>
         {token ? (
           <Link to="/" style={{ color: "var(--text-mid)" }} onClick={handleLogout}>Sign Out</Link>
         ) : (
