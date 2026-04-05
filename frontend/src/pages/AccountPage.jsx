@@ -1,12 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-
-const PROFILE_FIELDS = [
-  { name: "name", label: "Name", type: "text", placeholder: "Press Enter to store your name" },
-  { name: "taxId", label: "Tax ID", type: "text", placeholder: "Press Enter to store tax ID" },
-  { name: "homeAddress", label: "Home Address", type: "textarea", placeholder: "Press Enter to store home address" },
-  { name: "password", label: "Password", type: "text", placeholder: "Press Enter to store password" },
-];
+import { fetchProfile, updateAddress } from "../services/customerApi";
 
 function canReturn(placedAt) {
   const purchaseDate = new Date(`${placedAt}T00:00:00`);
@@ -16,10 +10,7 @@ function canReturn(placedAt) {
 }
 
 function SavedTick({ visible }) {
-  if (!visible) {
-    return null;
-  }
-
+  if (!visible) return null;
   return (
     <span className="profile-saved-indicator" aria-label="Stored">
       <span className="profile-saved-check">✓</span>
@@ -28,44 +19,76 @@ function SavedTick({ visible }) {
   );
 }
 
-export default function AccountPage({ customer, orders, onCancelOrder, onReturnOrderItem, onUpdateCustomer }) {
-  const [formState, setFormState] = useState(customer);
+export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem }) {
+  const [profile, setProfile] = useState(null);
+  const [addressForm, setAddressForm] = useState({ street: "", city: "", postalCode: "", country: "" });
   const [savedField, setSavedField] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    setFormState(customer);
-  }, [customer]);
+    fetchProfile()
+      .then((data) => {
+        setProfile(data);
+        setAddressForm({
+          street: data.street || "",
+          city: data.city || "",
+          postalCode: data.postalCode || "",
+          country: data.country || "",
+        });
+      })
+      .catch(() => setError("Failed to load profile."));
+  }, []);
 
   useEffect(() => {
-    if (!savedField) {
-      return undefined;
-    }
-
-    const timeoutId = window.setTimeout(() => setSavedField(""), 2200);
-    return () => window.clearTimeout(timeoutId);
+    if (!savedField) return undefined;
+    const id = window.setTimeout(() => setSavedField(""), 2200);
+    return () => window.clearTimeout(id);
   }, [savedField]);
 
-  const visibleFields = useMemo(() => PROFILE_FIELDS, []);
-
-  function handleChange(event) {
+  function handleAddressChange(event) {
     const { name, value } = event.target;
-    setFormState((prev) => ({ ...prev, [name]: value }));
+    setAddressForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  function saveField(fieldName) {
-    const nextCustomer = { ...formState };
-    onUpdateCustomer(nextCustomer);
-    setSavedField(fieldName);
-  }
-
-  function handleFieldKeyDown(event, fieldName) {
-    if (event.key !== "Enter" || event.shiftKey) {
-      return;
-    }
-
+  async function handleAddressKeyDown(event, fieldName) {
+    if (event.key !== "Enter" || event.shiftKey) return;
     event.preventDefault();
-    saveField(fieldName);
+    try {
+      await updateAddress(addressForm);
+      setSavedField(fieldName);
+    } catch {
+      setError("Failed to update address.");
+    }
   }
+
+  async function handleSaveAddress() {
+    try {
+      await updateAddress(addressForm);
+      setSavedField("address");
+    } catch {
+      setError("Failed to update address.");
+    }
+  }
+
+  if (!profile) {
+    return (
+      <main className="customer-page">
+        <div className="catalogue-breadcrumb">
+          <Link to="/" className="breadcrumb-link">Back to Home</Link>
+        </div>
+        <section className="customer-shell">
+          <p className="section-subtitle">{error || "Loading profile..."}</p>
+        </section>
+      </main>
+    );
+  }
+
+  const ADDRESS_FIELDS = [
+    { name: "street", label: "Street" },
+    { name: "city", label: "City" },
+    { name: "postalCode", label: "Postal Code" },
+    { name: "country", label: "Country" },
+  ];
 
   return (
     <main className="customer-page">
@@ -78,7 +101,7 @@ export default function AccountPage({ customer, orders, onCancelOrder, onReturnO
           <div>
             <h1 className="section-title">Customer Account</h1>
           </div>
-          <p className="section-subtitle">Customers can manage their profile, place orders, cancel processing orders, and request returns.</p>
+          <p className="section-subtitle">Manage your home address and view your orders.</p>
         </div>
 
         <div className="account-grid">
@@ -86,55 +109,47 @@ export default function AccountPage({ customer, orders, onCancelOrder, onReturnO
             <h2 className="account-card-title">Profile</h2>
 
             <div className="review-field review-field--readonly">
-              <span>Customer ID</span>
-              <input
-                name="id"
-                type="text"
-                value={formState.id}
-                readOnly
-                disabled
-              />
+              <span>Name</span>
+              <input type="text" value={profile.name} readOnly disabled />
             </div>
 
             <div className="review-field review-field--readonly">
               <span>Email Address</span>
-              <input
-                name="email"
-                type="email"
-                value={formState.email}
-                readOnly
-                disabled
-              />
+              <input type="email" value={profile.email} readOnly disabled />
             </div>
 
-            {visibleFields.map((field) => (
+            <div className="review-field review-field--readonly">
+              <span>Tax Number</span>
+              <input type="text" value={profile.taxNumber} readOnly disabled />
+            </div>
+
+            <h3 className="account-card-title" style={{ marginTop: "1.5rem" }}>Home Address</h3>
+
+            {ADDRESS_FIELDS.map((field) => (
               <div key={field.name} className="review-field">
                 <div className="profile-field-head">
                   <span>{field.label}</span>
                   <SavedTick visible={savedField === field.name} />
                 </div>
-
-                {field.type === "textarea" ? (
-                  <textarea
-                    name={field.name}
-                    rows="4"
-                    value={formState[field.name]}
-                    onChange={handleChange}
-                    onKeyDown={(event) => handleFieldKeyDown(event, field.name)}
-                    placeholder={field.placeholder}
-                  />
-                ) : (
-                  <input
-                    name={field.name}
-                    type={field.type}
-                    value={formState[field.name]}
-                    onChange={handleChange}
-                    onKeyDown={(event) => handleFieldKeyDown(event, field.name)}
-                    placeholder={field.placeholder}
-                  />
-                )}
+                <input
+                  name={field.name}
+                  type="text"
+                  value={addressForm[field.name]}
+                  onChange={handleAddressChange}
+                  onKeyDown={(e) => handleAddressKeyDown(e, field.name)}
+                  placeholder={`Enter ${field.label.toLowerCase()}`}
+                />
               </div>
             ))}
+
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.75rem" }}>
+              <button className="btn-primary" onClick={handleSaveAddress}>
+                Save Address
+              </button>
+              <SavedTick visible={savedField === "address"} />
+            </div>
+
+            {error && <p style={{ color: "red", marginTop: "0.5rem" }}>{error}</p>}
           </div>
 
           <div className="account-card">

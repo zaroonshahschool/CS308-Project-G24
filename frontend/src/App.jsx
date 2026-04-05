@@ -338,11 +338,9 @@ export default function App() {
             <ProtectedRoute>
               <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
                 <AccountPage
-                  customer={customer}
                   orders={orders}
                   onCancelOrder={handleCancelOrder}
                   onReturnOrderItem={handleReturnOrderItem}
-                  onUpdateCustomer={handleUpdateCustomer}
                 />
               </StoreLayout>
             </ProtectedRoute>
