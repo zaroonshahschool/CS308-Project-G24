@@ -33,6 +33,17 @@ export default function Header({ cartCount = 0, wishlistCount = 0, onCartOpen })
     setSearchOpen(false);
   }
 
+  function handleAccountClick() {
+    const token = window.localStorage.getItem("auth_token");
+
+    if (token) {
+      navigate("/account");
+      return;
+    }
+
+    navigate("/login?next=/account");
+  }
+
   return (
     <header className="header">
       <div className="header-inner">
@@ -61,7 +72,7 @@ export default function Header({ cartCount = 0, wishlistCount = 0, onCartOpen })
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
           </button>
-          <button className="icon-btn" title="Account" onClick={() => navigate("/account")}>
+          <button className="icon-btn" title="Account" onClick={handleAccountClick}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
             </svg>

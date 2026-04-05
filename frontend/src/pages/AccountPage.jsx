@@ -1,5 +1,12 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+
+const PROFILE_FIELDS = [
+  { name: "name", label: "Name", type: "text", placeholder: "Press Enter to store your name" },
+  { name: "taxId", label: "Tax ID", type: "text", placeholder: "Press Enter to store tax ID" },
+  { name: "homeAddress", label: "Home Address", type: "textarea", placeholder: "Press Enter to store home address" },
+  { name: "password", label: "Password", type: "text", placeholder: "Press Enter to store password" },
+];
 
 function canReturn(placedAt) {
   const purchaseDate = new Date(`${placedAt}T00:00:00`);
@@ -8,17 +15,56 @@ function canReturn(placedAt) {
   return daysSincePurchase <= 30;
 }
 
+function SavedTick({ visible }) {
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <span className="profile-saved-indicator" aria-label="Stored">
+      <span className="profile-saved-check">✓</span>
+      Stored
+    </span>
+  );
+}
+
 export default function AccountPage({ customer, orders, onCancelOrder, onReturnOrderItem, onUpdateCustomer }) {
   const [formState, setFormState] = useState(customer);
+  const [savedField, setSavedField] = useState("");
+
+  useEffect(() => {
+    setFormState(customer);
+  }, [customer]);
+
+  useEffect(() => {
+    if (!savedField) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => setSavedField(""), 2200);
+    return () => window.clearTimeout(timeoutId);
+  }, [savedField]);
+
+  const visibleFields = useMemo(() => PROFILE_FIELDS, []);
 
   function handleChange(event) {
     const { name, value } = event.target;
     setFormState((prev) => ({ ...prev, [name]: value }));
   }
 
-  function handleSubmit(event) {
+  function saveField(fieldName) {
+    const nextCustomer = { ...formState };
+    onUpdateCustomer(nextCustomer);
+    setSavedField(fieldName);
+  }
+
+  function handleFieldKeyDown(event, fieldName) {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
+    }
+
     event.preventDefault();
-    onUpdateCustomer(formState);
+    saveField(fieldName);
   }
 
   return (
@@ -30,41 +76,66 @@ export default function AccountPage({ customer, orders, onCancelOrder, onReturnO
       <section className="customer-shell">
         <div className="customer-page-head">
           <div>
-           
             <h1 className="section-title">Customer Account</h1>
           </div>
           <p className="section-subtitle">Customers can manage their profile, place orders, cancel processing orders, and request returns.</p>
         </div>
 
         <div className="account-grid">
-          <form className="account-card" onSubmit={handleSubmit}>
+          <div className="account-card">
             <h2 className="account-card-title">Profile</h2>
-            <div className="review-field">
+
+            <div className="review-field review-field--readonly">
               <span>Customer ID</span>
-              <input name="id" value={formState.id} onChange={handleChange} />
+              <input
+                name="id"
+                type="text"
+                value={formState.id}
+                readOnly
+                disabled
+              />
             </div>
-            <div className="review-field">
-              <span>Name</span>
-              <input name="name" value={formState.name} onChange={handleChange} />
-            </div>
-            <div className="review-field">
-              <span>Tax ID</span>
-              <input name="taxId" value={formState.taxId} onChange={handleChange} />
-            </div>
-            <div className="review-field">
+
+            <div className="review-field review-field--readonly">
               <span>Email Address</span>
-              <input name="email" type="email" value={formState.email} onChange={handleChange} />
+              <input
+                name="email"
+                type="email"
+                value={formState.email}
+                readOnly
+                disabled
+              />
             </div>
-            <div className="review-field">
-              <span>Home Address</span>
-              <textarea name="homeAddress" rows="4" value={formState.homeAddress} onChange={handleChange} />
-            </div>
-            <div className="review-field">
-              <span>Password</span>
-              <input name="password" value={formState.password} onChange={handleChange} />
-            </div>
-            <button type="submit" className="btn-primary">Save Customer Info</button>
-          </form>
+
+            {visibleFields.map((field) => (
+              <div key={field.name} className="review-field">
+                <div className="profile-field-head">
+                  <span>{field.label}</span>
+                  <SavedTick visible={savedField === field.name} />
+                </div>
+
+                {field.type === "textarea" ? (
+                  <textarea
+                    name={field.name}
+                    rows="4"
+                    value={formState[field.name]}
+                    onChange={handleChange}
+                    onKeyDown={(event) => handleFieldKeyDown(event, field.name)}
+                    placeholder={field.placeholder}
+                  />
+                ) : (
+                  <input
+                    name={field.name}
+                    type={field.type}
+                    value={formState[field.name]}
+                    onChange={handleChange}
+                    onKeyDown={(event) => handleFieldKeyDown(event, field.name)}
+                    placeholder={field.placeholder}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
 
           <div className="account-card">
             <h2 className="account-card-title">Order History</h2>

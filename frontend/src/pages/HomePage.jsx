@@ -3,8 +3,7 @@ import Hero from "../components/Hero";
 import LibrariesSection from "../components/LibrariesSection";
 import NotableSection from "../components/NotableSection";
 import EditorsChoice from "../components/EditorsChoice";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+import { apiFetch } from "../lib/api";
 
 const FALLBACK_VALUE_PROPS = [
   {
@@ -80,15 +79,7 @@ export default function HomePage() {
     async function loadHomePage() {
       try {
         setError("");
-        const response = await fetch(`${API_BASE_URL}/api/home`, {
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-
-        const data = await response.json();
+        const data = await apiFetch("/api/home", { signal: controller.signal });
         setHomeData(data);
       } catch (fetchError) {
         if (fetchError.name !== "AbortError") {

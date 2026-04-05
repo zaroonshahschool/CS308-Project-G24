@@ -131,18 +131,31 @@ CREATE DATABASE mystore;
 
 ### 3. Configure Database Connection
 
-Open `backend/src/main/resources/application.properties` and update the username and password to match **your** PostgreSQL setup:
+Create or update your local-only config file:
+
+```bash
+backend/src/main/resources/application-local.properties
+```
+
+Add your PostgreSQL credentials there:
 
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/mystore
 spring.datasource.username=YOUR_POSTGRESQL_USERNAME
 spring.datasource.password=YOUR_POSTGRESQL_PASSWORD
 ```
 
-- **macOS (Homebrew):** Username is your macOS username (run `whoami` to check), password is empty.
-- **Windows:** Username is usually `postgres`, password is what you set during PostgreSQL installation.
+If port `8080` is already in use on your machine, you can also add:
 
-> ⚠️ **Do NOT commit your personal database credentials.** This file will be improved with environment variables later.
+```properties
+server.port=8081
+```
+
+- **macOS (Homebrew):** Username is often your macOS username (`whoami`), and password is often empty unless you set one manually.
+- **Windows:** Username is usually `postgres`, and password is the one you chose during PostgreSQL installation.
+
+> Do not commit personal credentials or local port overrides.
+>
+> `application-local.properties` is ignored by Git and is the correct place for local machine settings.
 
 ### 4. Run the Backend
 
@@ -158,7 +171,10 @@ cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-Wait until you see `Started StoreApplication` in the terminal. The backend runs on **http://localhost:8080**.
+Wait until you see `Started StoreApplication` in the terminal.
+
+By default the backend runs on **http://localhost:8080**.
+If you set `server.port=8081` in `application-local.properties`, it will run on **http://localhost:8081** instead.
 
 ### 5. Run the Frontend
 
@@ -171,6 +187,20 @@ npm run dev
 ```
 
 `npm install` is only needed the first time or when `package.json` changes. The frontend runs on **http://localhost:5173**.
+
+If your local backend is using `8081`, create:
+
+```bash
+frontend/.env.local
+```
+
+with:
+
+```properties
+VITE_API_BASE_URL=http://localhost:8081
+```
+
+`frontend/.env.local` is ignored by Git, so macOS and Windows developers can keep different local settings safely.
 
 ---
 
