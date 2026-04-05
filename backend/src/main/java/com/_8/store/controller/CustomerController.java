@@ -1,15 +1,20 @@
 package com._8.store.controller;
 
 import com._8.store.dto.AddressRequest;
+import com._8.store.dto.CommentRequest;
+import com._8.store.dto.CommentResponse;
+import com._8.store.dto.RatingRequest;
 import com._8.store.entity.User;
 import com._8.store.repository.UserRepository;
-import com._8.store.security.CustomUserDetailsService;
+import com._8.store.service.CommentService;
+import com._8.store.service.RatingService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -17,9 +22,14 @@ import java.util.Map;
 public class CustomerController {
 
     private final UserRepository userRepository;
+    private final RatingService ratingService;
+    private final CommentService commentService;
 
-    public CustomerController(UserRepository userRepository) {
+    public CustomerController(UserRepository userRepository, RatingService ratingService,
+                              CommentService commentService) {
         this.userRepository = userRepository;
+        this.ratingService = ratingService;
+        this.commentService = commentService;
     }
 
     @GetMapping("/dashboard")
@@ -45,9 +55,7 @@ public class CustomerController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> getProfile(
-            @AuthenticationPrincipal UserDetails userDetails) {
-
+    public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByEmailIgnoreCase(userDetails.getUsername())
                 .orElseThrow(() -> new IllegalArgumentException("User not found."));
 
@@ -60,5 +68,28 @@ public class CustomerController {
                 "postalCode", user.getPostalCode() != null ? user.getPostalCode() : "",
                 "country", user.getCountry() != null ? user.getCountry() : ""
         ));
+    }
+
+    @PostMapping("/products/{productId}/rate")
+    public ResponseEntity<?> rateProduct(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long productId,
+            @Valid @RequestBody RatingRequest request) {
+
+        return ResponseEntity.ok(ratingService.rateProduct(userDetails.getUsername(), productId, request));
+    }
+
+    @PostMapping("/products/{productId}/comment")
+    public ResponseEntity<?> addComment(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long productId,
+            @Valid @RequestBody CommentRequest request) {
+
+        return ResponseEntity.ok(commentService.addComment(userDetails.getUsername(), productId, request));
+    }
+
+    @GetMapping("/products/{productId}/comments")
+    public ResponseEntity<List<CommentResponse>> getApprovedComments(@PathVariable Long productId) {
+        return ResponseEntity.ok(commentService.getApprovedComments(productId));
     }
 }
