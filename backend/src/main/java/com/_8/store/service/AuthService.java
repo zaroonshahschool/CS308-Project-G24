@@ -14,6 +14,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Random;
+
 @Service
 public class AuthService {
 
@@ -39,15 +41,29 @@ public class AuthService {
             throw new IllegalArgumentException("A user with this email already exists.");
         }
 
+        String taxNumber = generateUniqueTaxNumber();
+
         User user = new User(
                 request.getName().trim(),
                 request.getEmail().trim().toLowerCase(),
                 passwordEncoder.encode(request.getPassword()),
-                Role.CUSTOMER
+                Role.CUSTOMER,
+                taxNumber
         );
 
         User savedUser = userRepository.save(user);
-        return new UserResponse(savedUser.getId(), savedUser.getName(), savedUser.getEmail(), savedUser.getRole());
+
+        return new UserResponse(
+                savedUser.getId(),
+                savedUser.getName(),
+                savedUser.getEmail(),
+                savedUser.getRole(),
+                savedUser.getTaxNumber(),
+                savedUser.getStreet(),
+                savedUser.getCity(),
+                savedUser.getPostalCode(),
+                savedUser.getCountry()
+        );
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -66,5 +82,22 @@ public class AuthService {
 
         String token = jwtService.generateToken(user);
         return new AuthResponse(token, user.getRole(), user.getName(), user.getEmail());
+    }
+
+    private String generateUniqueTaxNumber() {
+        String taxNumber;
+        do {
+            taxNumber = generateTaxNumber();
+        } while (userRepository.existsByTaxNumber(taxNumber));
+        return taxNumber;
+    }
+
+    private String generateTaxNumber() {
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 10; i++) {
+            sb.append(random.nextInt(10));
+        }
+        return sb.toString();
     }
 }
