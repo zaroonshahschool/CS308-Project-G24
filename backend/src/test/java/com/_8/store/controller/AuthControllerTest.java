@@ -64,7 +64,8 @@ class AuthControllerTest {
     @Test
     void registerReturnsCreatedUser() throws Exception {
         given(authService.register(any())).willReturn(
-                new UserResponse(7L, "New Customer", "new@aurelia.local", Role.CUSTOMER)
+                new UserResponse(7L, "New Customer", "new@aurelia.local", Role.CUSTOMER,
+                        "1234567890", null, null, null, null)
         );
 
         mockMvc.perform(post("/auth/register")
@@ -81,7 +82,74 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.name").value("New Customer"))
                 .andExpect(jsonPath("$.email").value("new@aurelia.local"))
-                .andExpect(jsonPath("$.role").value("CUSTOMER"));
+                .andExpect(jsonPath("$.role").value("CUSTOMER"))
+                .andExpect(jsonPath("$.taxNumber").value("1234567890"));
+    }
+
+    @Test
+    void registerReturnsUniqueNonNullTaxNumber() throws Exception {
+        given(authService.register(any())).willReturn(
+                new UserResponse(8L, "Another Customer", "another@aurelia.local", Role.CUSTOMER,
+                        "9876543210", null, null, null, null)
+        );
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Another Customer",
+                                  "email": "another@aurelia.local",
+                                  "password": "secret123"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.taxNumber").isNotEmpty())
+                .andExpect(jsonPath("$.taxNumber").value("9876543210"));
+    }
+
+    @Test
+    void registerRejectsBlankName() throws Exception {
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "",
+                                  "email": "new@aurelia.local",
+                                  "password": "secret123"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void registerRejectsInvalidEmail() throws Exception {
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "New Customer",
+                                  "email": "not-an-email",
+                                  "password": "secret123"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void registerRejectsDuplicateEmail() throws Exception {
+        given(authService.register(any()))
+                .willThrow(new IllegalArgumentException("A user with this email already exists."));
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "New Customer",
+                                  "email": "existing@aurelia.local",
+                                  "password": "secret123"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
