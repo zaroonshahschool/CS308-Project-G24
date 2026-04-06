@@ -1,66 +1,94 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { apiFetch } from "../lib/api";
+import { Link } from "react-router-dom";
+import { approveComment, fetchPendingComments, rejectComment } from "../services/salesManagerApi";
 
 export default function DashboardPage() {
-  const navigate = useNavigate();
-  const role = window.localStorage.getItem("auth_role") ?? "UNKNOWN";
-  const token = window.localStorage.getItem("auth_token") ?? "";
-  const [statusMessage, setStatusMessage] = useState("Loading protected access...");
+  const [pendingComments, setPendingComments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let endpoint = "/api/customer/dashboard";
+  const role = window.localStorage.getItem("auth_role");
+  const isSalesManager = role === "SALES_MANAGER";
 
-    if (role === "PRODUCT_MANAGER") {
-      endpoint = "/api/product-manager/products";
-    } else if (role === "SALES_MANAGER") {
-      endpoint = "/api/sales-manager/sales";
+  useEffect(() => {
+    if (!isSalesManager) {
+      setLoading(false);
+      return;
     }
 
-    apiFetch(endpoint)
-      .then((data) => setStatusMessage(data.message ?? "Protected request succeeded."))
-      .catch((err) => setError(err.message));
-  }, [role]);
+    fetchPendingComments()
+      .then(setPendingComments)
+      .catch(() => setError("Failed to load pending comments."))
+      .finally(() => setLoading(false));
+  }, [isSalesManager]);
 
-  function handleLogout() {
-    window.localStorage.removeItem("auth_token");
-    window.localStorage.removeItem("auth_role");
-    navigate("/login");
+  async function handleApprove(commentId) {
+    try {
+      await approveComment(commentId);
+      setPendingComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch {
+      setError("Failed to approve comment.");
+    }
+  }
+
+  async function handleReject(commentId) {
+    try {
+      await rejectComment(commentId);
+      setPendingComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch {
+      setError("Failed to reject comment.");
+    }
   }
 
   return (
-    <main className="dashboard-shell">
-      <section className="dashboard-card">
-        <p className="dashboard-kicker">Authenticated Session</p>
-        <h1 className="dashboard-title">Dashboard</h1>
-        <p className="dashboard-text">Logged in as: <strong>{role}</strong></p>
+    <main className="customer-page">
+      <div className="catalogue-breadcrumb">
+        <Link to="/" className="breadcrumb-link">Back to Home</Link>
+      </div>
 
-        <div className="dashboard-grid">
-          <div className="dashboard-panel">
-            <p className="dashboard-label">Role</p>
-            <p className="dashboard-value">{role}</p>
-          </div>
-          <div className="dashboard-panel">
-            <p className="dashboard-label">Token Stored</p>
-            <p className="dashboard-value">{token ? "Yes" : "No"}</p>
-          </div>
-          <div className="dashboard-panel">
-            <p className="dashboard-label">Protected Endpoint</p>
-            <p className="dashboard-value">{statusMessage}</p>
-          </div>
-          <div className="dashboard-panel">
-            <p className="dashboard-label">Security</p>
-            <p className="dashboard-value">JWT in Authorization header</p>
-          </div>
+      <section className="customer-shell">
+        <div className="customer-page-head">
+          <h1 className="section-title">Sales Manager Dashboard</h1>
+          <p className="section-subtitle">Review and moderate customer comments before they become public.</p>
         </div>
 
-        {error ? <p className="auth-error">{error}</p> : null}
+        {!isSalesManager && (
+          <p className="section-subtitle">You do not have permission to view this page.</p>
+        )}
 
-        <div className="dashboard-actions">
-          <button className="dashboard-button" onClick={handleLogout}>Logout</button>
-          <button className="dashboard-button dashboard-button--secondary" onClick={() => navigate("/register")}>Create Another User</button>
-        </div>
+        {isSalesManager && (
+          <div className="account-card">
+            <h2 className="account-card-title">Pending Comments</h2>
+
+            {error && <p style={{ color: "red", marginBottom: "1rem" }}>{error}</p>}
+
+            {loading && <p className="section-subtitle">Loading...</p>}
+
+            {!loading && pendingComments.length === 0 && (
+              <p className="section-subtitle">No pending comments.</p>
+            )}
+
+            {pendingComments.map((comment) => (
+              <article key={comment.id} className="order-card" style={{ marginBottom: "1rem" }}>
+                <div className="order-card-head">
+                  <div>
+                    <p className="order-item-name">{comment.productName}</p>
+                    <p className="order-meta">by {comment.customerName} · {comment.createdAt?.slice(0, 10)}</p>
+                  </div>
+                  <div className="order-item-actions" style={{ display: "flex", gap: "0.5rem" }}>
+                    <button className="btn-primary" onClick={() => handleApprove(comment.id)}>
+                      Approve
+                    </button>
+                    <button className="wishlist-secondary-btn" onClick={() => handleReject(comment.id)}>
+                      Reject
+                    </button>
+                  </div>
+                </div>
+                <p className="review-card-comment" style={{ marginTop: "0.75rem" }}>{comment.content}</p>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );
