@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { fetchProductById, fetchProducts } from "../services/catalogApi";
+import { fetchApprovedComments, rateProduct, submitComment } from "../services/reviewApi";
 
 function RatingStars({ rating }) {
   return (
@@ -19,12 +20,11 @@ function ReviewCard({ review }) {
     <article className="review-card">
       <div className="review-card-head">
         <div>
-          <p className="review-card-name">{review.reviewer}</p>
-          <p className="review-card-date">{review.submittedAt}</p>
+          <p className="review-card-name">{review.customerName}</p>
+          <p className="review-card-date">{review.createdAt?.slice(0, 10)}</p>
         </div>
-        <RatingStars rating={review.rating} />
       </div>
-      <p className="review-card-comment">{review.comment}</p>
+      <p className="review-card-comment">{review.content}</p>
     </article>
   );
 }
@@ -46,9 +46,7 @@ function WishlistButton({ active, onClick }) {
 
 export default function ProductDetailPage({
   onAddToCart,
-  onSubmitReview,
   onToggleWishlist,
-  reviewsByProduct,
   stockByProduct,
   wishlistProductIds,
 }) {
@@ -57,12 +55,19 @@ export default function ProductDetailPage({
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [formState, setFormState] = useState({
-    reviewer: "",
-    rating: 5,
-    comment: "",
-  });
-  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const [approvedComments, setApprovedComments] = useState([]);
+  const [averageRating, setAverageRating] = useState(0);
+
+  const [ratingScore, setRatingScore] = useState(5);
+  const [ratingMessage, setRatingMessage] = useState("");
+  const [ratingError, setRatingError] = useState("");
+
+  const [commentContent, setCommentContent] = useState("");
+  const [commentMessage, setCommentMessage] = useState("");
+  const [commentError, setCommentError] = useState("");
+
+  const isLoggedIn = !!window.localStorage.getItem("auth_token");
 
   useEffect(() => {
     let ignore = false;
@@ -74,23 +79,16 @@ export default function ProductDetailPage({
         const dbProduct = await fetchProductById(productId);
         if (ignore) return;
 
-        const withStock = {
-          ...dbProduct,
-          stock: stockByProduct[dbProduct.id] ?? dbProduct.stock,
-        };
-        setProduct(withStock);
+        setProduct({ ...dbProduct, stock: stockByProduct[dbProduct.id] ?? dbProduct.stock });
 
         const categoryProducts = await fetchProducts(dbProduct.category);
         if (ignore) return;
 
         setRelatedProducts(
           categoryProducts
-            .filter((candidate) => candidate.id !== dbProduct.id)
+            .filter((p) => p.id !== dbProduct.id)
             .slice(0, 3)
-            .map((candidate) => ({
-              ...candidate,
-              stock: stockByProduct[candidate.id] ?? candidate.stock,
-            }))
+            .map((p) => ({ ...p, stock: stockByProduct[p.id] ?? p.stock }))
         );
       } catch (err) {
         if (!ignore) {
@@ -98,28 +96,45 @@ export default function ProductDetailPage({
           setProduct(null);
         }
       } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
+        if (!ignore) setLoading(false);
       }
     }
 
     loadProduct();
-
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, [productId, stockByProduct]);
 
-  const productReviews = reviewsByProduct[Number(productId)] ?? [];
-  const approvedReviews = useMemo(
-    () => productReviews.filter((review) => review.status === "approved"),
-    [productReviews]
-  );
-  const averageRating = productReviews.length
-    ? productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length
-    : 0;
-  const inWishlist = product ? wishlistProductIds.includes(product.id) : false;
+  useEffect(() => {
+    fetchApprovedComments(productId)
+      .then(setApprovedComments)
+      .catch(() => {});
+  }, [productId]);
+
+  async function handleRatingSubmit(event) {
+    event.preventDefault();
+    setRatingMessage("");
+    setRatingError("");
+    try {
+      const result = await rateProduct(productId, ratingScore);
+      setAverageRating(result.averageRating);
+      setRatingMessage("Your rating has been saved.");
+    } catch (err) {
+      setRatingError(err.message || "Failed to submit rating.");
+    }
+  }
+
+  async function handleCommentSubmit(event) {
+    event.preventDefault();
+    setCommentMessage("");
+    setCommentError("");
+    try {
+      await submitComment(productId, commentContent);
+      setCommentContent("");
+      setCommentMessage("Your comment is pending manager approval.");
+    } catch (err) {
+      setCommentError(err.message || "Failed to submit comment.");
+    }
+  }
 
   if (loading) {
     return (
@@ -143,30 +158,13 @@ export default function ProductDetailPage({
         </div>
         <section className="product-missing">
           <h1 className="section-title">Edition not found</h1>
-          <p className="section-subtitle">{error || "The title you requested could not be located in the current catalogue."}</p>
+          <p className="section-subtitle">{error || "The title you requested could not be located."}</p>
         </section>
       </main>
     );
   }
 
-  function handleChange(event) {
-    const { name, value } = event.target;
-    setFormState((prev) => ({
-      ...prev,
-      [name]: name === "rating" ? Number(value) : value,
-    }));
-  }
-
-  function handleSubmit(event) {
-    event.preventDefault();
-    onSubmitReview(product.id, formState);
-    setFormState({
-      reviewer: "",
-      rating: 5,
-      comment: "",
-    });
-    setIsSubmitted(true);
-  }
+  const inWishlist = wishlistProductIds.includes(product.id);
 
   return (
     <main className="product-detail-page">
@@ -195,11 +193,9 @@ export default function ProductDetailPage({
           </div>
 
           <div className="product-detail-rating-summary">
-            <RatingStars rating={Math.round(averageRating || 0)} />
+            <RatingStars rating={Math.round(averageRating)} />
             <span className="product-detail-rating-text">
-              {productReviews.length
-                ? `${averageRating.toFixed(1)} average from ${productReviews.length} rating${productReviews.length !== 1 ? "s" : ""}`
-                : "No ratings yet"}
+              {averageRating > 0 ? `${averageRating.toFixed(1)} average rating` : "No ratings yet"}
             </span>
           </div>
 
@@ -222,22 +218,10 @@ export default function ProductDetailPage({
           </div>
 
           <dl className="product-detail-specs">
-            <div>
-              <dt>Model</dt>
-              <dd>{product.model || "—"}</dd>
-            </div>
-            <div>
-              <dt>Serial Number</dt>
-              <dd>{product.serialNumber || "—"}</dd>
-            </div>
-            <div>
-              <dt>Warranty Status</dt>
-              <dd>{product.warrantyStatus || "—"}</dd>
-            </div>
-            <div>
-              <dt>Distributor</dt>
-              <dd>{product.distributor || "—"}</dd>
-            </div>
+            <div><dt>Model</dt><dd>{product.model || "—"}</dd></div>
+            <div><dt>Serial Number</dt><dd>{product.serialNumber || "—"}</dd></div>
+            <div><dt>Warranty Status</dt><dd>{product.warrantyStatus || "—"}</dd></div>
+            <div><dt>Distributor</dt><dd>{product.distributor || "—"}</dd></div>
           </dl>
         </div>
       </section>
@@ -245,66 +229,70 @@ export default function ProductDetailPage({
       <section className="product-detail-reviews">
         <div className="product-detail-section-head">
           <div>
-           
             <h2 className="section-title">Ratings & Comments</h2>
           </div>
-          <p className="section-subtitle">Ratings are counted immediately. Comments remain hidden until manager approval.</p>
+          <p className="section-subtitle">Ratings are counted immediately. Comments are visible after manager approval.</p>
         </div>
 
         <div className="product-review-layout">
           <div className="review-list">
-            {approvedReviews.length > 0 ? (
-              approvedReviews.map((review) => <ReviewCard key={review.id} review={review} />)
+            {approvedComments.length > 0 ? (
+              approvedComments.map((comment) => <ReviewCard key={comment.id} review={comment} />)
             ) : (
               <div className="review-empty">
                 <p className="review-empty-title">No approved comments yet</p>
-                <p className="review-empty-text">Be the first reader to leave a rating for this edition.</p>
+                <p className="review-empty-text">Be the first to leave a comment for this edition.</p>
               </div>
             )}
           </div>
 
-          <form className="review-form" onSubmit={handleSubmit}>
-            <h3 className="review-form-title">Leave your rating</h3>
-            <label className="review-field">
-              <span>Your name</span>
-              <input
-                type="text"
-                name="reviewer"
-                value={formState.reviewer}
-                onChange={handleChange}
-                required
-              />
-            </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            {isLoggedIn ? (
+              <>
+                <form className="review-form" onSubmit={handleRatingSubmit}>
+                  <h3 className="review-form-title">Rate this product</h3>
+                  <label className="review-field">
+                    <span>Your Rating</span>
+                    <select value={ratingScore} onChange={(e) => setRatingScore(Number(e.target.value))}>
+                      <option value={5}>5 stars</option>
+                      <option value={4}>4 stars</option>
+                      <option value={3}>3 stars</option>
+                      <option value={2}>2 stars</option>
+                      <option value={1}>1 star</option>
+                    </select>
+                  </label>
+                  <button type="submit" className="btn-primary">Submit Rating</button>
+                  {ratingMessage && <p className="review-form-note">{ratingMessage}</p>}
+                  {ratingError && <p style={{ color: "red" }}>{ratingError}</p>}
+                </form>
 
-            <label className="review-field">
-              <span>Rating</span>
-              <select name="rating" value={formState.rating} onChange={handleChange}>
-                <option value={5}>5 stars</option>
-                <option value={4}>4 stars</option>
-                <option value={3}>3 stars</option>
-                <option value={2}>2 stars</option>
-                <option value={1}>1 star</option>
-              </select>
-            </label>
-
-            <label className="review-field">
-              <span>Comment</span>
-              <textarea
-                name="comment"
-                value={formState.comment}
-                onChange={handleChange}
-                rows="5"
-                placeholder="Share what stood out about this edition."
-              />
-            </label>
-
-            <button type="submit" className="btn-primary">Submit Rating</button>
-            {isSubmitted && (
-              <p className="review-form-note">
-                Your rating was saved. If you included a comment, it is now pending manager approval before becoming public.
-              </p>
+                <form className="review-form" onSubmit={handleCommentSubmit}>
+                  <h3 className="review-form-title">Leave a comment</h3>
+                  <label className="review-field">
+                    <span>Comment</span>
+                    <textarea
+                      value={commentContent}
+                      onChange={(e) => setCommentContent(e.target.value)}
+                      rows="5"
+                      placeholder="Share your thoughts about this edition."
+                      required
+                    />
+                  </label>
+                  <button type="submit" className="btn-primary">Submit Comment</button>
+                  {commentMessage && <p className="review-form-note">{commentMessage}</p>}
+                  {commentError && <p style={{ color: "red" }}>{commentError}</p>}
+                </form>
+              </>
+            ) : (
+              <div className="review-form">
+                <p className="review-empty-title">Login required</p>
+                <p className="review-empty-text">You must be logged in to rate or comment on products.</p>
+                <Link to="/login" className="btn-primary" style={{ display: "inline-block", marginTop: "0.75rem" }}>
+                  Login
+                </Link>
+              </div>
             )}
-          </form>
+          </div>
         </div>
       </section>
 
@@ -317,12 +305,12 @@ export default function ProductDetailPage({
             </div>
           </div>
           <div className="related-products-grid">
-            {relatedProducts.map((relatedProduct) => (
-              <Link key={relatedProduct.id} to={`/catalogue/${relatedProduct.id}`} className="related-product-card">
-                <img src={relatedProduct.image} alt={relatedProduct.name} className="related-product-image" />
-                <p className="catalog-card-cat">{relatedProduct.category}</p>
-                <h3 className="catalog-card-title">{relatedProduct.name}</h3>
-                <p className="catalog-card-author">{relatedProduct.author}</p>
+            {relatedProducts.map((related) => (
+              <Link key={related.id} to={`/catalogue/${related.id}`} className="related-product-card">
+                <img src={related.image} alt={related.name} className="related-product-image" />
+                <p className="catalog-card-cat">{related.category}</p>
+                <h3 className="catalog-card-title">{related.name}</h3>
+                <p className="catalog-card-author">{related.author}</p>
               </Link>
             ))}
           </div>
