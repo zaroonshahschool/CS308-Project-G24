@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { fetchProfile, updateAddress } from "../services/customerApi";
 
 function canReturn(placedAt) {
@@ -19,11 +19,14 @@ function SavedTick({ visible }) {
   );
 }
 
-export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem }) {
+export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, onViewInvoice }) {
+  const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [addressForm, setAddressForm] = useState({ street: "", city: "", postalCode: "", country: "" });
   const [savedField, setSavedField] = useState("");
   const [error, setError] = useState("");
+  const [invoiceError, setInvoiceError] = useState("");
+  const [downloadingOrderId, setDownloadingOrderId] = useState(null);
 
   useEffect(() => {
     fetchProfile()
@@ -67,6 +70,23 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem }
       setSavedField("address");
     } catch {
       setError("Failed to update address.");
+    }
+  }
+
+  async function handleViewInvoiceClick(order) {
+    if (!order.backendOrderId) {
+      return;
+    }
+
+    setInvoiceError("");
+    setDownloadingOrderId(order.id);
+
+    try {
+      await onViewInvoice(order.backendOrderId);
+    } catch (invoiceDownloadError) {
+      setInvoiceError(invoiceDownloadError.message || "Invoice could not be opened.");
+    } finally {
+      setDownloadingOrderId(null);
     }
   }
 
@@ -154,49 +174,89 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem }
 
           <div className="account-card">
             <h2 className="account-card-title">Order History</h2>
+            {location.state?.recentInvoiceOrderId ? (
+              <div className="order-success-banner">
+                <div>
+                  <p className="order-item-name">Order {location.state.recentOrderId} was placed successfully.</p>
+                  <p className="order-meta">Your invoice PDF is ready.</p>
+                </div>
+                <button
+                  className="btn-primary"
+                  type="button"
+                  onClick={() => handleViewInvoiceClick({
+                    id: location.state.recentOrderId,
+                    backendOrderId: location.state.recentInvoiceOrderId,
+                  })}
+                  disabled={downloadingOrderId === location.state.recentOrderId}
+                >
+                  {downloadingOrderId === location.state.recentOrderId ? "Opening Invoice..." : "View Invoice PDF"}
+                </button>
+              </div>
+            ) : null}
+
+            {invoiceError ? <p className="checkout-error">{invoiceError}</p> : null}
             <div className="order-list">
-              {orders.map((order) => (
-                <article key={order.id} className="order-card">
-                  <div className="order-card-head">
-                    <div>
-                      <p className="order-id">{order.id}</p>
-                      <p className="order-meta">Placed on {order.placedAt}</p>
-                    </div>
-                    <div className={`order-status order-status--${order.status.replace(/\s+/g, "-")}`}>
-                      {order.status}
-                    </div>
-                  </div>
-
-                  <div className="order-items">
-                    {order.items.map((item) => (
-                      <div key={item.id} className="order-item-row">
-                        <div>
-                          <p className="order-item-name">{item.name}</p>
-                          <p className="order-item-meta">Qty {item.qty} · ${item.price.toFixed(2)} each</p>
-                        </div>
-                        <div className="order-item-actions">
-                          {item.returnedAt ? (
-                            <span className="order-note">Returned on {item.returnedAt}</span>
-                          ) : order.status === "delivered" && canReturn(order.placedAt) ? (
-                            <button className="wishlist-secondary-btn" onClick={() => onReturnOrderItem(order.id, item.id)}>
-                              Return Item
-                            </button>
-                          ) : null}
-                        </div>
+              {orders.length > 0 ? (
+                orders.map((order) => (
+                  <article key={order.id} className="order-card">
+                    <div className="order-card-head">
+                      <div>
+                        <p className="order-id">{order.id}</p>
+                        <p className="order-meta">Placed on {order.placedAt}</p>
                       </div>
-                    ))}
-                  </div>
+                      <div className={`order-status order-status--${order.status.replace(/\s+/g, "-")}`}>
+                        {order.status}
+                      </div>
+                    </div>
 
-                  <div className="order-card-footer">
-                    <p className="order-total">Total ${order.total.toFixed(2)}</p>
-                    {order.status === "processing" && (
-                      <button className="wishlist-secondary-btn" onClick={() => onCancelOrder(order.id)}>
-                        Cancel Order
-                      </button>
-                    )}
-                  </div>
-                </article>
-              ))}
+                    <div className="order-items">
+                      {order.items.map((item) => (
+                        <div key={item.id} className="order-item-row">
+                          <div>
+                            <p className="order-item-name">{item.name}</p>
+                            <p className="order-item-meta">Qty {item.qty} · ${item.price.toFixed(2)} each</p>
+                          </div>
+                          <div className="order-item-actions">
+                            {item.returnedAt ? (
+                              <span className="order-note">Returned on {item.returnedAt}</span>
+                            ) : order.status === "delivered" && canReturn(order.placedAt) ? (
+                              <button className="wishlist-secondary-btn" onClick={() => onReturnOrderItem(order.id, item.id)}>
+                                Return Item
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="order-card-footer">
+                      <p className="order-total">Total ${order.total.toFixed(2)}</p>
+                      <div className="order-card-actions">
+                        {order.backendOrderId ? (
+                          <button
+                            className="wishlist-secondary-btn"
+                            type="button"
+                            onClick={() => handleViewInvoiceClick(order)}
+                            disabled={downloadingOrderId === order.id}
+                          >
+                            {downloadingOrderId === order.id ? "Opening Invoice..." : "View Invoice PDF"}
+                          </button>
+                        ) : null}
+                        {order.status === "processing" && order.allowCancellation !== false ? (
+                          <button className="wishlist-secondary-btn" onClick={() => onCancelOrder(order.id)}>
+                            Cancel Order
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="customer-empty">
+                  <h3 className="customer-empty-title">No orders yet</h3>
+                  <p className="customer-empty-text">Your completed orders will appear here with invoice PDFs.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

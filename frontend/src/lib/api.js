@@ -18,7 +18,12 @@ function getApiBaseUrl() {
   return "";
 }
 
-export async function apiFetch(path, options = {}) {
+function buildRequestUrl(path) {
+  const apiBaseUrl = getApiBaseUrl();
+  return apiBaseUrl ? `${apiBaseUrl}${path}` : path;
+}
+
+function createRequestHeaders(options = {}, accept = "application/json") {
   const token = window.localStorage.getItem("auth_token");
   const headers = new Headers(options.headers ?? {});
 
@@ -26,17 +31,22 @@ export async function apiFetch(path, options = {}) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (!headers.has("Accept")) {
-    headers.set("Accept", "application/json");
+  if (accept && !headers.has("Accept")) {
+    headers.set("Accept", accept);
   }
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  return headers;
+}
+
+export async function apiFetch(path, options = {}) {
+  const headers = createRequestHeaders(options);
+
   let response;
-  const apiBaseUrl = getApiBaseUrl();
-  const requestUrl = apiBaseUrl ? `${apiBaseUrl}${path}` : path;
+  const requestUrl = buildRequestUrl(path);
 
   try {
     response = await fetch(requestUrl, {
@@ -71,4 +81,38 @@ export async function apiFetch(path, options = {}) {
   }
 
   return data;
+}
+
+export async function apiFetchBlob(path, options = {}) {
+  const headers = createRequestHeaders(options, "application/pdf");
+  const requestUrl = buildRequestUrl(path);
+
+  let response;
+
+  try {
+    response = await fetch(requestUrl, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new Error(`Backend is unavailable. Start the Spring Boot server on http://localhost:${DEFAULT_API_PORT} and try again.`);
+  }
+
+  if (!response.ok) {
+    const text = await response.text();
+    let message = "Request failed.";
+
+    if (text) {
+      try {
+        const data = JSON.parse(text);
+        message = data?.message ?? message;
+      } catch {
+        message = text;
+      }
+    }
+
+    throw new Error(message);
+  }
+
+  return response.blob();
 }

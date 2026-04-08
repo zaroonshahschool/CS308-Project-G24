@@ -5,7 +5,7 @@ import CartDrawer from "./components/CartDrawer";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import Nav from "./components/Nav";
-import { initialCustomer, getInitialOrders, getInitialStockByProduct } from "./data/customer";
+import { initialCustomer, getInitialStockByProduct } from "./data/customer";
 import AdminPage from "./pages/AdminPage";
 import { initialReviewsByProduct } from "./data/reviews";
 import AccountPage from "./pages/AccountPage";
@@ -17,6 +17,7 @@ import LoginPage from "./pages/LoginPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import RegisterPage from "./pages/RegisterPage";
 import WishlistPage from "./pages/WishlistPage";
+import { fetchInvoicePdf, fetchOrders, placeOrder } from "./services/customerApi";
 
 function getStoredArray(key) {
   const rawValue = window.localStorage.getItem(key);
@@ -72,7 +73,7 @@ export default function App() {
   const [wishlistProductIds, setWishlistProductIds] = useState(() => getStoredArray("wishlist_product_ids"));
   const [reviewsByProduct, setReviewsByProduct] = useState(initialReviewsByProduct);
   const [customer, setCustomer] = useState(getStoredCustomer);
-  const [orders, setOrders] = useState(getInitialOrders);
+  const [orders, setOrders] = useState([]);
   const [stockByProduct, setStockByProduct] = useState(getInitialStockByProduct);
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
@@ -100,6 +101,28 @@ export default function App() {
       window.localStorage.setItem("customer_profile", JSON.stringify(nextCustomer));
       return nextCustomer;
     });
+  }, [location.pathname]);
+
+  useEffect(() => {
+    let ignore = false;
+    const token = window.localStorage.getItem("auth_token");
+
+    if (!token) {
+      setOrders([]);
+      return undefined;
+    }
+
+    fetchOrders()
+      .then((data) => {
+        if (!ignore) {
+          setOrders(data);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      ignore = true;
+    };
   }, [location.pathname]);
 
   function persistWishlist(nextWishlist) {
@@ -208,34 +231,12 @@ export default function App() {
     );
   }
 
-  function createOrderFromCart(checkoutData = null) {
+  function finalizePlacedOrder(nextOrder) {
     if (cartItems.length === 0) {
       navigate("/catalogue");
-      return;
+      return null;
     }
 
-    const placedAt = new Date().toISOString().slice(0, 10);
-    const nextOrder = {
-      id: `ORD-${Date.now()}`,
-      placedAt,
-      status: "processing",
-      total: cartItems.reduce((sum, item) => sum + item.price * item.qty, 0),
-      shippingAddress: checkoutData?.shippingAddress ?? null,
-      paymentSummary: checkoutData?.paymentDetails ?? null,
-      items: cartItems.map((item) => ({
-        id: `${item.id}-${Date.now()}`,
-        productId: item.id,
-        name: item.name,
-        author: item.author,
-        category: item.category,
-        image: item.image,
-        price: item.price,
-        qty: item.qty,
-        returnedAt: null,
-      })),
-    };
-
-    setOrders((currentOrders) => [nextOrder, ...currentOrders]);
     setStockByProduct((currentStock) => {
       const nextStock = { ...currentStock };
 
@@ -247,6 +248,13 @@ export default function App() {
     });
     setCartItems([]);
     setCartOpen(false);
+
+    setOrders((currentOrders) => [
+      nextOrder,
+      ...currentOrders.filter((order) => order.backendOrderId !== nextOrder.backendOrderId),
+    ]);
+
+    return nextOrder;
   }
 
   function handleCheckout() {
@@ -262,9 +270,38 @@ export default function App() {
     navigate("/checkout");
   }
 
-  function handleCheckoutSubmit(checkoutData) {
-    createOrderFromCart(checkoutData);
-    navigate("/account");
+  async function handleCheckoutSubmit(checkoutData) {
+    const createdOrder = await placeOrder(cartItems);
+    const nextOrder = finalizePlacedOrder({
+      ...createdOrder,
+      shippingAddress: checkoutData.shippingAddress,
+      paymentSummary: checkoutData.paymentDetails,
+    });
+
+    if (!nextOrder) {
+      return;
+    }
+
+    navigate("/account", {
+      state: {
+        recentOrderId: nextOrder.id,
+        recentInvoiceOrderId: nextOrder.backendOrderId,
+      },
+    });
+  }
+
+  async function handleViewInvoice(orderId) {
+    const invoiceBlob = await fetchInvoicePdf(orderId);
+    const invoiceUrl = window.URL.createObjectURL(invoiceBlob);
+    const invoiceWindow = window.open(invoiceUrl, "_blank", "noopener,noreferrer");
+
+    if (!invoiceWindow) {
+      window.location.assign(invoiceUrl);
+    }
+
+    window.setTimeout(() => {
+      window.URL.revokeObjectURL(invoiceUrl);
+    }, 60000);
   }
 
   return (
@@ -332,6 +369,7 @@ export default function App() {
                   orders={orders}
                   onCancelOrder={handleCancelOrder}
                   onReturnOrderItem={handleReturnOrderItem}
+                  onViewInvoice={handleViewInvoice}
                 />
               </StoreLayout>
             </ProtectedRoute>

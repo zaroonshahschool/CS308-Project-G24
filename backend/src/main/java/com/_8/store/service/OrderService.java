@@ -11,6 +11,8 @@ import com._8.store.entity.User;
 import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
 import com._8.store.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,8 @@ import java.util.List;
 
 @Service
 public class OrderService {
+
+    private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
@@ -79,9 +83,34 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         byte[] invoicePdf = invoicePdfService.generateInvoicePdf(savedOrder);
-        emailService.sendInvoiceEmail(user.getEmail(), user.getName(), savedOrder.getId(), invoicePdf);
+
+        try {
+            emailService.sendInvoiceEmail(user.getEmail(), user.getName(), savedOrder.getId(), invoicePdf);
+        } catch (RuntimeException exception) {
+            logger.warn("Invoice email could not be sent for order {}", savedOrder.getId(), exception);
+        }
 
         return mapToResponse(savedOrder);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getCurrentUserOrders() {
+        User user = getAuthenticatedUser();
+
+        return orderRepository.findAllByUserIdOrderByCreatedAtDesc(user.getId())
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] getInvoicePdfForCurrentUser(Long orderId) {
+        User user = getAuthenticatedUser();
+
+        Order order = orderRepository.findByIdAndUserId(orderId, user.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+
+        return invoicePdfService.generateInvoicePdf(order);
     }
 
     private User getAuthenticatedUser() {
