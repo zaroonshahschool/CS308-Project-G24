@@ -154,7 +154,7 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
     try {
       await updateAddress(address).catch(() => {});
 
-      onCheckoutSubmit({
+      await onCheckoutSubmit({
         shippingAddress: address,
         paymentDetails: {
           cardholderName: payment.cardholderName.trim(),

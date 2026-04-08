@@ -1674,6 +1674,16 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   display: grid;
   gap: 18px;
 }
+.order-success-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  border: 1px solid #d7dbc9;
+  background: #f5f7ee;
+}
 .order-card {
   border: 1px solid var(--border);
   background: #fff;
@@ -1709,6 +1719,12 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
 .order-status--cancelled {
   background: #eedddd;
   color: #8b3a3a;
+}
+.order-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 .order-items {
   display: grid;
@@ -1753,6 +1769,10 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   .checkout-layout,
   .checkout-inline-fields {
     grid-template-columns: 1fr;
+  }
+  .order-success-banner {
+    flex-direction: column;
+    align-items: start;
   }
   .customer-page-head,
   .wishlist-card,
