@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import "./App.css";
 import CartDrawer from "./components/CartDrawer";
@@ -10,6 +10,7 @@ import AdminPage from "./pages/AdminPage";
 import { initialReviewsByProduct } from "./data/reviews";
 import AccountPage from "./pages/AccountPage";
 import CataloguePage from "./pages/CataloguePage";
+import CheckoutPage from "./pages/CheckoutPage";
 import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -61,23 +62,6 @@ function StoreLayout({ children, cartCount, wishlistCount, onCartOpen }) {
       <Footer />
     </>
   );
-}
-
-function CheckoutGate({ onCheckoutSuccess }) {
-  const navigate = useNavigate();
-  const hasProcessed = useRef(false);
-
-  useEffect(() => {
-    if (hasProcessed.current) {
-      return;
-    }
-
-    hasProcessed.current = true;
-    onCheckoutSuccess();
-    navigate("/account", { replace: true });
-  }, [navigate, onCheckoutSuccess]);
-
-  return null;
 }
 
 export default function App() {
@@ -224,7 +208,7 @@ export default function App() {
     );
   }
 
-  function createOrderFromCart() {
+  function createOrderFromCart(checkoutData = null) {
     if (cartItems.length === 0) {
       navigate("/catalogue");
       return;
@@ -236,6 +220,8 @@ export default function App() {
       placedAt,
       status: "processing",
       total: cartItems.reduce((sum, item) => sum + item.price * item.qty, 0),
+      shippingAddress: checkoutData?.shippingAddress ?? null,
+      paymentSummary: checkoutData?.paymentDetails ?? null,
       items: cartItems.map((item) => ({
         id: `${item.id}-${Date.now()}`,
         productId: item.id,
@@ -272,7 +258,12 @@ export default function App() {
       return;
     }
 
-    createOrderFromCart();
+    setCartOpen(false);
+    navigate("/checkout");
+  }
+
+  function handleCheckoutSubmit(checkoutData) {
+    createOrderFromCart(checkoutData);
     navigate("/account");
   }
 
@@ -350,7 +341,9 @@ export default function App() {
           path="/checkout"
           element={
             <ProtectedRoute>
-              <CheckoutGate onCheckoutSuccess={createOrderFromCart} />
+              <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+                <CheckoutPage cartItems={cartItems} onCheckoutSubmit={handleCheckoutSubmit} />
+              </StoreLayout>
             </ProtectedRoute>
           }
         />

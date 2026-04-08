@@ -1583,6 +1583,86 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   grid-template-columns: minmax(300px, 380px) 1fr;
   gap: 24px;
 }
+.checkout-page {
+  background: var(--cream);
+  min-height: calc(100vh - 160px);
+  padding-bottom: 80px;
+}
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.85fr);
+  gap: 24px;
+}
+.checkout-form,
+.checkout-summary {
+  align-self: start;
+}
+.checkout-section + .checkout-section {
+  margin-top: 28px;
+}
+.checkout-inline-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.checkout-summary-items {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.checkout-summary-item {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.checkout-summary-item-copy {
+  display: grid;
+  gap: 4px;
+}
+.checkout-summary-line-price {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--dark);
+  font-weight: 500;
+}
+.checkout-summary-totals {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.checkout-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.checkout-summary-row--total {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.checkout-note,
+.checkout-error {
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.checkout-note {
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+.checkout-error {
+  color: #8b3a3a;
+  margin-bottom: 14px;
+}
+.checkout-submit {
+  min-width: 220px;
+}
+.checkout-empty-cta {
+  margin-top: 18px;
+}
 .account-card-title,
 .customer-empty-title {
   font-family: var(--serif);
@@ -1669,6 +1749,10 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   }
   .customer-shell {
     padding: 28px 32px 0;
+  }
+  .checkout-layout,
+  .checkout-inline-fields {
+    grid-template-columns: 1fr;
   }
   .customer-page-head,
   .wishlist-card,
