@@ -24,6 +24,21 @@ function getLastFour(cardNumber) {
   return cardNumber.replace(/\D/g, "").slice(-4);
 }
 
+function isValidFutureExpiry(monthValue, yearValue) {
+  const month = Number(monthValue);
+  const year = Number(yearValue);
+
+  if (!Number.isInteger(month) || !Number.isInteger(year) || month < 1 || month > 12) {
+    return false;
+  }
+
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear() % 100;
+
+  return year > currentYear || (year === currentYear && month >= currentMonth);
+}
+
 export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
   const [address, setAddress] = useState({
     street: "",
@@ -118,18 +133,18 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
     const rawCardNumber = payment.cardNumber.replace(/\D/g, "");
     const [expiryMonth, expiryYear] = payment.expiry.split("/");
 
-    if (rawCardNumber.length !== 16) {
-      setSubmitError("Enter a valid 16-digit card number.");
+    if (rawCardNumber.length !== 12 && rawCardNumber.length !== 16) {
+      setSubmitError("Enter a valid 12 or 16 digit card number.");
       return;
     }
 
-    if (!expiryMonth || !expiryYear || Number(expiryMonth) < 1 || Number(expiryMonth) > 12 || expiryYear.length !== 2) {
+    if (!expiryMonth || !expiryYear || expiryYear.length !== 2 || !isValidFutureExpiry(expiryMonth, expiryYear)) {
       setSubmitError("Enter a valid card expiry date in MM/YY format.");
       return;
     }
 
-    if (payment.cvv.length < 3) {
-      setSubmitError("Enter a valid card security code.");
+    if (!/^\d{3,4}$/.test(payment.cvv)) {
+      setSubmitError("Enter a valid 3 or 4 digit card security code.");
       return;
     }
 
