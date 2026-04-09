@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchProfile, updateAddress } from "../services/customerApi";
 
+const ENABLE_LUHN_VALIDATION = import.meta.env.VITE_ENABLE_LUHN_VALIDATION === "true";
+
 function formatCardNumber(value) {
   return value
     .replace(/\D/g, "")
-    .slice(0, 16)
+    .slice(0, 19)
     .replace(/(\d{4})(?=\d)/g, "$1 ")
     .trim();
 }
@@ -22,6 +24,42 @@ function formatExpiry(value) {
 
 function getLastFour(cardNumber) {
   return cardNumber.replace(/\D/g, "").slice(-4);
+}
+
+function passesLuhnCheck(cardNumber) {
+  let sum = 0;
+  let shouldDouble = false;
+
+  for (let index = cardNumber.length - 1; index >= 0; index -= 1) {
+    let digit = Number(cardNumber[index]);
+
+    if (shouldDouble) {
+      digit *= 2;
+
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+
+  return sum % 10 === 0;
+}
+
+function isValidCardNumber(cardNumber) {
+  const hasSupportedLength = cardNumber.length >= 13 && cardNumber.length <= 19;
+
+  if (!hasSupportedLength) {
+    return false;
+  }
+
+  if (!ENABLE_LUHN_VALIDATION) {
+    return true;
+  }
+
+  return passesLuhnCheck(cardNumber);
 }
 
 function isValidFutureExpiry(monthValue, yearValue) {
@@ -133,8 +171,12 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
     const rawCardNumber = payment.cardNumber.replace(/\D/g, "");
     const [expiryMonth, expiryYear] = payment.expiry.split("/");
 
-    if (rawCardNumber.length !== 12 && rawCardNumber.length !== 16) {
-      setSubmitError("Enter a valid 12 or 16 digit card number.");
+    if (!isValidCardNumber(rawCardNumber)) {
+      setSubmitError(
+        ENABLE_LUHN_VALIDATION
+          ? "Enter a valid card number with 13 to 19 digits."
+          : "Enter a card number with 13 to 19 digits."
+      );
       return;
     }
 
