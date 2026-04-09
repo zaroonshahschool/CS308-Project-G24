@@ -4,10 +4,12 @@ import com._8.store.dto.AddressRequest;
 import com._8.store.dto.CommentRequest;
 import com._8.store.dto.CommentResponse;
 import com._8.store.dto.RatingRequest;
+import com._8.store.dto.WishlistItemResponse;
 import com._8.store.entity.User;
 import com._8.store.repository.UserRepository;
 import com._8.store.service.CommentService;
 import com._8.store.service.RatingService;
+import com._8.store.service.WishlistService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,12 +26,14 @@ public class CustomerController {
     private final UserRepository userRepository;
     private final RatingService ratingService;
     private final CommentService commentService;
+    private final WishlistService wishlistService;
 
     public CustomerController(UserRepository userRepository, RatingService ratingService,
-                              CommentService commentService) {
+                              CommentService commentService, WishlistService wishlistService) {
         this.userRepository = userRepository;
         this.ratingService = ratingService;
         this.commentService = commentService;
+        this.wishlistService = wishlistService;
     }
 
     @GetMapping("/dashboard")
@@ -91,5 +95,20 @@ public class CustomerController {
     @GetMapping("/products/{productId}/comments")
     public ResponseEntity<List<CommentResponse>> getApprovedComments(@PathVariable Long productId) {
         return ResponseEntity.ok(commentService.getApprovedComments(productId));
+    }
+
+    @GetMapping("/wishlist")
+    public ResponseEntity<List<WishlistItemResponse>> getWishlist() {
+        return ResponseEntity.ok(wishlistService.getCurrentUserWishlist());
+    }
+
+    @PostMapping("/wishlist/{productId}")
+    public ResponseEntity<List<WishlistItemResponse>> addToWishlist(@PathVariable Long productId) {
+        return ResponseEntity.ok(wishlistService.addToWishlist(productId));
+    }
+
+    @DeleteMapping("/wishlist/{productId}")
+    public ResponseEntity<List<WishlistItemResponse>> removeFromWishlist(@PathVariable Long productId) {
+        return ResponseEntity.ok(wishlistService.removeFromWishlist(productId));
     }
 }

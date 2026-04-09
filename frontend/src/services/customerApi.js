@@ -1,12 +1,14 @@
 import { apiFetch, apiFetchBlob } from "../lib/api";
 
 function mapApiOrderToUiOrder(order) {
+  const normalizedStatus = (order.status || "PROCESSING").toLowerCase().replace(/_/g, "-");
+
   return {
     id: `ORD-${order.orderId}`,
     backendOrderId: order.orderId,
     placedAt: order.createdAt.slice(0, 10),
-    status: "processing",
-    allowCancellation: false,
+    status: normalizedStatus,
+    allowCancellation: normalizedStatus === "processing",
     total: Number(order.totalPrice),
     items: order.items.map((item) => ({
       id: `${order.orderId}-${item.productId}`,
@@ -14,7 +16,7 @@ function mapApiOrderToUiOrder(order) {
       name: item.productName,
       price: Number(item.unitPrice),
       qty: item.quantity,
-      returnedAt: null,
+      returnedAt: item.returnedAt ? item.returnedAt.slice(0, 10) : null,
     })),
   };
 }
@@ -51,4 +53,20 @@ export async function placeOrder(cartItems) {
 
 export async function fetchInvoicePdf(orderId) {
   return apiFetchBlob(`/api/customer/orders/${orderId}/invoice`);
+}
+
+export async function cancelOrder(orderId) {
+  const data = await apiFetch(`/api/customer/orders/${orderId}/cancel`, {
+    method: "PUT",
+  });
+
+  return mapApiOrderToUiOrder(data);
+}
+
+export async function returnOrderItem(orderId, productId) {
+  const data = await apiFetch(`/api/customer/orders/${orderId}/items/${productId}/return`, {
+    method: "PUT",
+  });
+
+  return mapApiOrderToUiOrder(data);
 }

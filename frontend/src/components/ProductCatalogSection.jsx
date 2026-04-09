@@ -144,6 +144,7 @@ export default function ProductCatalogSection({
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [error, setError] = useState("");
 
+  const requestedCategory = searchParams.get("category") ?? "";
   const searchQuery = searchParams.get("search") ?? "";
   const sortOption = searchParams.get("sort") ?? "relevance";
 
@@ -192,6 +193,14 @@ export default function ProductCatalogSection({
       });
     });
   }, [hash]);
+
+  useEffect(() => {
+    if (!requestedCategory) {
+      return;
+    }
+
+    setActiveCategory(requestedCategory);
+  }, [requestedCategory]);
 
   useEffect(() => {
     let ignore = false;
@@ -322,7 +331,10 @@ export default function ProductCatalogSection({
               key={category}
               id={getCategoryButtonId(category)}
               className={`catalog-tab${activeCategory === category ? " catalog-tab--active" : ""}`}
-              onClick={() => setActiveCategory(category)}
+              onClick={() => {
+                setActiveCategory(category);
+                updateSearchParams({ category: category === "All" ? "" : category });
+              }}
             >
               {category}
             </button>

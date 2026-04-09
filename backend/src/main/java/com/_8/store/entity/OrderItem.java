@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "order_items")
@@ -34,8 +35,14 @@ public class OrderItem {
     @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
+    @Column(name = "unit_cost", precision = 12, scale = 2)
+    private BigDecimal unitCost;
+
     @Column(name = "line_total", nullable = false, precision = 12, scale = 2)
     private BigDecimal lineTotal;
+
+    @Column(name = "returned_at")
+    private LocalDateTime returnedAt;
 
     public Long getId() {
         return id;
@@ -61,6 +68,14 @@ public class OrderItem {
         return lineTotal;
     }
 
+    public BigDecimal getUnitCost() {
+        return unitCost;
+    }
+
+    public LocalDateTime getReturnedAt() {
+        return returnedAt;
+    }
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -83,5 +98,13 @@ public class OrderItem {
 
     public void setLineTotal(BigDecimal lineTotal) {
         this.lineTotal = lineTotal;
+    }
+
+    public void setUnitCost(BigDecimal unitCost) {
+        this.unitCost = unitCost;
+    }
+
+    public void setReturnedAt(LocalDateTime returnedAt) {
+        this.returnedAt = returnedAt;
     }
 }

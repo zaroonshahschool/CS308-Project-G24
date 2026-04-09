@@ -7,6 +7,7 @@ public class ProductUpsertRequest {
     private String author;
     private String description;
     private BigDecimal price;
+    private BigDecimal costPrice;
     private Integer stock;
     private String imageUrl;
     private String model;
@@ -26,6 +27,8 @@ public class ProductUpsertRequest {
     public void setDescription(String description) { this.description = description; }
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
+    public BigDecimal getCostPrice() { return costPrice; }
+    public void setCostPrice(BigDecimal costPrice) { this.costPrice = costPrice; }
     public Integer getStock() { return stock; }
     public void setStock(Integer stock) { this.stock = stock; }
     public String getImageUrl() { return imageUrl; }

@@ -11,6 +11,7 @@ public class OrderResponse {
     private final String userEmail;
     private final LocalDateTime createdAt;
     private final BigDecimal totalPrice;
+    private final String status;
     private final List<OrderItemResponse> items;
 
     public OrderResponse(
@@ -19,6 +20,7 @@ public class OrderResponse {
             String userEmail,
             LocalDateTime createdAt,
             BigDecimal totalPrice,
+            String status,
             List<OrderItemResponse> items
     ) {
         this.orderId = orderId;
@@ -26,6 +28,7 @@ public class OrderResponse {
         this.userEmail = userEmail;
         this.createdAt = createdAt;
         this.totalPrice = totalPrice;
+        this.status = status;
         this.items = items;
     }
 
@@ -47,6 +50,10 @@ public class OrderResponse {
 
     public BigDecimal getTotalPrice() {
         return totalPrice;
+    }
+
+    public String getStatus() {
+        return status;
     }
 
     public List<OrderItemResponse> getItems() {
