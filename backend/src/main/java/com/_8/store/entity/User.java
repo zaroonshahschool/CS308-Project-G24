@@ -2,6 +2,9 @@ package com._8.store.entity;
 
 import jakarta.persistence.*;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "users")
 public class User {
@@ -31,6 +34,14 @@ public class User {
     private String postalCode;
     private String country;
 
+    @ManyToMany
+    @JoinTable(
+            name = "wishlist_items",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "product_id")
+    )
+    private Set<Product> wishlistProducts = new LinkedHashSet<>();
+
 
     public User() {}
 
@@ -53,6 +64,7 @@ public class User {
     public String getCity() { return city; }
     public String getPostalCode() { return postalCode; }
     public String getCountry() { return country; }
+    public Set<Product> getWishlistProducts() { return wishlistProducts; }
 
     public void setId(Long id) { this.id = id; }
     public void setName(String name) { this.name = name; }
@@ -64,4 +76,5 @@ public class User {
     public void setCity(String city) { this.city = city; }
     public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
     public void setCountry(String country) { this.country = country; }
+    public void setWishlistProducts(Set<Product> wishlistProducts) { this.wishlistProducts = wishlistProducts; }
 }

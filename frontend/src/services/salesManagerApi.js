@@ -1,4 +1,4 @@
-import { apiFetch } from "../lib/api";
+import { apiFetch, apiFetchBlob } from "../lib/api";
 
 export async function fetchPendingComments() {
   return apiFetch("/api/sales-manager/comments/pending");
@@ -18,4 +18,25 @@ export async function fetchOrders() {
 
 export async function advanceOrderStatus(orderId) {
   return apiFetch(`/api/sales-manager/orders/${orderId}/advance-status`, { method: "PUT" });
+}
+
+export async function applyDiscount(discountRate, productIds) {
+  return apiFetch("/api/sales-manager/discounts", {
+    method: "POST",
+    body: JSON.stringify({ discountRate, productIds }),
+  });
+}
+
+export async function fetchInvoices(from, to) {
+  const query = new URLSearchParams({ from, to });
+  return apiFetch(`/api/sales-manager/invoices?${query.toString()}`);
+}
+
+export async function fetchInvoicePdfForManager(orderId) {
+  return apiFetchBlob(`/api/sales-manager/invoices/${orderId}/pdf`);
+}
+
+export async function fetchAnalytics(from, to) {
+  const query = new URLSearchParams({ from, to });
+  return apiFetch(`/api/sales-manager/analytics?${query.toString()}`);
 }

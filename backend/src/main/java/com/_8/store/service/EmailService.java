@@ -43,4 +43,27 @@ public class EmailService {
             throw new IllegalStateException("Failed to send invoice email.", exception);
         }
     }
+
+    public void sendDiscountEmail(String toEmail, String customerName, String productName, String discountRate, String price) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject("Wishlist Discount Alert");
+            helper.setText(
+                    "Hello " + customerName + ",\n\n" +
+                            "A product on your wishlist is now discounted.\n" +
+                            "Product: " + productName + "\n" +
+                            "Discount: " + discountRate + "%\n" +
+                            "New Price: $" + price + "\n\n" +
+                            "Best regards,\nAurelia Editions"
+            );
+
+            mailSender.send(message);
+        } catch (MessagingException exception) {
+            throw new IllegalStateException("Failed to send discount email.", exception);
+        }
+    }
 }

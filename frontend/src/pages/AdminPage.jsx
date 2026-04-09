@@ -8,6 +8,7 @@ const emptyProductForm = {
   author: "",
   description: "",
   price: "",
+  costPrice: "",
   stock: "",
   imageUrl: "",
   model: "",
@@ -111,6 +112,7 @@ export default function AdminPage() {
       author: productForm.author,
       description: productForm.description,
       price: Number(productForm.price),
+      costPrice: productForm.costPrice ? Number(productForm.costPrice) : null,
       stock: Number(productForm.stock),
       imageUrl: productForm.imageUrl,
       model: productForm.model,
@@ -183,6 +185,7 @@ export default function AdminPage() {
       author: product.author || "",
       description: product.description || "",
       price: String(product.price ?? ""),
+      costPrice: String(product.costPrice ?? ""),
       stock: String(product.stock ?? ""),
       imageUrl: product.imageUrl || "",
       model: product.model || "",
@@ -271,6 +274,7 @@ export default function AdminPage() {
               <AdminInput label="Name"><input name="name" value={productForm.name} onChange={handleProductChange} style={textInputStyle()} required /></AdminInput>
               <AdminInput label="Author"><input name="author" value={productForm.author} onChange={handleProductChange} style={textInputStyle()} required /></AdminInput>
               <AdminInput label="Price"><input name="price" type="number" min="0" step="0.01" value={productForm.price} onChange={handleProductChange} style={textInputStyle()} required /></AdminInput>
+              <AdminInput label="Cost Price"><input name="costPrice" type="number" min="0" step="0.01" value={productForm.costPrice} onChange={handleProductChange} style={textInputStyle()} /></AdminInput>
               <AdminInput label="Stock"><input name="stock" type="number" min="0" step="1" value={productForm.stock} onChange={handleProductChange} style={textInputStyle()} required /></AdminInput>
               <AdminInput label="Category">
                 <select name="categoryName" value={productForm.categoryName} onChange={handleProductChange} style={textInputStyle()} required>

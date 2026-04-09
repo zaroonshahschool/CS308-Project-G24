@@ -75,6 +75,7 @@ public class OrderService {
             orderItem.setProduct(product);
             orderItem.setQuantity(itemRequest.getQuantity());
             orderItem.setUnitPrice(product.getPrice());
+            orderItem.setUnitCost(product.getCostPrice() != null ? product.getCostPrice() : product.getPrice());
             orderItem.setLineTotal(lineTotal);
             order.addItem(orderItem);
 

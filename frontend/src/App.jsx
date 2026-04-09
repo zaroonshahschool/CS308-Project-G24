@@ -18,6 +18,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import RegisterPage from "./pages/RegisterPage";
 import WishlistPage from "./pages/WishlistPage";
 import { cancelOrder, fetchInvoicePdf, fetchOrders, placeOrder, returnOrderItem } from "./services/customerApi";
+import { addWishlistProduct, fetchWishlistProductIds, removeWishlistProduct } from "./services/wishlistApi";
 
 function getStoredArray(key) {
   const rawValue = window.localStorage.getItem(key);
@@ -142,17 +143,53 @@ export default function App() {
     };
   }, [location.pathname]);
 
+  useEffect(() => {
+    let ignore = false;
+    const token = window.localStorage.getItem("auth_token");
+    const role = window.localStorage.getItem("auth_role");
+
+    if (!token || role !== "CUSTOMER") {
+      setWishlistProductIds(getStoredArray("wishlist_product_ids"));
+      return undefined;
+    }
+
+    fetchWishlistProductIds()
+      .then((ids) => {
+        if (!ignore) {
+          setWishlistProductIds(ids);
+          window.localStorage.setItem("wishlist_product_ids", JSON.stringify(ids));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      ignore = true;
+    };
+  }, [location.pathname]);
+
   function persistWishlist(nextWishlist) {
     setWishlistProductIds(nextWishlist);
     window.localStorage.setItem("wishlist_product_ids", JSON.stringify(nextWishlist));
   }
 
-  function handleToggleWishlist(productId) {
-    persistWishlist(
-      wishlistProductIds.includes(productId)
-        ? wishlistProductIds.filter((id) => id !== productId)
-        : [...wishlistProductIds, productId]
-    );
+  async function handleToggleWishlist(productId) {
+    const token = window.localStorage.getItem("auth_token");
+    const role = window.localStorage.getItem("auth_role");
+
+    if (!token || role !== "CUSTOMER") {
+      persistWishlist(
+        wishlistProductIds.includes(productId)
+          ? wishlistProductIds.filter((id) => id !== productId)
+          : [...wishlistProductIds, productId]
+      );
+      return;
+    }
+
+    const nextWishlist = wishlistProductIds.includes(productId)
+      ? await removeWishlistProduct(productId)
+      : await addWishlistProduct(productId);
+
+    persistWishlist(nextWishlist);
   }
 
   function handleAddToCart(product) {

@@ -25,6 +25,15 @@ public class Product {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    @Column(name = "cost_price", precision = 10, scale = 2)
+    private BigDecimal costPrice;
+
+    @Column(name = "original_price", precision = 10, scale = 2)
+    private BigDecimal originalPrice;
+
+    @Column(name = "discount_rate", precision = 5, scale = 2)
+    private BigDecimal discountRate;
+
     @Column(nullable = false)
     private Integer stock;
 
@@ -67,6 +76,7 @@ public class Product {
             String author,
             String description,
             BigDecimal price,
+            BigDecimal costPrice,
             Integer stock,
             String imageUrl,
             String model,
@@ -83,6 +93,9 @@ public class Product {
         this.author = author;
         this.description = description;
         this.price = price;
+        this.costPrice = costPrice;
+        this.originalPrice = price;
+        this.discountRate = BigDecimal.ZERO;
         this.stock = stock;
         this.imageUrl = imageUrl;
         this.model = model;
@@ -94,6 +107,43 @@ public class Product {
         this.newArrival = newArrival;
         this.createdAt = createdAt;
         this.category = category;
+    }
+
+    public Product(
+            String name,
+            String author,
+            String description,
+            BigDecimal price,
+            Integer stock,
+            String imageUrl,
+            String model,
+            String serialNumber,
+            String warrantyStatus,
+            String distributor,
+            boolean featured,
+            boolean editorChoice,
+            boolean newArrival,
+            LocalDateTime createdAt,
+            Category category
+    ) {
+        this(
+                name,
+                author,
+                description,
+                price,
+                price,
+                stock,
+                imageUrl,
+                model,
+                serialNumber,
+                warrantyStatus,
+                distributor,
+                featured,
+                editorChoice,
+                newArrival,
+                createdAt,
+                category
+        );
     }
 
     public Long getId() {
@@ -114,6 +164,18 @@ public class Product {
 
     public BigDecimal getPrice() {
         return price;
+    }
+
+    public BigDecimal getCostPrice() {
+        return costPrice;
+    }
+
+    public BigDecimal getOriginalPrice() {
+        return originalPrice;
+    }
+
+    public BigDecimal getDiscountRate() {
+        return discountRate;
     }
 
     public Integer getStock() {
@@ -178,6 +240,18 @@ public class Product {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public void setCostPrice(BigDecimal costPrice) {
+        this.costPrice = costPrice;
+    }
+
+    public void setOriginalPrice(BigDecimal originalPrice) {
+        this.originalPrice = originalPrice;
+    }
+
+    public void setDiscountRate(BigDecimal discountRate) {
+        this.discountRate = discountRate;
     }
 
     public void setStock(Integer stock) {

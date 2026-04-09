@@ -35,6 +35,9 @@ public class OrderItem {
     @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
+    @Column(name = "unit_cost", precision = 12, scale = 2)
+    private BigDecimal unitCost;
+
     @Column(name = "line_total", nullable = false, precision = 12, scale = 2)
     private BigDecimal lineTotal;
 
@@ -65,6 +68,10 @@ public class OrderItem {
         return lineTotal;
     }
 
+    public BigDecimal getUnitCost() {
+        return unitCost;
+    }
+
     public LocalDateTime getReturnedAt() {
         return returnedAt;
     }
@@ -91,6 +98,10 @@ public class OrderItem {
 
     public void setLineTotal(BigDecimal lineTotal) {
         this.lineTotal = lineTotal;
+    }
+
+    public void setUnitCost(BigDecimal unitCost) {
+        this.unitCost = unitCost;
     }
 
     public void setReturnedAt(LocalDateTime returnedAt) {

@@ -12,4 +12,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findTop5ByNewArrivalTrueOrderByCreatedAtDesc();
     Optional<Product> findFirstByFeaturedTrueOrderByCreatedAtDesc();
     Optional<Product> findFirstByEditorChoiceTrueOrderByCreatedAtDesc();
+    List<Product> findByIdIn(List<Long> ids);
 }

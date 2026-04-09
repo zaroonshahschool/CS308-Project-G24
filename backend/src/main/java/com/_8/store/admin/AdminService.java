@@ -75,11 +75,17 @@ public class AdminService {
         if (request.getPrice() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Price is required.");
         }
+        if (request.getCostPrice() != null && request.getCostPrice().signum() < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cost price must be zero or greater.");
+        }
         if (request.getStock() == null || request.getStock() < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Stock must be zero or greater.");
         }
 
         product.setPrice(request.getPrice());
+        product.setOriginalPrice(product.getOriginalPrice() != null ? product.getOriginalPrice() : request.getPrice());
+        product.setCostPrice(request.getCostPrice() != null ? request.getCostPrice() : request.getPrice());
+        product.setDiscountRate(product.getDiscountRate() != null ? product.getDiscountRate() : java.math.BigDecimal.ZERO);
         product.setStock(request.getStock());
         product.setImageUrl(blankToNull(request.getImageUrl()));
         product.setModel(blankToNull(request.getModel()));
@@ -117,6 +123,9 @@ public class AdminService {
                 product.getAuthor(),
                 product.getDescription(),
                 product.getPrice(),
+                product.getOriginalPrice(),
+                product.getDiscountRate(),
+                product.getCostPrice(),
                 product.getStock(),
                 product.getImageUrl(),
                 product.getCategory().getName(),
