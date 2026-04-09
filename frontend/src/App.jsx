@@ -17,7 +17,7 @@ import LoginPage from "./pages/LoginPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import RegisterPage from "./pages/RegisterPage";
 import WishlistPage from "./pages/WishlistPage";
-import { fetchInvoicePdf, fetchOrders, placeOrder } from "./services/customerApi";
+import { cancelOrder, fetchInvoicePdf, fetchOrders, placeOrder, returnOrderItem } from "./services/customerApi";
 
 function getStoredArray(key) {
   const rawValue = window.localStorage.getItem(key);
@@ -52,6 +52,23 @@ function ProtectedRoute({ children }) {
 
   const next = `${location.pathname}${location.search}`;
   return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
+}
+
+function RoleProtectedRoute({ allowedRoles, children }) {
+  const token = window.localStorage.getItem("auth_token");
+  const role = window.localStorage.getItem("auth_role");
+  const location = useLocation();
+
+  if (!token) {
+    const next = `${location.pathname}${location.search}`;
+    return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
+  }
+
+  if (!allowedRoles.includes(role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
 }
 
 function StoreLayout({ children, cartCount, wishlistCount, onCartOpen }) {
@@ -203,31 +220,21 @@ export default function App() {
     setCustomer(nextCustomer);
   }
 
-  function handleCancelOrder(orderId) {
+  async function handleCancelOrder(orderId) {
+    const updatedOrder = await cancelOrder(orderId);
     setOrders((currentOrders) =>
       currentOrders.map((order) =>
-        order.id === orderId ? { ...order, status: "cancelled" } : order
+        order.backendOrderId === updatedOrder.backendOrderId ? updatedOrder : order
       )
     );
   }
 
-  function handleReturnOrderItem(orderId, itemId) {
+  async function handleReturnOrderItem(orderId, productId) {
+    const updatedOrder = await returnOrderItem(orderId, productId);
     setOrders((currentOrders) =>
-      currentOrders.map((order) => {
-        if (order.id !== orderId) {
-          return order;
-        }
-
-        const updatedItems = order.items.map((item) =>
-          item.id === itemId ? { ...item, returnedAt: new Date().toISOString().slice(0, 10) } : item
-        );
-
-        return {
-          ...order,
-          status: "partially-returned",
-          items: updatedItems,
-        };
-      })
+      currentOrders.map((order) =>
+        order.backendOrderId === updatedOrder.backendOrderId ? updatedOrder : order
+      )
     );
   }
 
@@ -359,7 +366,15 @@ export default function App() {
         />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin" element={<Navigate to="/product-manager" replace />} />
+        <Route
+          path="/product-manager"
+          element={
+            <RoleProtectedRoute allowedRoles={["PRODUCT_MANAGER"]}>
+              <AdminPage />
+            </RoleProtectedRoute>
+          }
+        />
         <Route
           path="/account"
           element={
@@ -388,9 +403,9 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
               <DashboardPage />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />

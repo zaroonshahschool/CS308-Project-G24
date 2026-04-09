@@ -22,13 +22,13 @@ export default function LibrariesSection({ libraries }) {
 
       <div className="libraries-grid">
         {items.map((lib) => (
-          <div key={lib.name} className={`library-card ${lib.cardClass}`}>
+          <Link key={lib.name} to={lib.href ?? "/catalogue"} className={`library-card ${lib.cardClass}`}>
             <div className="library-overlay" />
             <div className="library-card-content">
               <span className="library-icon">{lib.icon}</span>
               <div className="library-name">{lib.name}</div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </section>

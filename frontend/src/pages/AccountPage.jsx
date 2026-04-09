@@ -27,6 +27,8 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
   const [error, setError] = useState("");
   const [invoiceError, setInvoiceError] = useState("");
   const [downloadingOrderId, setDownloadingOrderId] = useState(null);
+  const [orderActionError, setOrderActionError] = useState("");
+  const [actingOrderKey, setActingOrderKey] = useState("");
 
   useEffect(() => {
     fetchProfile()
@@ -87,6 +89,32 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
       setInvoiceError(invoiceDownloadError.message || "Invoice could not be opened.");
     } finally {
       setDownloadingOrderId(null);
+    }
+  }
+
+  async function handleCancelOrderClick(order) {
+    setOrderActionError("");
+    setActingOrderKey(`cancel-${order.id}`);
+
+    try {
+      await onCancelOrder(order.backendOrderId);
+    } catch (actionError) {
+      setOrderActionError(actionError.message || "Order could not be cancelled.");
+    } finally {
+      setActingOrderKey("");
+    }
+  }
+
+  async function handleReturnOrderItemClick(order, item) {
+    setOrderActionError("");
+    setActingOrderKey(`return-${item.id}`);
+
+    try {
+      await onReturnOrderItem(order.backendOrderId, item.productId);
+    } catch (actionError) {
+      setOrderActionError(actionError.message || "Item could not be returned.");
+    } finally {
+      setActingOrderKey("");
     }
   }
 
@@ -195,6 +223,7 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
             ) : null}
 
             {invoiceError ? <p className="checkout-error">{invoiceError}</p> : null}
+            {orderActionError ? <p className="checkout-error">{orderActionError}</p> : null}
             <div className="order-list">
               {orders.length > 0 ? (
                 orders.map((order) => (
@@ -220,8 +249,12 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
                             {item.returnedAt ? (
                               <span className="order-note">Returned on {item.returnedAt}</span>
                             ) : order.status === "delivered" && canReturn(order.placedAt) ? (
-                              <button className="wishlist-secondary-btn" onClick={() => onReturnOrderItem(order.id, item.id)}>
-                                Return Item
+                              <button
+                                className="wishlist-secondary-btn"
+                                onClick={() => handleReturnOrderItemClick(order, item)}
+                                disabled={actingOrderKey === `return-${item.id}`}
+                              >
+                                {actingOrderKey === `return-${item.id}` ? "Returning..." : "Return Item"}
                               </button>
                             ) : null}
                           </div>
@@ -243,8 +276,12 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
                           </button>
                         ) : null}
                         {order.status === "processing" && order.allowCancellation !== false ? (
-                          <button className="wishlist-secondary-btn" onClick={() => onCancelOrder(order.id)}>
-                            Cancel Order
+                          <button
+                            className="wishlist-secondary-btn"
+                            onClick={() => handleCancelOrderClick(order)}
+                            disabled={actingOrderKey === `cancel-${order.id}`}
+                          >
+                            {actingOrderKey === `cancel-${order.id}` ? "Cancelling..." : "Cancel Order"}
                           </button>
                         ) : null}
                       </div>

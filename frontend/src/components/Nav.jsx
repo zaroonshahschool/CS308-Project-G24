@@ -10,10 +10,14 @@ const NAV_LINKS = [
 export default function Nav() {
   const { pathname } = useLocation();
   const token = window.localStorage.getItem("auth_token");
+  const role = window.localStorage.getItem("auth_role");
+  const isProductManager = role === "PRODUCT_MANAGER";
+  const isSalesManager = role === "SALES_MANAGER";
 
   function handleLogout() {
     window.localStorage.removeItem("auth_token");
     window.localStorage.removeItem("auth_role");
+    window.localStorage.removeItem("auth_email");
   }
 
   return (
@@ -32,12 +36,27 @@ export default function Nav() {
             <a key={label} href={to}>{label}</a>
           )
         )}
-        <Link
-          to="/admin"
-          style={{ marginLeft: "auto", color: pathname === "/admin" ? "var(--accent)" : "var(--text-mid)" }}
-        >
-          Admin
-        </Link>
+        {isProductManager ? (
+          <Link
+            to="/product-manager"
+            style={{
+              marginLeft: "auto",
+              color: pathname === "/product-manager" ? "var(--accent)" : "var(--text-mid)",
+            }}
+          >
+            Product Manager
+          </Link>
+        ) : (
+          <div style={{ marginLeft: "auto" }} />
+        )}
+        {isSalesManager ? (
+          <Link
+            to="/dashboard"
+            style={{ color: pathname === "/dashboard" ? "var(--accent)" : "var(--text-mid)" }}
+          >
+            Sales Dashboard
+          </Link>
+        ) : null}
         {token ? (
           <Link to="/" style={{ color: "var(--text-mid)" }} onClick={handleLogout}>Sign Out</Link>
         ) : (

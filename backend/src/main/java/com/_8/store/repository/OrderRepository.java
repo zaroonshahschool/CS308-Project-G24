@@ -12,6 +12,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findAllByUserIdOrderByCreatedAtDesc(Long userId);
 
+    List<Order> findAllByOrderByCreatedAtDesc();
+
     Optional<Order> findByIdAndUserId(Long id, Long userId);
 
     @Query("SELECT COUNT(o) > 0 FROM Order o JOIN o.items i WHERE o.user.id = :userId AND i.product.id = :productId")

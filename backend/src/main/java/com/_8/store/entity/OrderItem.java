@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "order_items")
@@ -37,6 +38,9 @@ public class OrderItem {
     @Column(name = "line_total", nullable = false, precision = 12, scale = 2)
     private BigDecimal lineTotal;
 
+    @Column(name = "returned_at")
+    private LocalDateTime returnedAt;
+
     public Long getId() {
         return id;
     }
@@ -61,6 +65,10 @@ public class OrderItem {
         return lineTotal;
     }
 
+    public LocalDateTime getReturnedAt() {
+        return returnedAt;
+    }
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -83,5 +91,9 @@ public class OrderItem {
 
     public void setLineTotal(BigDecimal lineTotal) {
         this.lineTotal = lineTotal;
+    }
+
+    public void setReturnedAt(LocalDateTime returnedAt) {
+        this.returnedAt = returnedAt;
     }
 }

@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping({"/api/product-manager", "/api/admin"})
 public class AdminController {
 
     private final AdminService adminService;

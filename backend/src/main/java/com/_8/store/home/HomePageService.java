@@ -1,13 +1,10 @@
 package com._8.store.home;
 
-
-
 import org.springframework.stereotype.Service;
 import com._8.store.entity.Category;
 import com._8.store.entity.Product;
 import com._8.store.repository.CategoryRepository;
 import com._8.store.repository.ProductRepository;
-import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,7 +79,7 @@ public class HomePageService {
                 product.getPrice(),
                 product.getImageUrl(),
                 "Explore Edition",
-                "/catalogue"
+                "/catalogue/" + product.getId()
         );
     }
 
@@ -93,7 +90,8 @@ public class HomePageService {
         return new HomePageResponse.LibraryCollection(
                 category.getName(),
                 icon,
-                cardClass
+                cardClass,
+                "/catalogue?category=" + encodeCategory(category.getName())
         );
     }
 
@@ -136,8 +134,12 @@ public class HomePageService {
                         product.getStock() > 0 ? product.getStock() + " copies in stock" : "Currently out of stock",
                         "Curated by Aurelia Editions"
                 ),
-                "/catalogue"
+                "/catalogue/" + product.getId()
         );
+    }
+
+    private String encodeCategory(String categoryName) {
+        return categoryName.replace(" ", "%20");
     }
 
     private List<HomePageResponse.ValueProposition> getValueProps() {

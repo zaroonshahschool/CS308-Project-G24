@@ -25,7 +25,8 @@ public record HomePageResponse(
     public record LibraryCollection(
             String name,
             String icon,
-            String cardClass
+            String cardClass,
+            String href
     ) {
     }
 

@@ -49,7 +49,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/products").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
-                        .requestMatchers("/api/admin/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("PRODUCT_MANAGER")
                         .requestMatchers("/api/product-manager/**").hasRole("PRODUCT_MANAGER")
                         .requestMatchers("/api/sales-manager/**").hasRole("SALES_MANAGER")
                         .requestMatchers("/api/customer/**").hasAnyRole("CUSTOMER", "PRODUCT_MANAGER", "SALES_MANAGER")
