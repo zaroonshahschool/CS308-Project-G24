@@ -1,6 +1,7 @@
 package com._8.store.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class OrderItemResponse {
 
@@ -9,13 +10,16 @@ public class OrderItemResponse {
     private final Integer quantity;
     private final BigDecimal unitPrice;
     private final BigDecimal lineTotal;
+    private final LocalDateTime returnedAt;
 
-    public OrderItemResponse(Long productId, String productName, Integer quantity, BigDecimal unitPrice, BigDecimal lineTotal) {
+    public OrderItemResponse(Long productId, String productName, Integer quantity, BigDecimal unitPrice, BigDecimal lineTotal,
+                             LocalDateTime returnedAt) {
         this.productId = productId;
         this.productName = productName;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.lineTotal = lineTotal;
+        this.returnedAt = returnedAt;
     }
 
     public Long getProductId() {
@@ -36,5 +40,9 @@ public class OrderItemResponse {
 
     public BigDecimal getLineTotal() {
         return lineTotal;
+    }
+
+    public LocalDateTime getReturnedAt() {
+        return returnedAt;
     }
 }

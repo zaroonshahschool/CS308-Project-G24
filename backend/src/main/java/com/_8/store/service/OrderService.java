@@ -7,6 +7,7 @@ import com._8.store.dto.OrderResponse;
 import com._8.store.dto.AddressRequest;
 import com._8.store.entity.Order;
 import com._8.store.entity.OrderItem;
+import com._8.store.entity.OrderStatus;
 import com._8.store.entity.Product;
 import com._8.store.entity.User;
 import com._8.store.repository.OrderRepository;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -57,6 +59,7 @@ public class OrderService {
         order.setCreatedAt(LocalDateTime.now());
         order.setTotalPrice(BigDecimal.ZERO);
         applyShippingAddress(order, request.getShippingAddress());
+        order.setStatus(OrderStatus.PROCESSING);
 
         BigDecimal totalPrice = BigDecimal.ZERO;
 
@@ -74,6 +77,7 @@ public class OrderService {
             orderItem.setProduct(product);
             orderItem.setQuantity(itemRequest.getQuantity());
             orderItem.setUnitPrice(product.getPrice());
+            orderItem.setUnitCost(product.getCostPrice() != null ? product.getCostPrice() : product.getPrice());
             orderItem.setLineTotal(lineTotal);
             order.addItem(orderItem);
 
@@ -103,6 +107,84 @@ public class OrderService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getAllOrders() {
+        return orderRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Transactional
+    public OrderResponse cancelOrder(Long orderId) {
+        User user = getAuthenticatedUser();
+
+        Order order = orderRepository.findByIdAndUserId(orderId, user.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+
+        if (getOrderStatus(order) != OrderStatus.PROCESSING) {
+            throw new IllegalArgumentException("Only processing orders can be cancelled.");
+        }
+
+        for (OrderItem item : order.getItems()) {
+            Product product = item.getProduct();
+            product.setStock(product.getStock() + item.getQuantity());
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        return mapToResponse(orderRepository.save(order));
+    }
+
+    @Transactional
+    public OrderResponse returnOrderItem(Long orderId, Long productId) {
+        User user = getAuthenticatedUser();
+
+        Order order = orderRepository.findByIdAndUserId(orderId, user.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+
+        OrderStatus currentStatus = getOrderStatus(order);
+        if (currentStatus != OrderStatus.DELIVERED && currentStatus != OrderStatus.PARTIALLY_RETURNED) {
+            throw new IllegalArgumentException("Items can only be returned from delivered orders.");
+        }
+
+        if (Duration.between(order.getCreatedAt(), LocalDateTime.now()).toDays() > 30) {
+            throw new IllegalArgumentException("Items can only be returned within 30 days.");
+        }
+
+        OrderItem orderItem = order.getItems().stream()
+                .filter(item -> item.getProduct().getId().equals(productId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Order item not found."));
+
+        if (orderItem.getReturnedAt() != null) {
+            throw new IllegalArgumentException("This item has already been returned.");
+        }
+
+        orderItem.setReturnedAt(LocalDateTime.now());
+        Product product = orderItem.getProduct();
+        product.setStock(product.getStock() + orderItem.getQuantity());
+
+        boolean allReturned = order.getItems().stream().allMatch(item -> item.getReturnedAt() != null);
+        order.setStatus(allReturned ? OrderStatus.RETURNED : OrderStatus.PARTIALLY_RETURNED);
+
+        return mapToResponse(orderRepository.save(order));
+    }
+
+    @Transactional
+    public OrderResponse advanceOrderStatus(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+
+        OrderStatus nextStatus = switch (getOrderStatus(order)) {
+            case PROCESSING -> OrderStatus.IN_TRANSIT;
+            case IN_TRANSIT -> OrderStatus.DELIVERED;
+            default -> throw new IllegalArgumentException("This order cannot be advanced further.");
+        };
+
+        order.setStatus(nextStatus);
+        return mapToResponse(orderRepository.save(order));
     }
 
     @Transactional(readOnly = true)
@@ -140,7 +222,8 @@ public class OrderService {
                         item.getProduct().getName(),
                         item.getQuantity(),
                         item.getUnitPrice(),
-                        item.getLineTotal()
+                        item.getLineTotal(),
+                        item.getReturnedAt()
                 ))
                 .toList();
 
@@ -150,7 +233,12 @@ public class OrderService {
                 order.getUser().getEmail(),
                 order.getCreatedAt(),
                 order.getTotalPrice(),
+                getOrderStatus(order).name(),
                 itemResponses
         );
+    }
+
+    private OrderStatus getOrderStatus(Order order) {
+        return order.getStatus() != null ? order.getStatus() : OrderStatus.PROCESSING;
     }
 }

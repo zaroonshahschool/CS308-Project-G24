@@ -1,10 +1,21 @@
 package com._8.store.controller;
 
 import com._8.store.dto.CommentResponse;
+import com._8.store.dto.ApplyDiscountRequest;
+import com._8.store.dto.DiscountedProductResponse;
+import com._8.store.dto.InvoiceSummaryResponse;
+import com._8.store.dto.OrderResponse;
+import com._8.store.dto.SalesAnalyticsResponse;
 import com._8.store.service.CommentService;
+import com._8.store.service.OrderService;
+import com._8.store.service.SalesManagerService;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -13,9 +24,13 @@ import java.util.Map;
 public class SalesManagerController {
 
     private final CommentService commentService;
+    private final OrderService orderService;
+    private final SalesManagerService salesManagerService;
 
-    public SalesManagerController(CommentService commentService) {
+    public SalesManagerController(CommentService commentService, OrderService orderService, SalesManagerService salesManagerService) {
         this.commentService = commentService;
+        this.orderService = orderService;
+        this.salesManagerService = salesManagerService;
     }
 
     @GetMapping("/sales")
@@ -36,5 +51,45 @@ public class SalesManagerController {
     @PutMapping("/comments/{commentId}/reject")
     public ResponseEntity<?> rejectComment(@PathVariable Long commentId) {
         return ResponseEntity.ok(commentService.rejectComment(commentId));
+    }
+
+    @GetMapping("/orders")
+    public ResponseEntity<List<OrderResponse>> getOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
+    }
+
+    @PutMapping("/orders/{orderId}/advance-status")
+    public ResponseEntity<OrderResponse> advanceOrderStatus(@PathVariable Long orderId) {
+        return ResponseEntity.ok(orderService.advanceOrderStatus(orderId));
+    }
+
+    @PostMapping("/discounts")
+    public ResponseEntity<List<DiscountedProductResponse>> applyDiscount(@RequestBody ApplyDiscountRequest request) {
+        return ResponseEntity.ok(salesManagerService.applyDiscount(request.discountRate(), request.productIds()));
+    }
+
+    @GetMapping("/invoices")
+    public ResponseEntity<List<InvoiceSummaryResponse>> getInvoices(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        return ResponseEntity.ok(salesManagerService.getInvoices(from, to));
+    }
+
+    @GetMapping(value = "/invoices/{orderId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> getInvoicePdf(@PathVariable Long orderId) {
+        byte[] invoicePdf = salesManagerService.getInvoicePdf(orderId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"invoice-order-" + orderId + ".pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(invoicePdf);
+    }
+
+    @GetMapping("/analytics")
+    public ResponseEntity<SalesAnalyticsResponse> getAnalytics(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        return ResponseEntity.ok(salesManagerService.getAnalytics(from, to));
     }
 }

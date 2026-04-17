@@ -17,7 +17,7 @@ export default function NotableSection({ books }) {
       <div className="books-grid">
         {books?.length
           ? books.map((book) => (
-              <Link key={book.id} to="/catalogue" className="book-card">
+              <Link key={book.id} to={`/catalogue/${book.id}`} className="book-card">
                 <img src={book.coverImage} alt={book.title} className="book-cover" />
                 <span className="book-title">{book.title}</span>
                 <span className="book-author">{book.author}</span>
