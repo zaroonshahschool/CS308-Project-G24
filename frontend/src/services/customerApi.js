@@ -37,7 +37,7 @@ export async function fetchOrders() {
   return data.map(mapApiOrderToUiOrder);
 }
 
-export async function placeOrder(cartItems) {
+export async function placeOrder(cartItems, shippingAddress) {
   const data = await apiFetch("/api/customer/orders", {
     method: "POST",
     body: JSON.stringify({
@@ -45,6 +45,7 @@ export async function placeOrder(cartItems) {
         productId: item.id,
         quantity: item.qty,
       })),
+      shippingAddress,
     }),
   });
 

@@ -315,7 +315,7 @@ export default function App() {
   }
 
   async function handleCheckoutSubmit(checkoutData) {
-    const createdOrder = await placeOrder(cartItems);
+    const createdOrder = await placeOrder(cartItems, checkoutData.shippingAddress);
     const nextOrder = finalizePlacedOrder({
       ...createdOrder,
       shippingAddress: checkoutData.shippingAddress,

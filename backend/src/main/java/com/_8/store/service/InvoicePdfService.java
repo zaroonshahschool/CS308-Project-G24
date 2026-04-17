@@ -17,6 +17,8 @@ import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class InvoicePdfService {
@@ -39,6 +41,8 @@ public class InvoicePdfService {
             document.add(new Paragraph("Customer: " + order.getUser().getName(), bodyFont));
             document.add(new Paragraph("Email: " + order.getUser().getEmail(), bodyFont));
             document.add(new Paragraph("Date: " + order.getCreatedAt().format(DATE_FORMATTER), bodyFont));
+            document.add(new Paragraph("Shipping Address:", bodyFont));
+            document.add(new Paragraph(formatShippingAddress(order), bodyFont));
             document.add(new Paragraph(" "));
 
             PdfPTable table = new PdfPTable(4);
@@ -74,5 +78,52 @@ public class InvoicePdfService {
         cell.setBackgroundColor(new Color(42, 42, 42));
         cell.setPadding(8f);
         table.addCell(cell);
+    }
+
+    private String formatShippingAddress(Order order) {
+        List<String> lines = new ArrayList<>();
+
+        addIfPresent(lines, order.getShippingStreet());
+
+        String cityLine = joinWithSeparator(", ", order.getShippingCity(), order.getShippingPostalCode());
+        addIfPresent(lines, cityLine);
+        addIfPresent(lines, order.getShippingCountry());
+
+        if (!lines.isEmpty()) {
+            return String.join("\n", lines);
+        }
+
+        addIfPresent(lines, order.getUser().getStreet());
+
+        cityLine = joinWithSeparator(", ", order.getUser().getCity(), order.getUser().getPostalCode());
+        addIfPresent(lines, cityLine);
+        addIfPresent(lines, order.getUser().getCountry());
+
+        return lines.isEmpty() ? "Address not available for this order." : String.join("\n", lines);
+    }
+
+    private void addIfPresent(List<String> lines, String value) {
+        if (value != null && !value.isBlank()) {
+            lines.add(value);
+        }
+    }
+
+    private String joinWithSeparator(String separator, String left, String right) {
+        boolean hasLeft = left != null && !left.isBlank();
+        boolean hasRight = right != null && !right.isBlank();
+
+        if (hasLeft && hasRight) {
+            return left + separator + right;
+        }
+
+        if (hasLeft) {
+            return left;
+        }
+
+        if (hasRight) {
+            return right;
+        }
+
+        return "";
     }
 }
