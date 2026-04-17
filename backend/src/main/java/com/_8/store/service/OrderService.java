@@ -4,6 +4,7 @@ import com._8.store.dto.CreateOrderRequest;
 import com._8.store.dto.OrderItemRequest;
 import com._8.store.dto.OrderItemResponse;
 import com._8.store.dto.OrderResponse;
+import com._8.store.dto.AddressRequest;
 import com._8.store.entity.Order;
 import com._8.store.entity.OrderItem;
 import com._8.store.entity.Product;
@@ -55,6 +56,7 @@ public class OrderService {
         order.setUser(user);
         order.setCreatedAt(LocalDateTime.now());
         order.setTotalPrice(BigDecimal.ZERO);
+        applyShippingAddress(order, request.getShippingAddress());
 
         BigDecimal totalPrice = BigDecimal.ZERO;
 
@@ -122,6 +124,13 @@ public class OrderService {
 
         return userRepository.findByEmailIgnoreCase(authentication.getName())
                 .orElseThrow(() -> new IllegalArgumentException("Authenticated user could not be found."));
+    }
+
+    private void applyShippingAddress(Order order, AddressRequest shippingAddress) {
+        order.setShippingStreet(shippingAddress.getStreet());
+        order.setShippingCity(shippingAddress.getCity());
+        order.setShippingPostalCode(shippingAddress.getPostalCode());
+        order.setShippingCountry(shippingAddress.getCountry());
     }
 
     private OrderResponse mapToResponse(Order order) {
