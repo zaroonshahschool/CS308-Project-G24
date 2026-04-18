@@ -1,26 +1,86 @@
 package com._8.store.admin;
 
 import com._8.store.dto.CategoryDto;
+import com._8.store.dto.DeliveryResponse;
 import com._8.store.dto.ProductDto;
 import com._8.store.entity.Category;
+import com._8.store.entity.Order;
+import com._8.store.entity.OrderItem;
+import com._8.store.entity.OrderStatus;
 import com._8.store.entity.Product;
 import com._8.store.repository.CategoryRepository;
+import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class AdminService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final OrderRepository orderRepository;
 
-    public AdminService(ProductRepository productRepository, CategoryRepository categoryRepository) {
+    public AdminService(
+            ProductRepository productRepository,
+            CategoryRepository categoryRepository,
+            OrderRepository orderRepository
+    ) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.orderRepository = orderRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DeliveryResponse> getAllDeliveries() {
+        List<Order> orders = orderRepository.findAllByOrderByCreatedAtDesc();
+        List<DeliveryResponse> deliveries = new ArrayList<>();
+
+        for (Order order : orders) {
+            OrderStatus status = order.getStatus() != null ? order.getStatus() : OrderStatus.PROCESSING;
+            if (status == OrderStatus.CANCELLED || status == OrderStatus.RETURNED) {
+                continue;
+            }
+
+            String address = formatAddress(order);
+
+            for (OrderItem item : order.getItems()) {
+                boolean itemReturned = item.getReturnedAt() != null;
+                boolean completed = status == OrderStatus.DELIVERED && !itemReturned;
+
+                deliveries.add(new DeliveryResponse(
+                        item.getId(),
+                        order.getId(),
+                        order.getUser().getId(),
+                        order.getUser().getName(),
+                        item.getProduct().getId(),
+                        item.getProduct().getName(),
+                        item.getQuantity(),
+                        item.getLineTotal(),
+                        address,
+                        status.name(),
+                        completed,
+                        order.getCreatedAt()
+                ));
+            }
+        }
+
+        return deliveries;
+    }
+
+    private String formatAddress(Order order) {
+        List<String> parts = new ArrayList<>();
+        if (order.getShippingStreet() != null && !order.getShippingStreet().isBlank()) parts.add(order.getShippingStreet());
+        if (order.getShippingCity() != null && !order.getShippingCity().isBlank()) parts.add(order.getShippingCity());
+        if (order.getShippingPostalCode() != null && !order.getShippingPostalCode().isBlank()) parts.add(order.getShippingPostalCode());
+        if (order.getShippingCountry() != null && !order.getShippingCountry().isBlank()) parts.add(order.getShippingCountry());
+        return String.join(", ", parts);
     }
 
     public ProductDto createProduct(ProductUpsertRequest request) {

@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchCategories, fetchProducts } from "../services/catalogApi";
-import { createCategory, createProduct, deleteProduct, updateProduct } from "../services/adminApi";
+import {
+  advanceDeliveryStatus,
+  createCategory,
+  createProduct,
+  deleteProduct,
+  fetchDeliveries,
+  updateProduct,
+} from "../services/adminApi";
 
 const emptyProductForm = {
   name: "",
@@ -27,30 +34,19 @@ const emptyCategoryForm = {
   displayOrder: "",
 };
 
-function AdminInput({ label, children }) {
-  return (
-    <label style={{ display: "grid", gap: 8 }}>
-      <span style={{ fontSize: 13, fontWeight: 600, color: "#d4c7aa" }}>{label}</span>
-      {children}
-    </label>
-  );
+function normalizeOrderStatus(status) {
+  return (status || "PROCESSING").toLowerCase().replace(/_/g, "-");
 }
 
-function textInputStyle() {
-  return {
-    width: "100%",
-    boxSizing: "border-box",
-    padding: "12px 14px",
-    borderRadius: 12,
-    border: "1px solid rgba(212, 199, 170, 0.24)",
-    background: "rgba(14, 14, 18, 0.92)",
-    color: "#f7f3ea",
-  };
+function formatDate(value) {
+  if (!value) return "";
+  return String(value).slice(0, 10);
 }
 
 export default function AdminPage() {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [deliveries, setDeliveries] = useState([]);
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
   const [editingId, setEditingId] = useState(null);
@@ -58,18 +54,21 @@ export default function AdminPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [actingOrderId, setActingOrderId] = useState(null);
 
   async function loadAdminData() {
     setLoading(true);
     setError("");
 
     try {
-      const [categoryDtos, productDtos] = await Promise.all([
+      const [categoryDtos, productDtos, deliveryDtos] = await Promise.all([
         fetchCategories(),
         fetchProducts(),
+        fetchDeliveries(),
       ]);
       setCategories(categoryDtos);
       setProducts(productDtos);
+      setDeliveries(deliveryDtos);
       setProductForm((prev) => ({
         ...prev,
         categoryName: prev.categoryName || categoryDtos[0]?.name || "",
@@ -89,6 +88,12 @@ export default function AdminPage() {
     () => [...products].sort((a, b) => b.id - a.id),
     [products]
   );
+
+  const deliveryStats = useMemo(() => {
+    const pending = deliveries.filter((row) => !row.completed).length;
+    const completed = deliveries.filter((row) => row.completed).length;
+    return { pending, completed, total: deliveries.length };
+  }, [deliveries]);
 
   function handleProductChange(event) {
     const { name, value, type, checked } = event.target;
@@ -230,148 +235,310 @@ export default function AdminPage() {
     }
   }
 
+  async function handleAdvanceDelivery(orderId) {
+    setError("");
+    setMessage("");
+    setActingOrderId(orderId);
+
+    try {
+      await advanceDeliveryStatus(orderId);
+      const updated = await fetchDeliveries();
+      setDeliveries(updated);
+    } catch (err) {
+      setError(err.message || "Failed to advance delivery status.");
+    } finally {
+      setActingOrderId(null);
+    }
+  }
+
   return (
-    <main style={{ background: "#06070a", minHeight: "100vh", color: "#f7f3ea", paddingBottom: 80 }}>
+    <main className="customer-page">
       <div className="catalogue-breadcrumb">
-        <Link to="/catalogue" className="breadcrumb-link">Back to Catalogue</Link>
+        <Link to="/catalogue" className="breadcrumb-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Back to Catalogue
+        </Link>
       </div>
 
-      <section style={{ width: "min(1180px, calc(100% - 48px))", margin: "0 auto", display: "grid", gap: 24 }}>
-        <div style={{ display: "grid", gap: 8 }}>
-          <p className="section-tag">Product Manager Panel</p>
-          <h1 className="section-title">Admin Catalogue Management</h1>
+      <section className="customer-shell">
+        <div className="customer-page-head">
+          <div>
+            <p className="section-tag">Product Manager Panel</p>
+            <h1 className="section-title">Catalogue & Deliveries</h1>
+          </div>
           <p className="section-subtitle">
-            Add categories, create products, edit stock and pricing, and delete catalogue entries directly in PostgreSQL.
+            Manage products and categories, and track deliveries through processing, in-transit, and delivered.
           </p>
         </div>
 
-        {error && (
-          <div style={{ padding: 14, borderRadius: 14, background: "rgba(131, 34, 52, 0.22)", border: "1px solid rgba(255, 120, 120, 0.24)" }}>
-            {error}
+        {error ? <p className="checkout-error">{error}</p> : null}
+        {message ? (
+          <div className="order-success-banner">
+            <p className="order-item-name">{message}</p>
           </div>
-        )}
-        {message && (
-          <div style={{ padding: 14, borderRadius: 14, background: "rgba(33, 111, 72, 0.2)", border: "1px solid rgba(134, 239, 172, 0.22)" }}>
-            {message}
-          </div>
-        )}
+        ) : null}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 24, alignItems: "start" }}>
-          <form onSubmit={handleProductSubmit} style={{ display: "grid", gap: 18, padding: 24, borderRadius: 24, background: "rgba(15, 16, 21, 0.92)", border: "1px solid rgba(212, 199, 170, 0.18)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: 24 }}>{editingId ? "Edit Product" : "Create Product"}</h2>
-                <p style={{ margin: "6px 0 0", color: "#bdb4a3" }}>This form writes directly to the backend database.</p>
-              </div>
-              {editingId && (
-                <button type="button" onClick={resetProductForm} style={{ ...textInputStyle(), width: "auto", cursor: "pointer" }}>
+        <div className="admin-grid">
+          <form onSubmit={handleProductSubmit} className="account-card admin-product-form">
+            <div className="admin-card-head">
+              <h2 className="account-card-title">{editingId ? "Edit Product" : "Create Product"}</h2>
+              {editingId ? (
+                <button type="button" onClick={resetProductForm} className="wishlist-secondary-btn">
                   Cancel Edit
                 </button>
-              )}
+              ) : null}
             </div>
+            <p className="section-subtitle" style={{ marginBottom: "1rem" }}>
+              This form writes directly to the database.
+            </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16 }}>
-              <AdminInput label="Name"><input name="name" value={productForm.name} onChange={handleProductChange} style={textInputStyle()} required /></AdminInput>
-              <AdminInput label="Author"><input name="author" value={productForm.author} onChange={handleProductChange} style={textInputStyle()} required /></AdminInput>
-              <AdminInput label="Price"><input name="price" type="number" min="0" step="0.01" value={productForm.price} onChange={handleProductChange} style={textInputStyle()} required /></AdminInput>
-              <AdminInput label="Cost Price"><input name="costPrice" type="number" min="0" step="0.01" value={productForm.costPrice} onChange={handleProductChange} style={textInputStyle()} /></AdminInput>
-              <AdminInput label="Stock"><input name="stock" type="number" min="0" step="1" value={productForm.stock} onChange={handleProductChange} style={textInputStyle()} required /></AdminInput>
-              <AdminInput label="Category">
-                <select name="categoryName" value={productForm.categoryName} onChange={handleProductChange} style={textInputStyle()} required>
+            <div className="admin-form-grid">
+              <label className="review-field">
+                <span>Name</span>
+                <input name="name" value={productForm.name} onChange={handleProductChange} required />
+              </label>
+              <label className="review-field">
+                <span>Author</span>
+                <input name="author" value={productForm.author} onChange={handleProductChange} required />
+              </label>
+              <label className="review-field">
+                <span>Price</span>
+                <input name="price" type="number" min="0" step="0.01" value={productForm.price} onChange={handleProductChange} required />
+              </label>
+              <label className="review-field">
+                <span>Cost Price</span>
+                <input name="costPrice" type="number" min="0" step="0.01" value={productForm.costPrice} onChange={handleProductChange} />
+              </label>
+              <label className="review-field">
+                <span>Stock</span>
+                <input name="stock" type="number" min="0" step="1" value={productForm.stock} onChange={handleProductChange} required />
+              </label>
+              <label className="review-field">
+                <span>Category</span>
+                <select name="categoryName" value={productForm.categoryName} onChange={handleProductChange} required>
                   <option value="">Select a category</option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.name}>{category.name}</option>
                   ))}
                 </select>
-              </AdminInput>
-              <AdminInput label="Image URL"><input name="imageUrl" value={productForm.imageUrl} onChange={handleProductChange} style={textInputStyle()} /></AdminInput>
-              <AdminInput label="Model"><input name="model" value={productForm.model} onChange={handleProductChange} style={textInputStyle()} /></AdminInput>
-              <AdminInput label="Serial Number"><input name="serialNumber" value={productForm.serialNumber} onChange={handleProductChange} style={textInputStyle()} /></AdminInput>
-              <AdminInput label="Warranty Status"><input name="warrantyStatus" value={productForm.warrantyStatus} onChange={handleProductChange} style={textInputStyle()} /></AdminInput>
-              <AdminInput label="Distributor"><input name="distributor" value={productForm.distributor} onChange={handleProductChange} style={textInputStyle()} /></AdminInput>
+              </label>
+              <label className="review-field">
+                <span>Image URL</span>
+                <input name="imageUrl" value={productForm.imageUrl} onChange={handleProductChange} />
+              </label>
+              <label className="review-field">
+                <span>Model</span>
+                <input name="model" value={productForm.model} onChange={handleProductChange} />
+              </label>
+              <label className="review-field">
+                <span>Serial Number</span>
+                <input name="serialNumber" value={productForm.serialNumber} onChange={handleProductChange} />
+              </label>
+              <label className="review-field">
+                <span>Warranty Status</span>
+                <input name="warrantyStatus" value={productForm.warrantyStatus} onChange={handleProductChange} />
+              </label>
+              <label className="review-field">
+                <span>Distributor</span>
+                <input name="distributor" value={productForm.distributor} onChange={handleProductChange} />
+              </label>
             </div>
 
-            <AdminInput label="Description">
-              <textarea name="description" rows="5" value={productForm.description} onChange={handleProductChange} style={{ ...textInputStyle(), resize: "vertical" }} required />
-            </AdminInput>
+            <label className="review-field">
+              <span>Description</span>
+              <textarea name="description" rows="5" value={productForm.description} onChange={handleProductChange} required />
+            </label>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
+            <div className="admin-flag-row">
               {[
                 ["featured", "Featured on Home"],
                 ["editorChoice", "Editor's Choice"],
                 ["newArrival", "New Arrival"],
               ].map(([name, label]) => (
-                <label key={name} style={{ display: "flex", alignItems: "center", gap: 8, color: "#e9dec8" }}>
+                <label key={name} className="admin-flag">
                   <input type="checkbox" name={name} checked={productForm[name]} onChange={handleProductChange} />
-                  {label}
+                  <span>{label}</span>
                 </label>
               ))}
             </div>
 
-            <button type="submit" disabled={submitting || loading} className="btn-primary">
+            <button type="submit" disabled={submitting || loading} className="btn-dark admin-submit">
               {submitting ? "Saving..." : editingId ? "Update Product" : "Create Product"}
             </button>
           </form>
 
-          <form onSubmit={handleCategorySubmit} style={{ display: "grid", gap: 16, padding: 24, borderRadius: 24, background: "rgba(15, 16, 21, 0.92)", border: "1px solid rgba(212, 199, 170, 0.18)" }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: 24 }}>Create Category</h2>
-              <p style={{ margin: "6px 0 0", color: "#bdb4a3" }}>New categories become tabs on the catalogue page.</p>
-            </div>
+          <form onSubmit={handleCategorySubmit} className="account-card">
+            <h2 className="account-card-title">Create Category</h2>
+            <p className="section-subtitle" style={{ marginBottom: "1rem" }}>
+              New categories become tabs on the catalogue page.
+            </p>
 
-            <AdminInput label="Category Name"><input name="name" value={categoryForm.name} onChange={handleCategoryChange} style={textInputStyle()} required /></AdminInput>
-            <AdminInput label="Category Image URL"><input name="imageUrl" value={categoryForm.imageUrl} onChange={handleCategoryChange} style={textInputStyle()} /></AdminInput>
-            <AdminInput label="Display Order"><input name="displayOrder" type="number" min="0" step="1" value={categoryForm.displayOrder} onChange={handleCategoryChange} style={textInputStyle()} /></AdminInput>
+            <label className="review-field">
+              <span>Category Name</span>
+              <input name="name" value={categoryForm.name} onChange={handleCategoryChange} required />
+            </label>
+            <label className="review-field">
+              <span>Category Image URL</span>
+              <input name="imageUrl" value={categoryForm.imageUrl} onChange={handleCategoryChange} />
+            </label>
+            <label className="review-field">
+              <span>Display Order</span>
+              <input name="displayOrder" type="number" min="0" step="1" value={categoryForm.displayOrder} onChange={handleCategoryChange} />
+            </label>
 
-            <button type="submit" disabled={submitting || loading} className="btn-dark">Create Category</button>
+            <button type="submit" disabled={submitting || loading} className="btn-primary">
+              Create Category
+            </button>
 
-            <div style={{ display: "grid", gap: 10 }}>
-              <h3 style={{ margin: "12px 0 0", fontSize: 18 }}>Existing Categories</h3>
+            <h3 className="account-card-title" style={{ marginTop: "1.5rem", fontSize: "1.25rem" }}>
+              Existing Categories
+            </h3>
+            <div className="admin-category-list">
               {categories.map((category) => (
-                <div key={category.id} style={{ padding: 12, borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(212, 199, 170, 0.12)" }}>
+                <div key={category.id} className="admin-category-chip">
                   <strong>{category.name}</strong>
-                  <div style={{ color: "#bdb4a3", fontSize: 13, marginTop: 4 }}>Display Order: {category.displayOrder ?? "—"}</div>
+                  <span className="order-meta">Order: {category.displayOrder ?? "—"}</span>
                 </div>
               ))}
             </div>
           </form>
         </div>
 
-        <section style={{ display: "grid", gap: 16, padding: 24, borderRadius: 24, background: "rgba(15, 16, 21, 0.92)", border: "1px solid rgba(212, 199, 170, 0.18)" }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 24 }}>Current Products</h2>
-            <p style={{ margin: "6px 0 0", color: "#bdb4a3" }}>These rows come from the backend database.</p>
+        <div className="account-card">
+          <div className="customer-page-head" style={{ borderBottom: "none", marginBottom: "0.5rem", paddingBottom: 0 }}>
+            <h2 className="account-card-title" style={{ marginBottom: 0 }}>Deliveries</h2>
+            <p className="section-subtitle">
+              {deliveryStats.total === 0
+                ? "No active deliveries."
+                : `${deliveryStats.pending} pending · ${deliveryStats.completed} completed · ${deliveryStats.total} total`}
+            </p>
           </div>
 
           {loading ? (
-            <p style={{ color: "#bdb4a3" }}>Loading products...</p>
-          ) : sortedProducts.length === 0 ? (
-            <p style={{ color: "#bdb4a3" }}>No products found.</p>
+            <p className="section-subtitle">Loading deliveries...</p>
+          ) : deliveries.length === 0 ? (
+            <div className="customer-empty">
+              <h3 className="customer-empty-title">No deliveries yet</h3>
+              <p className="customer-empty-text">Completed customer orders will appear here with their shipping addresses.</p>
+            </div>
           ) : (
-            <div style={{ display: "grid", gap: 14 }}>
+            <div className="admin-delivery-table-wrap">
+              <table className="admin-delivery-table">
+                <thead>
+                  <tr>
+                    <th>Delivery ID</th>
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Total</th>
+                    <th>Address</th>
+                    <th>Status</th>
+                    <th>Completed</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deliveries.map((row) => {
+                    const status = normalizeOrderStatus(row.orderStatus);
+                    const nextLabel = status === "processing"
+                      ? "Mark In-Transit"
+                      : status === "in-transit"
+                        ? "Mark Delivered"
+                        : null;
+
+                    return (
+                      <tr key={row.deliveryId}>
+                        <td>#{row.deliveryId}</td>
+                        <td>#{row.orderId}<div className="order-meta">{formatDate(row.createdAt)}</div></td>
+                        <td>{row.customerName}<div className="order-meta">ID {row.customerId}</div></td>
+                        <td>{row.productName}<div className="order-meta">ID {row.productId}</div></td>
+                        <td>{row.quantity}</td>
+                        <td>${Number(row.totalPrice).toFixed(2)}</td>
+                        <td className="admin-delivery-address">{row.deliveryAddress || "—"}</td>
+                        <td>
+                          <span className={`order-status order-status--${status}`}>{status}</span>
+                        </td>
+                        <td>
+                          {row.completed ? (
+                            <span className="admin-delivery-pill admin-delivery-pill--done">Yes</span>
+                          ) : (
+                            <span className="admin-delivery-pill">No</span>
+                          )}
+                        </td>
+                        <td>
+                          {nextLabel ? (
+                            <button
+                              type="button"
+                              className="wishlist-secondary-btn"
+                              onClick={() => handleAdvanceDelivery(row.orderId)}
+                              disabled={actingOrderId === row.orderId}
+                            >
+                              {actingOrderId === row.orderId ? "Updating..." : nextLabel}
+                            </button>
+                          ) : (
+                            <span className="order-meta">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="account-card">
+          <h2 className="account-card-title">Current Products</h2>
+          <p className="section-subtitle" style={{ marginBottom: "1rem" }}>
+            These rows come from the database.
+          </p>
+
+          {loading ? (
+            <p className="section-subtitle">Loading products...</p>
+          ) : sortedProducts.length === 0 ? (
+            <p className="section-subtitle">No products found.</p>
+          ) : (
+            <div className="admin-product-list">
               {sortedProducts.map((product) => (
-                <article key={product.id} style={{ display: "grid", gridTemplateColumns: "120px 1fr auto", gap: 16, alignItems: "center", padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(212, 199, 170, 0.12)" }}>
-                  <img src={product.imageUrl || product.image || "https://via.placeholder.com/120x160?text=Book"} alt={product.name} style={{ width: 120, height: 160, objectFit: "cover", borderRadius: 12 }} />
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <div style={{ fontSize: 13, color: "#c7b68f" }}>{product.category}</div>
-                    <h3 style={{ margin: 0, fontSize: 20 }}>{product.name}</h3>
-                    <div style={{ color: "#d9d0c0" }}>by {product.author}</div>
-                    <div style={{ color: "#bdb4a3", fontSize: 14 }}>Stock: {product.stock} · Price: ${product.price.toFixed(2)}</div>
-                    <div style={{ color: "#9e9482", fontSize: 13 }}>
+                <article key={product.id} className="admin-product-row">
+                  <img
+                    src={product.imageUrl || product.image || "https://via.placeholder.com/120x160?text=Book"}
+                    alt={product.name}
+                    className="admin-product-cover"
+                  />
+                  <div className="admin-product-info">
+                    <span className="catalog-card-cat">{product.category}</span>
+                    <h3 className="admin-product-title">{product.name}</h3>
+                    <p className="order-meta">by {product.author}</p>
+                    <p className="order-meta">Stock: {product.stock} · Price: ${Number(product.price).toFixed(2)}</p>
+                    <p className="order-meta">
                       {product.featured ? "Featured · " : ""}
-                      {product.editorChoice ? "Editor Choice · " : ""}
+                      {product.editorChoice ? "Editor's Choice · " : ""}
                       {product.newArrival ? "New Arrival" : "Standard"}
-                    </div>
+                    </p>
                   </div>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <button onClick={() => startEdit(product)} className="btn-primary" type="button">Edit</button>
-                    <button onClick={() => handleDelete(product.id)} className="wishlist-secondary-btn" type="button" disabled={submitting}>Delete</button>
+                  <div className="admin-product-actions">
+                    <button onClick={() => startEdit(product)} className="btn-primary" type="button">
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(product.id)}
+                      className="wishlist-secondary-btn"
+                      type="button"
+                      disabled={submitting}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </article>
               ))}
             </div>
           )}
-        </section>
+        </div>
       </section>
     </main>
   );
