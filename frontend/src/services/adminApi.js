@@ -22,3 +22,11 @@ export function updateProduct(productId, payload) {
 export function deleteProduct(productId) {
   return sendJson(`/product-manager/products/${productId}`, "DELETE");
 }
+
+export function fetchDeliveries() {
+  return sendJson("/product-manager/deliveries", "GET");
+}
+
+export function advanceDeliveryStatus(orderId) {
+  return sendJson(`/product-manager/deliveries/${orderId}/advance-status`, "PUT");
+}

@@ -1,18 +1,26 @@
 package com._8.store.admin;
 
 import com._8.store.dto.CategoryDto;
+import com._8.store.dto.DeliveryResponse;
+import com._8.store.dto.OrderResponse;
 import com._8.store.dto.ProductDto;
+import com._8.store.service.OrderService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping({"/api/product-manager", "/api/admin"})
 public class AdminController {
 
     private final AdminService adminService;
+    private final OrderService orderService;
 
-    public AdminController(AdminService adminService) {
+    public AdminController(AdminService adminService, OrderService orderService) {
         this.adminService = adminService;
+        this.orderService = orderService;
     }
 
     @PostMapping("/products")
@@ -36,5 +44,15 @@ public class AdminController {
     @ResponseStatus(HttpStatus.CREATED)
     public CategoryDto createCategory(@RequestBody CategoryCreateRequest request) {
         return adminService.createCategory(request);
+    }
+
+    @GetMapping("/deliveries")
+    public ResponseEntity<List<DeliveryResponse>> getDeliveries() {
+        return ResponseEntity.ok(adminService.getAllDeliveries());
+    }
+
+    @PutMapping("/deliveries/{orderId}/advance-status")
+    public ResponseEntity<OrderResponse> advanceDeliveryStatus(@PathVariable Long orderId) {
+        return ResponseEntity.ok(orderService.advanceOrderStatus(orderId));
     }
 }
