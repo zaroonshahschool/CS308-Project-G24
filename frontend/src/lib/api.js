@@ -54,6 +54,9 @@ export async function apiFetch(path, options = {}) {
       headers,
     });
   } catch (error) {
+    if (error.name === "AbortError") {
+      throw error;
+    }
     throw new Error(`Backend is unavailable. Start the Spring Boot server on http://localhost:${DEFAULT_API_PORT} and try again.`);
   }
 
