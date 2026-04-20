@@ -1,12 +1,16 @@
-# Local Database Configuration
+# Database Configuration
 
-Before running the backend, each team member must create their own local database config file.
+The backend supports two database profiles — **local** (your own PostgreSQL) and **supabase** (shared hosted Postgres). Default is `local`; switch to `supabase` via IntelliJ run config when you want to hit the shared DB.
 
-This project uses a shared `application.properties` file for common Spring Boot settings, but database username and password are kept local so that one person's PostgreSQL credentials do not affect the rest of the team.
+| File | Scope | Committed? |
+|---|---|---|
+| `application.properties` | Shared base config, default profile | Yes |
+| `application-local.properties` | Your machine's local Postgres credentials | No |
+| `application-supabase.properties` | Supabase pooler URL + username; password is injected via env var | Yes |
 
 ---
 
-## Setup
+## Option A — Local Profile (default)
 
 ### 1. Create the local config file
 
@@ -36,20 +40,29 @@ jdbc:postgresql://localhost:5432/mystore
 
 So you must have a local PostgreSQL database named `mystore`.
 
+> **Do not** commit `application-local.properties` or put personal credentials into `application.properties`.
+
 ---
 
-## Important Notes
+## Option B — Supabase Profile (shared DB)
 
-> **Do not** commit `application-local.properties` to version control.
->
-> **Do not** put your personal database credentials into `application.properties`.
+No local PostgreSQL install needed. You just need the shared password (ask Efe).
 
-| File | Scope | Committed? |
-|---|---|---|
-| `application.properties` | Shared across the team | Yes |
-| `application-local.properties` | Only for your own machine | No |
+### 1. Set up your IntelliJ run configuration
 
-This setup prevents local credential conflicts when pulling updates from `main`.
+Run → Edit Configurations → select `StoreApplication` (or your Spring Boot config).
+
+- **Active profiles**: `supabase`
+- Click **Modify options** → check **Environment variables**, then add:
+  - `SUPABASE_DB_PASSWORD=<shared-password>`
+
+Click Apply → OK, then run. That's it — `application-supabase.properties` already has the pooler URL and username committed.
+
+### 2. Switching back to local
+
+Duplicate the run config (or just clear the active profile field) to run on `local` again. Keep two saved configs if you switch often.
+
+> **Never** put the Supabase password in `application-supabase.properties` — it stays as `${SUPABASE_DB_PASSWORD}` so only your local env var holds the real value.
 
 # CS308 Online Store Setup Guide- Group 24
 

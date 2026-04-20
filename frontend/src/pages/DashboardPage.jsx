@@ -69,13 +69,29 @@ export default function DashboardPage() {
       return;
     }
 
-    Promise.all([fetchPendingComments(), fetchOrders(), fetchProducts()])
-      .then(([comments, orderData, productData]) => {
-        setPendingComments(comments);
-        setOrders(orderData);
-        setProducts(productData);
+    const sections = [
+      { key: "pending comments", loader: fetchPendingComments, apply: setPendingComments, fallback: [] },
+      { key: "orders", loader: fetchOrders, apply: setOrders, fallback: [] },
+      { key: "products", loader: fetchProducts, apply: setProducts, fallback: [] },
+    ];
+
+    Promise.allSettled(sections.map((section) => section.loader()))
+      .then((results) => {
+        const failures = [];
+        results.forEach((result, index) => {
+          const section = sections[index];
+          if (result.status === "fulfilled") {
+            section.apply(result.value);
+          } else {
+            section.apply(section.fallback);
+            failures.push(`${section.key} (${result.reason?.message || "unknown error"})`);
+          }
+        });
+
+        if (failures.length > 0) {
+          setError(`Could not load: ${failures.join(", ")}`);
+        }
       })
-      .catch(() => setError("Failed to load dashboard data."))
       .finally(() => setLoading(false));
   }, [isSalesManager]);
 
