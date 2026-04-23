@@ -217,6 +217,40 @@ VITE_API_BASE_URL=http://localhost:8081
 
 ---
 
+## API Testing (Swagger UI & Postman)
+
+The backend exposes an auto-generated OpenAPI spec and an interactive Swagger UI so anyone on the team can explore and try the endpoints without touching the frontend.
+
+### Swagger UI
+
+With the backend running, open:
+
+```
+http://localhost:8080/swagger-ui.html
+```
+
+(or `http://localhost:8081/swagger-ui.html` if you overrode `server.port`).
+
+You'll see every endpoint grouped by controller. To test a protected endpoint:
+
+1. Call `POST /auth/login` via the UI → copy the `token` from the response.
+2. Click the **Authorize** button (top-right) → paste the token → Authorize.
+3. All subsequent "Try it out" calls will include the `Authorization: Bearer <token>` header.
+
+The raw spec is served at `http://localhost:8080/v3/api-docs` (JSON).
+
+### Postman
+
+Postman can import the OpenAPI spec to auto-build a collection:
+
+1. Open Postman → **Import** → **Link** tab.
+2. Paste `http://localhost:8080/v3/api-docs` → Continue → Import.
+3. You'll get a collection with every endpoint. Add an environment variable for `{{baseUrl}}` and the JWT if you want to chain requests.
+
+Re-import whenever endpoints change to refresh the collection.
+
+---
+
 ## IDEs
 
 - **Backend:** IntelliJ IDEA (Ultimate recommended — free with [JetBrains student license](https://www.jetbrains.com/community/education/))
