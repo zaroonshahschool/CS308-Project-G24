@@ -19,10 +19,14 @@ const emptyProductForm = {
   costPrice: "",
   stock: "",
   imageUrl: "",
-  model: "",
-  serialNumber: "",
-  warrantyStatus: "",
-  distributor: "",
+  publisher: "",
+  paperType: "",
+  pageCount: "",
+  dimensions: "",
+  publicationDate: "",
+  isbn: "",
+  language: "",
+  coverType: "",
   categoryName: "",
   featured: false,
   editorChoice: false,
@@ -124,10 +128,14 @@ export default function AdminPage() {
       costPrice: productForm.costPrice ? Number(productForm.costPrice) : null,
       stock: Number(productForm.stock),
       imageUrl: productForm.imageUrl,
-      model: productForm.model,
-      serialNumber: productForm.serialNumber,
-      warrantyStatus: productForm.warrantyStatus,
-      distributor: productForm.distributor,
+      publisher: productForm.publisher,
+      paperType: productForm.paperType,
+      pageCount: productForm.pageCount ? Number(productForm.pageCount) : null,
+      dimensions: productForm.dimensions,
+      publicationDate: productForm.publicationDate,
+      isbn: productForm.isbn,
+      language: productForm.language,
+      coverType: productForm.coverType,
       categoryName: productForm.categoryName,
       featured: productForm.featured,
       editorChoice: productForm.editorChoice,
@@ -204,10 +212,14 @@ export default function AdminPage() {
       costPrice: String(product.costPrice ?? ""),
       stock: String(product.stock ?? ""),
       imageUrl: product.imageUrl || "",
-      model: product.model || "",
-      serialNumber: product.serialNumber || "",
-      warrantyStatus: product.warrantyStatus || "",
-      distributor: product.distributor || "",
+      publisher: product.publisher || "",
+      paperType: product.paperType || "",
+      pageCount: product.pageCount != null ? String(product.pageCount) : "",
+      dimensions: product.dimensions || "",
+      publicationDate: product.publicationDate || "",
+      isbn: product.isbn || "",
+      language: product.language || "",
+      coverType: product.coverType || "",
       categoryName: product.category || categories[0]?.name || "",
       featured: Boolean(product.featured),
       editorChoice: Boolean(product.editorChoice),
@@ -346,20 +358,36 @@ export default function AdminPage() {
                 <input name="imageUrl" value={productForm.imageUrl} onChange={handleProductChange} />
               </label>
               <label className="review-field">
-                <span>Model</span>
-                <input name="model" value={productForm.model} onChange={handleProductChange} />
+                <span>Publisher</span>
+                <input name="publisher" value={productForm.publisher} onChange={handleProductChange} />
               </label>
               <label className="review-field">
-                <span>Serial Number</span>
-                <input name="serialNumber" value={productForm.serialNumber} onChange={handleProductChange} />
+                <span>Language</span>
+                <input name="language" value={productForm.language} onChange={handleProductChange} />
               </label>
               <label className="review-field">
-                <span>Warranty Status</span>
-                <input name="warrantyStatus" value={productForm.warrantyStatus} onChange={handleProductChange} />
+                <span>ISBN</span>
+                <input name="isbn" value={productForm.isbn} onChange={handleProductChange} />
               </label>
               <label className="review-field">
-                <span>Distributor</span>
-                <input name="distributor" value={productForm.distributor} onChange={handleProductChange} />
+                <span>Page Count</span>
+                <input name="pageCount" type="number" min="1" step="1" value={productForm.pageCount} onChange={handleProductChange} />
+              </label>
+              <label className="review-field">
+                <span>Cover Type</span>
+                <input name="coverType" value={productForm.coverType} onChange={handleProductChange} />
+              </label>
+              <label className="review-field">
+                <span>Paper Type</span>
+                <input name="paperType" value={productForm.paperType} onChange={handleProductChange} />
+              </label>
+              <label className="review-field">
+                <span>Dimensions</span>
+                <input name="dimensions" value={productForm.dimensions} onChange={handleProductChange} />
+              </label>
+              <label className="review-field">
+                <span>Publication Date</span>
+                <input name="publicationDate" value={productForm.publicationDate} onChange={handleProductChange} />
               </label>
             </div>
 
