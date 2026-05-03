@@ -12,7 +12,9 @@ import { initialReviewsByProduct } from "./data/reviews";
 import AccountPage from "./pages/AccountPage";
 import CataloguePage from "./pages/CataloguePage";
 import CheckoutPage from "./pages/CheckoutPage";
+import CommentModerationPage from "./pages/CommentModerationPage";
 import DashboardPage from "./pages/DashboardPage";
+import RatingModerationPage from "./pages/RatingModerationPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
@@ -479,6 +481,22 @@ export default function App() {
           element={
             <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
               <DashboardPage />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/comments"
+          element={
+            <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
+              <CommentModerationPage />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/ratings"
+          element={
+            <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
+              <RatingModerationPage />
             </RoleProtectedRoute>
           }
         />

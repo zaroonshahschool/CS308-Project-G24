@@ -1,11 +1,13 @@
 package com._8.store.controller;
 
-import com._8.store.dto.CommentResponse;
 import com._8.store.dto.ApplyDiscountRequest;
+import com._8.store.dto.CommentResponse;
 import com._8.store.dto.DiscountedProductResponse;
 import com._8.store.dto.InvoiceSummaryResponse;
 import com._8.store.dto.OrderResponse;
+import com._8.store.dto.RatingResponse;
 import com._8.store.dto.SalesAnalyticsResponse;
+import com._8.store.repository.RatingRepository;
 import com._8.store.service.CommentService;
 import com._8.store.service.OrderService;
 import com._8.store.service.SalesManagerService;
@@ -26,11 +28,14 @@ public class SalesManagerController {
     private final CommentService commentService;
     private final OrderService orderService;
     private final SalesManagerService salesManagerService;
+    private final RatingRepository ratingRepository;
 
-    public SalesManagerController(CommentService commentService, OrderService orderService, SalesManagerService salesManagerService) {
+    public SalesManagerController(CommentService commentService, OrderService orderService,
+                                   SalesManagerService salesManagerService, RatingRepository ratingRepository) {
         this.commentService = commentService;
         this.orderService = orderService;
         this.salesManagerService = salesManagerService;
+        this.ratingRepository = ratingRepository;
     }
 
     @GetMapping("/sales")
@@ -51,6 +56,24 @@ public class SalesManagerController {
     @PutMapping("/comments/{commentId}/reject")
     public ResponseEntity<?> rejectComment(@PathVariable Long commentId) {
         return ResponseEntity.ok(commentService.rejectComment(commentId));
+    }
+
+    @GetMapping("/ratings")
+    public ResponseEntity<List<RatingResponse>> getAllRatings() {
+        List<RatingResponse> ratings = ratingRepository.findAllWithDetails()
+                .stream()
+                .map(RatingResponse::new)
+                .toList();
+        return ResponseEntity.ok(ratings);
+    }
+
+    @DeleteMapping("/ratings/{ratingId}")
+    public ResponseEntity<?> deleteRating(@PathVariable Long ratingId) {
+        if (!ratingRepository.existsById(ratingId)) {
+            throw new IllegalArgumentException("Rating not found.");
+        }
+        ratingRepository.deleteById(ratingId);
+        return ResponseEntity.ok(Map.of("message", "Rating deleted."));
     }
 
     @GetMapping("/orders")

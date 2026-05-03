@@ -40,3 +40,11 @@ export async function fetchAnalytics(from, to) {
   const query = new URLSearchParams({ from, to });
   return apiFetch(`/api/sales-manager/analytics?${query.toString()}`);
 }
+
+export async function fetchAllRatings() {
+  return apiFetch("/api/sales-manager/ratings");
+}
+
+export async function deleteRating(ratingId) {
+  return apiFetch(`/api/sales-manager/ratings/${ratingId}`, { method: "DELETE" });
+}
