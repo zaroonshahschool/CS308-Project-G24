@@ -237,7 +237,7 @@ export default function ProductDetailPage({
           <div>
             <h2 className="section-title">Ratings & Comments</h2>
           </div>
-          <p className="section-subtitle">Ratings are counted immediately. Comments are visible after manager approval.</p>
+          <p className="section-subtitle">Available for customers with a delivered order. Ratings count immediately; comments appear after manager approval.</p>
         </div>
 
         <div className="product-review-layout">

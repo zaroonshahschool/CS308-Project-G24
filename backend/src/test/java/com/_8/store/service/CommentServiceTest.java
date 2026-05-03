@@ -21,6 +21,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,7 +57,7 @@ class CommentServiceTest {
     void addComment_validRequest_returnsPendingMessage() {
         given(userRepository.findByEmailIgnoreCase("john@example.com")).willReturn(Optional.of(mockUser));
         given(productRepository.findById(10L)).willReturn(Optional.of(mockProduct));
-        given(orderRepository.existsByUserIdAndProductId(1L, 10L)).willReturn(true);
+        given(orderRepository.existsByUserIdAndProductIdAndStatusIn(eq(1L), eq(10L), anyCollection())).willReturn(true);
         given(commentRepository.save(any())).willReturn(new Comment());
 
         CommentRequest request = new CommentRequest();
@@ -70,14 +72,14 @@ class CommentServiceTest {
     void addComment_userNotPurchased_throwsException() {
         given(userRepository.findByEmailIgnoreCase("john@example.com")).willReturn(Optional.of(mockUser));
         given(productRepository.findById(10L)).willReturn(Optional.of(mockProduct));
-        given(orderRepository.existsByUserIdAndProductId(1L, 10L)).willReturn(false);
+        given(orderRepository.existsByUserIdAndProductIdAndStatusIn(eq(1L), eq(10L), anyCollection())).willReturn(false);
 
         CommentRequest request = new CommentRequest();
         request.setContent("Nice!");
 
         assertThatThrownBy(() -> commentService.addComment("john@example.com", 10L, request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("You can only comment on products you have purchased.");
+                .hasMessage("You can only comment on products from delivered orders.");
     }
 
     @Test

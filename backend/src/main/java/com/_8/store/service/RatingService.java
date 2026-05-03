@@ -1,6 +1,7 @@
 package com._8.store.service;
 
 import com._8.store.dto.RatingRequest;
+import com._8.store.entity.OrderStatus;
 import com._8.store.entity.Product;
 import com._8.store.entity.Rating;
 import com._8.store.entity.User;
@@ -11,6 +12,7 @@ import com._8.store.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -36,8 +38,10 @@ public class RatingService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found."));
 
-        if (!orderRepository.existsByUserIdAndProductId(user.getId(), productId)) {
-            throw new IllegalArgumentException("You can only rate products you have purchased.");
+        if (!orderRepository.existsByUserIdAndProductIdAndStatusIn(
+                user.getId(), productId,
+                List.of(OrderStatus.DELIVERED, OrderStatus.PARTIALLY_RETURNED))) {
+            throw new IllegalArgumentException("You can only rate products from delivered orders.");
         }
 
         Rating rating;

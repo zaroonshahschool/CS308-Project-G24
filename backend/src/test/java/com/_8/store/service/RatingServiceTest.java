@@ -20,6 +20,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,7 +59,7 @@ class RatingServiceTest {
     void rateProduct_validRequest_returnsAverageRating() {
         given(userRepository.findByEmailIgnoreCase("john@example.com")).willReturn(Optional.of(mockUser));
         given(productRepository.findById(10L)).willReturn(Optional.of(mockProduct));
-        given(orderRepository.existsByUserIdAndProductId(1L, 10L)).willReturn(true);
+        given(orderRepository.existsByUserIdAndProductIdAndStatusIn(eq(1L), eq(10L), anyCollection())).willReturn(true);
         given(ratingRepository.existsByUserIdAndProductId(1L, 10L)).willReturn(false);
         given(ratingRepository.save(any())).willReturn(new Rating());
         given(ratingRepository.findAverageScoreByProductId(10L)).willReturn(4.5);
@@ -75,14 +77,14 @@ class RatingServiceTest {
     void rateProduct_userNotPurchased_throwsException() {
         given(userRepository.findByEmailIgnoreCase("john@example.com")).willReturn(Optional.of(mockUser));
         given(productRepository.findById(10L)).willReturn(Optional.of(mockProduct));
-        given(orderRepository.existsByUserIdAndProductId(1L, 10L)).willReturn(false);
+        given(orderRepository.existsByUserIdAndProductIdAndStatusIn(eq(1L), eq(10L), anyCollection())).willReturn(false);
 
         RatingRequest request = new RatingRequest();
         request.setScore(4);
 
         assertThatThrownBy(() -> ratingService.rateProduct("john@example.com", 10L, request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("You can only rate products you have purchased.");
+                .hasMessage("You can only rate products from delivered orders.");
     }
 
     @Test
@@ -104,7 +106,7 @@ class RatingServiceTest {
 
         given(userRepository.findByEmailIgnoreCase("john@example.com")).willReturn(Optional.of(mockUser));
         given(productRepository.findById(10L)).willReturn(Optional.of(mockProduct));
-        given(orderRepository.existsByUserIdAndProductId(1L, 10L)).willReturn(true);
+        given(orderRepository.existsByUserIdAndProductIdAndStatusIn(eq(1L), eq(10L), anyCollection())).willReturn(true);
         given(ratingRepository.existsByUserIdAndProductId(1L, 10L)).willReturn(true);
         given(ratingRepository.findByUserIdAndProductId(1L, 10L)).willReturn(Optional.of(existingRating));
         given(ratingRepository.save(any())).willReturn(existingRating);
