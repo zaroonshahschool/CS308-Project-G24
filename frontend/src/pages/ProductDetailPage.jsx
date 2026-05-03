@@ -313,10 +313,14 @@ export default function ProductDetailPage({
           </div>
 
           <dl className="product-detail-specs">
-            <div><dt>Model</dt><dd>{product.model || "—"}</dd></div>
-            <div><dt>Serial Number</dt><dd>{product.serialNumber || "—"}</dd></div>
-            <div><dt>Warranty Status</dt><dd>{product.warrantyStatus || "—"}</dd></div>
-            <div><dt>Distributor</dt><dd>{product.distributor || "—"}</dd></div>
+            <div><dt>Publisher</dt><dd>{product.publisher || "—"}</dd></div>
+            <div><dt>Language</dt><dd>{product.language || "—"}</dd></div>
+            <div><dt>ISBN</dt><dd>{product.isbn || "—"}</dd></div>
+            <div><dt>Page Count</dt><dd>{product.pageCount != null ? product.pageCount : "—"}</dd></div>
+            <div><dt>Cover Type</dt><dd>{product.coverType || "—"}</dd></div>
+            <div><dt>Paper Type</dt><dd>{product.paperType || "—"}</dd></div>
+            <div><dt>Dimensions</dt><dd>{product.dimensions || "—"}</dd></div>
+            <div><dt>Publication Date</dt><dd>{product.publicationDate || "—"}</dd></div>
           </dl>
         </div>
       </section>

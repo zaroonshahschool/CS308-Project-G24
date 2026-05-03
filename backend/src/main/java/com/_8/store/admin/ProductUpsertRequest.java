@@ -10,10 +10,14 @@ public class ProductUpsertRequest {
     private BigDecimal costPrice;
     private Integer stock;
     private String imageUrl;
-    private String model;
-    private String serialNumber;
-    private String warrantyStatus;
-    private String distributor;
+    private String publisher;
+    private String paperType;
+    private Integer pageCount;
+    private String dimensions;
+    private String publicationDate;
+    private String isbn;
+    private String language;
+    private String coverType;
     private String categoryName;
     private Boolean featured;
     private Boolean editorChoice;
@@ -33,14 +37,22 @@ public class ProductUpsertRequest {
     public void setStock(Integer stock) { this.stock = stock; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-    public String getModel() { return model; }
-    public void setModel(String model) { this.model = model; }
-    public String getSerialNumber() { return serialNumber; }
-    public void setSerialNumber(String serialNumber) { this.serialNumber = serialNumber; }
-    public String getWarrantyStatus() { return warrantyStatus; }
-    public void setWarrantyStatus(String warrantyStatus) { this.warrantyStatus = warrantyStatus; }
-    public String getDistributor() { return distributor; }
-    public void setDistributor(String distributor) { this.distributor = distributor; }
+    public String getPublisher() { return publisher; }
+    public void setPublisher(String publisher) { this.publisher = publisher; }
+    public String getPaperType() { return paperType; }
+    public void setPaperType(String paperType) { this.paperType = paperType; }
+    public Integer getPageCount() { return pageCount; }
+    public void setPageCount(Integer pageCount) { this.pageCount = pageCount; }
+    public String getDimensions() { return dimensions; }
+    public void setDimensions(String dimensions) { this.dimensions = dimensions; }
+    public String getPublicationDate() { return publicationDate; }
+    public void setPublicationDate(String publicationDate) { this.publicationDate = publicationDate; }
+    public String getIsbn() { return isbn; }
+    public void setIsbn(String isbn) { this.isbn = isbn; }
+    public String getLanguage() { return language; }
+    public void setLanguage(String language) { this.language = language; }
+    public String getCoverType() { return coverType; }
+    public void setCoverType(String coverType) { this.coverType = coverType; }
     public String getCategoryName() { return categoryName; }
     public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
     public Boolean getFeatured() { return featured; }

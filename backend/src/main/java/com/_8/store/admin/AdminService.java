@@ -148,10 +148,14 @@ public class AdminService {
         product.setDiscountRate(product.getDiscountRate() != null ? product.getDiscountRate() : java.math.BigDecimal.ZERO);
         product.setStock(request.getStock());
         product.setImageUrl(blankToNull(request.getImageUrl()));
-        product.setModel(blankToNull(request.getModel()));
-        product.setSerialNumber(blankToNull(request.getSerialNumber()));
-        product.setWarrantyStatus(blankToNull(request.getWarrantyStatus()));
-        product.setDistributor(blankToNull(request.getDistributor()));
+        product.setPublisher(blankToNull(request.getPublisher()));
+        product.setPaperType(blankToNull(request.getPaperType()));
+        product.setPageCount(request.getPageCount());
+        product.setDimensions(blankToNull(request.getDimensions()));
+        product.setPublicationDate(blankToNull(request.getPublicationDate()));
+        product.setIsbn(blankToNull(request.getIsbn()));
+        product.setLanguage(blankToNull(request.getLanguage()));
+        product.setCoverType(blankToNull(request.getCoverType()));
         product.setCategory(category);
         product.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
         product.setEditorChoice(Boolean.TRUE.equals(request.getEditorChoice()));
@@ -189,10 +193,14 @@ public class AdminService {
                 product.getStock(),
                 product.getImageUrl(),
                 product.getCategory().getName(),
-                product.getModel(),
-                product.getSerialNumber(),
-                product.getWarrantyStatus(),
-                product.getDistributor(),
+                product.getPublisher(),
+                product.getPaperType(),
+                product.getPageCount(),
+                product.getDimensions(),
+                product.getPublicationDate(),
+                product.getIsbn(),
+                product.getLanguage(),
+                product.getCoverType(),
                 product.isFeatured(),
                 product.isEditorChoice(),
                 product.isNewArrival(),
