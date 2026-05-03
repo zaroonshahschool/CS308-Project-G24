@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useToast } from "../components/useToast";
 import { fetchProfile, updateAddress } from "../services/customerApi";
 
 function canReturn(placedAt) {
@@ -21,6 +22,7 @@ function SavedTick({ visible }) {
 
 export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, onViewInvoice }) {
   const location = useLocation();
+  const toast = useToast();
   const [profile, setProfile] = useState(null);
   const [addressForm, setAddressForm] = useState({ street: "", city: "", postalCode: "", country: "" });
   const [savedField, setSavedField] = useState("");
@@ -41,8 +43,11 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
           country: data.country || "",
         });
       })
-      .catch(() => setError("Failed to load profile."));
-  }, []);
+      .catch(() => {
+        setError("Failed to load profile.");
+        toast.error("Failed to load profile.", { title: "Account error" });
+      });
+  }, [toast]);
 
   useEffect(() => {
     if (!savedField) return undefined;
@@ -61,8 +66,10 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
     try {
       await updateAddress(addressForm);
       setSavedField(fieldName);
+      toast.success("Address saved.", { title: "Profile updated" });
     } catch {
       setError("Failed to update address.");
+      toast.error("Failed to update address.", { title: "Profile error" });
     }
   }
 
@@ -70,8 +77,10 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
     try {
       await updateAddress(addressForm);
       setSavedField("address");
+      toast.success("Address saved.", { title: "Profile updated" });
     } catch {
       setError("Failed to update address.");
+      toast.error("Failed to update address.", { title: "Profile error" });
     }
   }
 
@@ -85,8 +94,10 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
 
     try {
       await onViewInvoice(order.backendOrderId);
+      toast.info("Invoice opened in a new tab.", { title: "Invoice ready" });
     } catch (invoiceDownloadError) {
       setInvoiceError(invoiceDownloadError.message || "Invoice could not be opened.");
+      toast.error(invoiceDownloadError.message || "Invoice could not be opened.", { title: "Invoice error" });
     } finally {
       setDownloadingOrderId(null);
     }
@@ -100,6 +111,7 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
       await onCancelOrder(order.backendOrderId);
     } catch (actionError) {
       setOrderActionError(actionError.message || "Order could not be cancelled.");
+      toast.error(actionError.message || "Order could not be cancelled.", { title: "Order error" });
     } finally {
       setActingOrderKey("");
     }
@@ -113,6 +125,7 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
       await onReturnOrderItem(order.backendOrderId, item.productId);
     } catch (actionError) {
       setOrderActionError(actionError.message || "Item could not be returned.");
+      toast.error(actionError.message || "Item could not be returned.", { title: "Order error" });
     } finally {
       setActingOrderKey("");
     }

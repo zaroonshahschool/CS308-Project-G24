@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useToast } from "../components/useToast";
 import { fetchProductById, fetchProducts } from "../services/catalogApi";
 import { fetchApprovedComments, rateProduct, submitComment } from "../services/reviewApi";
 
@@ -51,6 +52,7 @@ export default function ProductDetailPage({
   wishlistProductIds,
 }) {
   const { productId } = useParams();
+  const toast = useToast();
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,8 +120,10 @@ export default function ProductDetailPage({
       const result = await rateProduct(productId, ratingScore);
       setAverageRating(result.averageRating);
       setRatingMessage("Your rating has been saved.");
+      toast.success("Your rating has been saved.", { title: "Rating submitted" });
     } catch (err) {
       setRatingError(err.message || "Failed to submit rating.");
+      toast.error(err.message || "Failed to submit rating.", { title: "Rating failed" });
     }
   }
 
@@ -131,8 +135,10 @@ export default function ProductDetailPage({
       await submitComment(productId, commentContent);
       setCommentContent("");
       setCommentMessage("Your comment is pending manager approval.");
+      toast.success("Your comment is pending manager approval.", { title: "Comment submitted" });
     } catch (err) {
       setCommentError(err.message || "Failed to submit comment.");
+      toast.error(err.message || "Failed to submit comment.", { title: "Comment failed" });
     }
   }
 
@@ -189,7 +195,7 @@ export default function ProductDetailPage({
               <h1 className="product-detail-title">{product.name}</h1>
               <p className="product-detail-author">by {product.author}</p>
             </div>
-            <WishlistButton active={inWishlist} onClick={() => onToggleWishlist(product.id)} />
+            <WishlistButton active={inWishlist} onClick={() => onToggleWishlist(product.id, product.name)} />
           </div>
 
           <div className="product-detail-rating-summary">

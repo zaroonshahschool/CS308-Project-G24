@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useToast } from "../components/useToast";
 import { fetchCategories, fetchProducts } from "../services/catalogApi";
 import {
   advanceDeliveryStatus,
@@ -44,6 +45,7 @@ function formatDate(value) {
 }
 
 export default function AdminPage() {
+  const toast = useToast();
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [deliveries, setDeliveries] = useState([]);
@@ -56,7 +58,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [actingOrderId, setActingOrderId] = useState(null);
 
-  async function loadAdminData() {
+  const loadAdminData = useCallback(async function loadAdminData() {
     setLoading(true);
     setError("");
 
@@ -74,15 +76,17 @@ export default function AdminPage() {
         categoryName: prev.categoryName || categoryDtos[0]?.name || "",
       }));
     } catch (err) {
-      setError(err.message || "Failed to load admin data.");
+      const message = err.message || "Failed to load admin data.";
+      setError(message);
+      toast.error(message, { title: "Admin data error" });
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
 
   useEffect(() => {
     loadAdminData();
-  }, []);
+  }, [loadAdminData]);
 
   const sortedProducts = useMemo(
     () => [...products].sort((a, b) => b.id - a.id),
@@ -143,9 +147,11 @@ export default function AdminPage() {
       if (editingId) {
         await updateProduct(editingId, payload);
         setMessage("Product updated successfully.");
+        toast.success("Product updated successfully.", { title: "Product saved" });
       } else {
         await createProduct(payload);
         setMessage("Product created successfully.");
+        toast.success("Product created successfully.", { title: "Product saved" });
       }
 
       setEditingId(null);
@@ -155,7 +161,9 @@ export default function AdminPage() {
       });
       await loadAdminData();
     } catch (err) {
-      setError(err.message || "Failed to save product.");
+      const message = err.message || "Failed to save product.";
+      setError(message);
+      toast.error(message, { title: "Product error" });
     } finally {
       setSubmitting(false);
     }
@@ -175,9 +183,12 @@ export default function AdminPage() {
       });
       setCategoryForm(emptyCategoryForm);
       setMessage("Category created successfully.");
+      toast.success("Category created successfully.", { title: "Category saved" });
       await loadAdminData();
     } catch (err) {
-      setError(err.message || "Failed to create category.");
+      const message = err.message || "Failed to create category.";
+      setError(message);
+      toast.error(message, { title: "Category error" });
     } finally {
       setSubmitting(false);
     }
@@ -227,9 +238,12 @@ export default function AdminPage() {
         resetProductForm();
       }
       setMessage("Product deleted successfully.");
+      toast.success("Product deleted successfully.", { title: "Product deleted" });
       await loadAdminData();
     } catch (err) {
-      setError(err.message || "Failed to delete product.");
+      const message = err.message || "Failed to delete product.";
+      setError(message);
+      toast.error(message, { title: "Product error" });
     } finally {
       setSubmitting(false);
     }
@@ -244,8 +258,11 @@ export default function AdminPage() {
       await advanceDeliveryStatus(orderId);
       const updated = await fetchDeliveries();
       setDeliveries(updated);
+      toast.success("Delivery status updated.", { title: "Delivery updated" });
     } catch (err) {
-      setError(err.message || "Failed to advance delivery status.");
+      const message = err.message || "Failed to advance delivery status.";
+      setError(message);
+      toast.error(message, { title: "Delivery error" });
     } finally {
       setActingOrderId(null);
     }

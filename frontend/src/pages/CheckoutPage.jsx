@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useToast } from "../components/useToast";
 import { fetchProfile, updateAddress } from "../services/customerApi";
 
 const ENABLE_LUHN_VALIDATION = import.meta.env.VITE_ENABLE_LUHN_VALIDATION === "true";
@@ -78,6 +79,7 @@ function isValidFutureExpiry(monthValue, yearValue) {
 }
 
 export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
+  const toast = useToast();
   const [address, setAddress] = useState({
     street: "",
     city: "",
@@ -126,14 +128,16 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
       })
       .catch(() => {
         if (active) {
-          setProfileError("We could not preload your saved address. You can still complete checkout manually.");
+          const message = "We could not preload your saved address. You can still complete checkout manually.";
+          setProfileError(message);
+          toast.warning(message, { title: "Address not loaded" });
         }
       });
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [toast]);
 
   function handleAddressChange(event) {
     const { name, value } = event.target;
@@ -164,7 +168,9 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
     event.preventDefault();
 
     if (cartItems.length === 0) {
-      setSubmitError("Your cart is empty.");
+      const message = "Your cart is empty.";
+      setSubmitError(message);
+      toast.warning(message, { title: "Checkout" });
       return;
     }
 
@@ -172,21 +178,26 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
     const [expiryMonth, expiryYear] = payment.expiry.split("/");
 
     if (!isValidCardNumber(rawCardNumber)) {
-      setSubmitError(
+      const message =
         ENABLE_LUHN_VALIDATION
           ? "Enter a valid card number with 13 to 19 digits."
-          : "Enter a card number with 13 to 19 digits."
-      );
+          : "Enter a card number with 13 to 19 digits.";
+      setSubmitError(message);
+      toast.warning(message, { title: "Payment details" });
       return;
     }
 
     if (!expiryMonth || !expiryYear || expiryYear.length !== 2 || !isValidFutureExpiry(expiryMonth, expiryYear)) {
-      setSubmitError("Enter a valid card expiry date in MM/YY format.");
+      const message = "Enter a valid card expiry date in MM/YY format.";
+      setSubmitError(message);
+      toast.warning(message, { title: "Payment details" });
       return;
     }
 
     if (!/^\d{3,4}$/.test(payment.cvv)) {
-      setSubmitError("Enter a valid 3 or 4 digit card security code.");
+      const message = "Enter a valid 3 or 4 digit card security code.";
+      setSubmitError(message);
+      toast.warning(message, { title: "Payment details" });
       return;
     }
 
@@ -205,7 +216,9 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
         },
       });
     } catch (error) {
-      setSubmitError(error.message || "Checkout failed. Please try again.");
+      const message = error.message || "Checkout failed. Please try again.";
+      setSubmitError(message);
+      toast.error(message, { title: "Checkout failed" });
       setSubmitting(false);
     }
   }

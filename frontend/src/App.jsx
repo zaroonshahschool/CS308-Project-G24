@@ -5,6 +5,7 @@ import CartDrawer from "./components/CartDrawer";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import Nav from "./components/Nav";
+import { useToast } from "./components/useToast";
 import { initialCustomer, getInitialStockByProduct } from "./data/customer";
 import AdminPage from "./pages/AdminPage";
 import { initialReviewsByProduct } from "./data/reviews";
@@ -86,11 +87,11 @@ function StoreLayout({ children, cartCount, wishlistCount, onCartOpen }) {
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
   const [cartItems, setCartItems] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [wishlistProductIds, setWishlistProductIds] = useState(() => getStoredArray("wishlist_product_ids"));
   const [reviewsByProduct, setReviewsByProduct] = useState(initialReviewsByProduct);
-  const [customer, setCustomer] = useState(getStoredCustomer);
   const [orders, setOrders] = useState([]);
   const [stockByProduct, setStockByProduct] = useState(getInitialStockByProduct);
 
@@ -102,23 +103,15 @@ export default function App() {
     const storedCustomer = getStoredCustomer();
     const nextEmail = authEmail || registeredEmail || storedCustomer.email || "";
 
-    setCustomer((currentCustomer) => {
-      const nextCustomer = {
-        ...storedCustomer,
-        id: storedCustomer.id || currentCustomer.id || generateCustomerId(),
-        email: nextEmail,
-      };
+    const nextCustomer = {
+      ...storedCustomer,
+      id: storedCustomer.id || generateCustomerId(),
+      email: nextEmail,
+    };
 
-      const currentSnapshot = JSON.stringify(currentCustomer);
-      const nextSnapshot = JSON.stringify(nextCustomer);
-
-      if (currentSnapshot === nextSnapshot) {
-        return currentCustomer;
-      }
-
+    if (JSON.stringify(storedCustomer) !== JSON.stringify(nextCustomer)) {
       window.localStorage.setItem("customer_profile", JSON.stringify(nextCustomer));
-      return nextCustomer;
-    });
+    }
   }, [location.pathname]);
 
   useEffect(() => {
@@ -126,7 +119,6 @@ export default function App() {
     const token = window.localStorage.getItem("auth_token");
 
     if (!token) {
-      setOrders([]);
       return undefined;
     }
 
@@ -149,7 +141,6 @@ export default function App() {
     const role = window.localStorage.getItem("auth_role");
 
     if (!token || role !== "CUSTOMER") {
-      setWishlistProductIds(getStoredArray("wishlist_product_ids"));
       return undefined;
     }
 
@@ -172,37 +163,57 @@ export default function App() {
     window.localStorage.setItem("wishlist_product_ids", JSON.stringify(nextWishlist));
   }
 
-  async function handleToggleWishlist(productId) {
+  async function handleToggleWishlist(productId, productName = "Product") {
     const token = window.localStorage.getItem("auth_token");
     const role = window.localStorage.getItem("auth_role");
+    const isRemoving = wishlistProductIds.includes(productId);
 
-    if (!token || role !== "CUSTOMER") {
-      persistWishlist(
-        wishlistProductIds.includes(productId)
-          ? wishlistProductIds.filter((id) => id !== productId)
-          : [...wishlistProductIds, productId]
+    try {
+      if (!token || role !== "CUSTOMER") {
+        persistWishlist(
+          isRemoving
+            ? wishlistProductIds.filter((id) => id !== productId)
+            : [...wishlistProductIds, productId]
+        );
+      } else {
+        const nextWishlist = isRemoving
+          ? await removeWishlistProduct(productId)
+          : await addWishlistProduct(productId);
+
+        persistWishlist(nextWishlist);
+      }
+
+      toast.success(
+        `${productName} ${isRemoving ? "removed from" : "added to"} your wishlist.`,
+        { title: "Wishlist updated" }
       );
-      return;
+    } catch (err) {
+      toast.error(err.message || "Wishlist could not be updated.", { title: "Wishlist error" });
     }
-
-    const nextWishlist = wishlistProductIds.includes(productId)
-      ? await removeWishlistProduct(productId)
-      : await addWishlistProduct(productId);
-
-    persistWishlist(nextWishlist);
   }
 
   function handleAddToCart(product) {
     const availableStock = stockByProduct[product.id] ?? product.stock;
+    const productName = product.name || "This item";
 
     if (availableStock <= 0) {
+      toast.warning(`${productName} is out of stock.`, { title: "Cart notice" });
+      return;
+    }
+
+    const existingItem = cartItems.find((item) => item.id === product.id);
+
+    if (existingItem?.qty >= availableStock) {
+      toast.warning(`Only ${availableStock} ${availableStock === 1 ? "copy is" : "copies are"} available.`, {
+        title: "Stock limit reached",
+      });
       return;
     }
 
     setCartItems((currentItems) => {
-      const existingItem = currentItems.find((item) => item.id === product.id);
+      const currentItem = currentItems.find((item) => item.id === product.id);
 
-      if (existingItem) {
+      if (currentItem) {
         return currentItems.map((item) =>
           item.id === product.id
             ? { ...item, qty: Math.min(item.qty + 1, availableStock) }
@@ -213,7 +224,7 @@ export default function App() {
       return [...currentItems, { ...product, stock: availableStock, qty: 1 }];
     });
 
-    setCartOpen(true);
+    toast.success(`${productName} added to your cart.`, { title: "Cart updated" });
   }
 
   function handleUpdateCartQty(productId, delta) {
@@ -233,7 +244,12 @@ export default function App() {
   }
 
   function handleRemoveFromCart(productId) {
+    const removedItem = cartItems.find((item) => item.id === productId);
     setCartItems((currentItems) => currentItems.filter((item) => item.id !== productId));
+
+    if (removedItem) {
+      toast.info(`${removedItem.name} removed from your cart.`, { title: "Cart updated" });
+    }
   }
 
   function handleSubmitReview(productId, reviewInput) {
@@ -252,11 +268,6 @@ export default function App() {
     }));
   }
 
-  function handleUpdateCustomer(nextCustomer) {
-    window.localStorage.setItem("customer_profile", JSON.stringify(nextCustomer));
-    setCustomer(nextCustomer);
-  }
-
   async function handleCancelOrder(orderId) {
     const updatedOrder = await cancelOrder(orderId);
     setOrders((currentOrders) =>
@@ -264,6 +275,7 @@ export default function App() {
         order.backendOrderId === updatedOrder.backendOrderId ? updatedOrder : order
       )
     );
+    toast.success(`Order #${orderId} cancelled.`, { title: "Order updated" });
   }
 
   async function handleReturnOrderItem(orderId, productId) {
@@ -273,10 +285,12 @@ export default function App() {
         order.backendOrderId === updatedOrder.backendOrderId ? updatedOrder : order
       )
     );
+    toast.success("Return request completed.", { title: "Order updated" });
   }
 
   function finalizePlacedOrder(nextOrder) {
     if (cartItems.length === 0) {
+      toast.info("Your cart is empty. Pick a title to begin checkout.", { title: "Checkout" });
       navigate("/catalogue");
       return null;
     }
@@ -307,6 +321,7 @@ export default function App() {
     if (!token) {
       navigate("/login?next=/checkout");
       setCartOpen(false);
+      toast.info("Sign in to continue checkout.", { title: "Login required" });
       return;
     }
 
@@ -332,6 +347,7 @@ export default function App() {
         recentInvoiceOrderId: nextOrder.backendOrderId,
       },
     });
+    toast.success("Your order was placed successfully.", { title: "Order confirmed" });
   }
 
   async function handleViewInvoice(orderId) {

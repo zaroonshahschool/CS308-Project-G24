@@ -3,6 +3,7 @@ import Hero from "../components/Hero";
 import LibrariesSection from "../components/LibrariesSection";
 import NotableSection from "../components/NotableSection";
 import EditorsChoice from "../components/EditorsChoice";
+import { useToast } from "../components/useToast";
 import { apiFetch } from "../lib/api";
 
 const FALLBACK_VALUE_PROPS = [
@@ -70,6 +71,7 @@ function ValueProps({ items }) {
 }
 
 export default function HomePage() {
+  const toast = useToast();
   const [homeData, setHomeData] = useState(null);
   const [error, setError] = useState("");
 
@@ -83,14 +85,16 @@ export default function HomePage() {
         setHomeData(data);
       } catch (fetchError) {
         if (fetchError.name !== "AbortError") {
-          setError("Homepage data could not be loaded from the backend.");
+          const message = "Homepage data could not be loaded from the backend.";
+          setError(message);
+          toast.error(message, { title: "Home page error" });
         }
       }
     }
 
     loadHomePage();
     return () => controller.abort();
-  }, []);
+  }, [toast]);
 
   return (
     <>

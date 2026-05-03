@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useToast } from "./useToast";
 
 export default function Header({ cartCount = 0, wishlistCount = 0, onCartOpen }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
   const inputRef = useRef(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,6 +44,7 @@ export default function Header({ cartCount = 0, wishlistCount = 0, onCartOpen })
     }
 
     navigate("/login?next=/account");
+    toast.info("Sign in to view your account.", { title: "Login required" });
   }
 
   return (
