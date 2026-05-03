@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useToast } from "./useToast";
 import { fetchCategories, fetchProducts } from "../services/catalogApi";
 
 const HASH_TO_CATEGORY = {
@@ -66,7 +67,7 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, reviews, wishlist
             active={inWishlist}
             onClick={(event) => {
               event.preventDefault();
-              onToggleWishlist(product.id);
+              onToggleWishlist(product.id, product.name);
             }}
           />
           <img
@@ -134,6 +135,7 @@ export default function ProductCatalogSection({
   stockByProduct = {},
   wishlistProductIds = [],
 }) {
+  const toast = useToast();
   const { hash } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -163,7 +165,9 @@ export default function ProductCatalogSection({
         setCategories(uniqueCategories);
       } catch (err) {
         if (!ignore) {
-          setError(err.message || "Failed to load categories.");
+          const message = err.message || "Failed to load categories.";
+          setError(message);
+          toast.error(message, { title: "Catalogue error" });
         }
       } finally {
         if (!ignore) {
@@ -177,7 +181,7 @@ export default function ProductCatalogSection({
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     const nextCategory = HASH_TO_CATEGORY[hash];
@@ -215,7 +219,9 @@ export default function ProductCatalogSection({
         setProducts(data);
       } catch (err) {
         if (!ignore) {
-          setError(err.message || "Failed to load catalogue.");
+          const message = err.message || "Failed to load catalogue.";
+          setError(message);
+          toast.error(message, { title: "Catalogue error" });
           setProducts([]);
         }
       } finally {
@@ -230,7 +236,7 @@ export default function ProductCatalogSection({
     return () => {
       ignore = true;
     };
-  }, [activeCategory]);
+  }, [activeCategory, toast]);
 
   function updateSearchParams(nextValues) {
     const nextParams = new URLSearchParams(searchParams);

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useToast } from "../components/useToast";
 import { fetchProducts } from "../services/catalogApi";
 
 export default function WishlistPage({ onAddToCart, onToggleWishlist, stockByProduct, wishlistProductIds }) {
+  const toast = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -19,8 +21,10 @@ export default function WishlistPage({ onAddToCart, onToggleWishlist, stockByPro
         setProducts(data);
       } catch (err) {
         if (!ignore) {
-          setError(err.message || "Failed to load wishlist products.");
+          const message = err.message || "Failed to load wishlist products.";
+          setError(message);
           setProducts([]);
+          toast.error(message, { title: "Wishlist error" });
         }
       } finally {
         if (!ignore) {
@@ -34,7 +38,7 @@ export default function WishlistPage({ onAddToCart, onToggleWishlist, stockByPro
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [toast]);
 
   const wishlistProducts = useMemo(
     () =>
@@ -87,7 +91,7 @@ export default function WishlistPage({ onAddToCart, onToggleWishlist, stockByPro
                     <button className="btn-dark" disabled={product.stock === 0} onClick={() => onAddToCart(product)}>
                       {product.stock === 0 ? "Unavailable" : "Add to Cart"}
                     </button>
-                    <button className="wishlist-secondary-btn" onClick={() => onToggleWishlist(product.id)}>
+                    <button className="wishlist-secondary-btn" onClick={() => onToggleWishlist(product.id, product.name)}>
                       Remove
                     </button>
                   </div>

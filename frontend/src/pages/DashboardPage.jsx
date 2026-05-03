@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useToast } from "../components/useToast";
 import { fetchProducts } from "../services/catalogApi";
 import {
   advanceOrderStatus,
@@ -41,7 +42,8 @@ function getChartPoints(points, key, width = 620, height = 240, padding = 24) {
 }
 
 export default function DashboardPage() {
-  const today = getToday();
+  const toast = useToast();
+  const [today] = useState(getToday);
   const [pendingComments, setPendingComments] = useState([]);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
@@ -62,6 +64,36 @@ export default function DashboardPage() {
 
   const role = window.localStorage.getItem("auth_role");
   const isSalesManager = role === "SALES_MANAGER";
+
+  const loadInvoices = useCallback(async function loadInvoices(from, to) {
+    setLoadingInvoices(true);
+
+    try {
+      const data = await fetchInvoices(from, to);
+      setInvoices(data);
+    } catch (invoiceLoadError) {
+      const message = invoiceLoadError.message || "Failed to load invoices.";
+      setError(message);
+      toast.error(message, { title: "Invoice error" });
+    } finally {
+      setLoadingInvoices(false);
+    }
+  }, [toast]);
+
+  const loadAnalytics = useCallback(async function loadAnalytics(from, to) {
+    setLoadingAnalytics(true);
+
+    try {
+      const data = await fetchAnalytics(from, to);
+      setAnalytics(data);
+    } catch (analyticsLoadError) {
+      const message = analyticsLoadError.message || "Failed to load analytics.";
+      setError(message);
+      toast.error(message, { title: "Analytics error" });
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (!isSalesManager) {
@@ -89,11 +121,13 @@ export default function DashboardPage() {
         });
 
         if (failures.length > 0) {
-          setError(`Could not load: ${failures.join(", ")}`);
+          const message = `Could not load: ${failures.join(", ")}`;
+          setError(message);
+          toast.error(message, { title: "Dashboard load error" });
         }
       })
       .finally(() => setLoading(false));
-  }, [isSalesManager]);
+  }, [isSalesManager, toast]);
 
   useEffect(() => {
     if (!isSalesManager) {
@@ -102,40 +136,16 @@ export default function DashboardPage() {
 
     loadInvoices(today, today);
     loadAnalytics(today, today);
-  }, [isSalesManager]);
-
-  async function loadInvoices(from, to) {
-    setLoadingInvoices(true);
-
-    try {
-      const data = await fetchInvoices(from, to);
-      setInvoices(data);
-    } catch (invoiceLoadError) {
-      setError(invoiceLoadError.message || "Failed to load invoices.");
-    } finally {
-      setLoadingInvoices(false);
-    }
-  }
-
-  async function loadAnalytics(from, to) {
-    setLoadingAnalytics(true);
-
-    try {
-      const data = await fetchAnalytics(from, to);
-      setAnalytics(data);
-    } catch (analyticsLoadError) {
-      setError(analyticsLoadError.message || "Failed to load analytics.");
-    } finally {
-      setLoadingAnalytics(false);
-    }
-  }
+  }, [isSalesManager, loadAnalytics, loadInvoices, today]);
 
   async function handleApprove(commentId) {
     try {
       await approveComment(commentId);
       setPendingComments((prev) => prev.filter((comment) => comment.id !== commentId));
+      toast.success("Comment approved.", { title: "Moderation updated" });
     } catch {
       setError("Failed to approve comment.");
+      toast.error("Failed to approve comment.", { title: "Moderation error" });
     }
   }
 
@@ -143,8 +153,10 @@ export default function DashboardPage() {
     try {
       await rejectComment(commentId);
       setPendingComments((prev) => prev.filter((comment) => comment.id !== commentId));
+      toast.info("Comment rejected.", { title: "Moderation updated" });
     } catch {
       setError("Failed to reject comment.");
+      toast.error("Failed to reject comment.", { title: "Moderation error" });
     }
   }
 
@@ -157,8 +169,13 @@ export default function DashboardPage() {
       setOrders((prev) =>
         prev.map((order) => (order.orderId === updatedOrder.orderId ? updatedOrder : order))
       );
+      toast.success(`Order #${orderId} moved to ${normalizeOrderStatus(updatedOrder.status)}.`, {
+        title: "Order updated",
+      });
     } catch (advanceError) {
-      setOrderError(advanceError.message || "Failed to advance order status.");
+      const message = advanceError.message || "Failed to advance order status.";
+      setOrderError(message);
+      toast.error(message, { title: "Order error" });
     } finally {
       setActingOrderId(null);
     }
@@ -176,10 +193,15 @@ export default function DashboardPage() {
       const totalNotifications = results.reduce((sum, item) => sum + item.notifiedUsers, 0);
       setProducts(refreshedProducts);
       setDiscountMessage(`${results.length} product(s) discounted. ${totalNotifications} wishlist notifications sent.`);
+      toast.success(`${results.length} product(s) discounted. ${totalNotifications} wishlist notifications sent.`, {
+        title: "Discount applied",
+      });
       setSelectedProductIds([]);
       setDiscountRate("");
     } catch (discountError) {
-      setError(discountError.message || "Failed to apply discount.");
+      const message = discountError.message || "Failed to apply discount.";
+      setError(message);
+      toast.error(message, { title: "Discount error" });
     } finally {
       setSavingDiscount(false);
     }
@@ -208,8 +230,11 @@ export default function DashboardPage() {
       window.setTimeout(() => {
         window.URL.revokeObjectURL(invoiceUrl);
       }, 60000);
+      toast.info("Invoice opened in a new tab.", { title: "Invoice ready" });
     } catch (openError) {
-      setInvoiceError(openError.message || "Invoice could not be opened.");
+      const message = openError.message || "Invoice could not be opened.";
+      setInvoiceError(message);
+      toast.error(message, { title: "Invoice error" });
     }
   }
 

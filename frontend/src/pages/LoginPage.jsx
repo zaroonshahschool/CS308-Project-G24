@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useToast } from "../components/useToast";
 import { apiFetch } from "../lib/api";
 
 function generateCustomerId() {
@@ -8,6 +9,7 @@ function generateCustomerId() {
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -52,9 +54,11 @@ export default function LoginPage() {
       window.localStorage.setItem("auth_role", data.role);
       window.localStorage.setItem("auth_email", nextProfile.email);
       window.localStorage.setItem("customer_profile", JSON.stringify(nextProfile));
+      toast.success("You are signed in.", { title: "Welcome back" });
       navigate(nextPath);
     } catch (err) {
       setError(err.message);
+      toast.error(err.message || "Login failed.", { title: "Login failed" });
     } finally {
       setSubmitting(false);
     }
