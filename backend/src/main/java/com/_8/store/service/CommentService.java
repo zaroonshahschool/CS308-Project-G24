@@ -8,10 +8,13 @@ import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
 import com._8.store.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.List.of;
 
 @Service
 public class CommentService {
@@ -36,14 +39,31 @@ public class CommentService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found."));
 
-        if (!orderRepository.existsByUserIdAndProductId(user.getId(), productId)) {
-            throw new IllegalArgumentException("You can only comment on products you have purchased.");
+        if (!orderRepository.existsByUserIdAndProductIdAndStatusIn(
+                user.getId(), productId,
+                of(OrderStatus.DELIVERED, OrderStatus.PARTIALLY_RETURNED))) {
+            throw new IllegalArgumentException("You can only comment on products from delivered orders.");
         }
 
         Comment comment = new Comment(user, product, request.getContent(), CommentStatus.PENDING, LocalDateTime.now());
         commentRepository.save(comment);
 
         return Map.of("message", "Comment submitted and awaiting approval.");
+    }
+
+    @Transactional
+    public Map<String, String> updateComment(String email, Long commentId, CommentRequest request) {
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+        Comment comment = commentRepository.findByIdAndUserId(commentId, user.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found or does not belong to you."));
+
+        comment.setContent(request.getContent());
+        comment.setStatus(CommentStatus.PENDING);
+        commentRepository.save(comment);
+
+        return Map.of("message", "Comment updated and awaiting approval.");
     }
 
     public List<CommentResponse> getApprovedComments(Long productId) {

@@ -5,13 +5,10 @@ import { fetchProducts } from "../services/catalogApi";
 import {
   advanceOrderStatus,
   applyDiscount,
-  approveComment,
   fetchAnalytics,
   fetchInvoicePdfForManager,
   fetchInvoices,
   fetchOrders,
-  fetchPendingComments,
-  rejectComment,
 } from "../services/salesManagerApi";
 
 function normalizeOrderStatus(status) {
@@ -44,7 +41,6 @@ function getChartPoints(points, key, width = 620, height = 240, padding = 24) {
 export default function DashboardPage() {
   const toast = useToast();
   const [today] = useState(getToday);
-  const [pendingComments, setPendingComments] = useState([]);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedProductIds, setSelectedProductIds] = useState([]);
@@ -102,7 +98,6 @@ export default function DashboardPage() {
     }
 
     const sections = [
-      { key: "pending comments", loader: fetchPendingComments, apply: setPendingComments, fallback: [] },
       { key: "orders", loader: fetchOrders, apply: setOrders, fallback: [] },
       { key: "products", loader: fetchProducts, apply: setProducts, fallback: [] },
     ];
@@ -137,28 +132,6 @@ export default function DashboardPage() {
     loadInvoices(today, today);
     loadAnalytics(today, today);
   }, [isSalesManager, loadAnalytics, loadInvoices, today]);
-
-  async function handleApprove(commentId) {
-    try {
-      await approveComment(commentId);
-      setPendingComments((prev) => prev.filter((comment) => comment.id !== commentId));
-      toast.success("Comment approved.", { title: "Moderation updated" });
-    } catch {
-      setError("Failed to approve comment.");
-      toast.error("Failed to approve comment.", { title: "Moderation error" });
-    }
-  }
-
-  async function handleReject(commentId) {
-    try {
-      await rejectComment(commentId);
-      setPendingComments((prev) => prev.filter((comment) => comment.id !== commentId));
-      toast.info("Comment rejected.", { title: "Moderation updated" });
-    } catch {
-      setError("Failed to reject comment.");
-      toast.error("Failed to reject comment.", { title: "Moderation error" });
-    }
-  }
 
   async function handleAdvanceOrder(orderId) {
     setOrderError("");
@@ -449,30 +422,30 @@ export default function DashboardPage() {
             </div>
 
             <div className="account-card">
-              <h2 className="account-card-title">Pending Comments</h2>
-
-              {loading && <p className="section-subtitle">Loading...</p>}
-              {!loading && pendingComments.length === 0 && <p className="section-subtitle">No pending comments.</p>}
-
-              {pendingComments.map((comment) => (
-                <article key={comment.id} className="order-card" style={{ marginBottom: "1rem" }}>
-                  <div className="order-card-head">
-                    <div>
-                      <p className="order-item-name">{comment.productName}</p>
-                      <p className="order-meta">by {comment.customerName} · {comment.createdAt?.slice(0, 10)}</p>
-                    </div>
-                    <div className="order-item-actions" style={{ display: "flex", gap: "0.5rem" }}>
-                      <button className="btn-primary" onClick={() => handleApprove(comment.id)}>
-                        Approve
-                      </button>
-                      <button className="wishlist-secondary-btn" onClick={() => handleReject(comment.id)}>
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                  <p className="review-card-comment" style={{ marginTop: "0.75rem" }}>{comment.content}</p>
-                </article>
-              ))}
+              <h2 className="account-card-title">Moderation</h2>
+              <p className="section-subtitle">Review and action customer-submitted content from dedicated moderation panels.</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginTop: "1rem" }}>
+                <Link
+                  to="/dashboard/comments"
+                  style={{ display: "block", padding: "1.25rem", borderRadius: 16, background: "rgba(0,0,0,0.03)", textDecoration: "none", color: "inherit" }}
+                >
+                  <p className="order-item-name" style={{ marginBottom: "0.35rem" }}>Comment Moderation</p>
+                  <p className="order-meta">Approve or reject pending customer comments before they appear on product pages.</p>
+                  <p className="btn-primary" style={{ display: "inline-block", marginTop: "0.75rem", padding: "0.45rem 1rem", fontSize: "0.85rem" }}>
+                    Open →
+                  </p>
+                </Link>
+                <Link
+                  to="/dashboard/ratings"
+                  style={{ display: "block", padding: "1.25rem", borderRadius: 16, background: "rgba(0,0,0,0.03)", textDecoration: "none", color: "inherit" }}
+                >
+                  <p className="order-item-name" style={{ marginBottom: "0.35rem" }}>Rating Moderation</p>
+                  <p className="order-meta">View all submitted star ratings and remove any that violate store policy.</p>
+                  <p className="btn-primary" style={{ display: "inline-block", marginTop: "0.75rem", padding: "0.45rem 1rem", fontSize: "0.85rem" }}>
+                    Open →
+                  </p>
+                </Link>
+              </div>
             </div>
           </div>
         )}

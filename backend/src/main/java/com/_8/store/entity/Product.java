@@ -40,17 +40,29 @@ public class Product {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
-    @Column(length = 100)
-    private String model;
-
-    @Column(name = "serial_number", length = 150)
-    private String serialNumber;
-
-    @Column(name = "warranty_status", length = 255)
-    private String warrantyStatus;
-
     @Column(length = 255)
-    private String distributor;
+    private String publisher;
+
+    @Column(name = "paper_type", length = 100)
+    private String paperType;
+
+    @Column(name = "page_count")
+    private Integer pageCount;
+
+    @Column(length = 100)
+    private String dimensions;
+
+    @Column(name = "publication_date", length = 50)
+    private String publicationDate;
+
+    @Column(length = 30)
+    private String isbn;
+
+    @Column(length = 100)
+    private String language;
+
+    @Column(name = "cover_type", length = 100)
+    private String coverType;
 
     @Column(nullable = false)
     private boolean featured;
@@ -79,10 +91,14 @@ public class Product {
             BigDecimal costPrice,
             Integer stock,
             String imageUrl,
-            String model,
-            String serialNumber,
-            String warrantyStatus,
-            String distributor,
+            String publisher,
+            String paperType,
+            Integer pageCount,
+            String dimensions,
+            String publicationDate,
+            String isbn,
+            String language,
+            String coverType,
             boolean featured,
             boolean editorChoice,
             boolean newArrival,
@@ -98,10 +114,14 @@ public class Product {
         this.discountRate = BigDecimal.ZERO;
         this.stock = stock;
         this.imageUrl = imageUrl;
-        this.model = model;
-        this.serialNumber = serialNumber;
-        this.warrantyStatus = warrantyStatus;
-        this.distributor = distributor;
+        this.publisher = publisher;
+        this.paperType = paperType;
+        this.pageCount = pageCount;
+        this.dimensions = dimensions;
+        this.publicationDate = publicationDate;
+        this.isbn = isbn;
+        this.language = language;
+        this.coverType = coverType;
         this.featured = featured;
         this.editorChoice = editorChoice;
         this.newArrival = newArrival;
@@ -116,10 +136,14 @@ public class Product {
             BigDecimal price,
             Integer stock,
             String imageUrl,
-            String model,
-            String serialNumber,
-            String warrantyStatus,
-            String distributor,
+            String publisher,
+            String paperType,
+            Integer pageCount,
+            String dimensions,
+            String publicationDate,
+            String isbn,
+            String language,
+            String coverType,
             boolean featured,
             boolean editorChoice,
             boolean newArrival,
@@ -134,10 +158,14 @@ public class Product {
                 price,
                 stock,
                 imageUrl,
-                model,
-                serialNumber,
-                warrantyStatus,
-                distributor,
+                publisher,
+                paperType,
+                pageCount,
+                dimensions,
+                publicationDate,
+                isbn,
+                language,
+                coverType,
                 featured,
                 editorChoice,
                 newArrival,
@@ -186,20 +214,36 @@ public class Product {
         return imageUrl;
     }
 
-    public String getModel() {
-        return model;
+    public String getPublisher() {
+        return publisher;
     }
 
-    public String getSerialNumber() {
-        return serialNumber;
+    public String getPaperType() {
+        return paperType;
     }
 
-    public String getWarrantyStatus() {
-        return warrantyStatus;
+    public Integer getPageCount() {
+        return pageCount;
     }
 
-    public String getDistributor() {
-        return distributor;
+    public String getDimensions() {
+        return dimensions;
+    }
+
+    public String getPublicationDate() {
+        return publicationDate;
+    }
+
+    public String getIsbn() {
+        return isbn;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public String getCoverType() {
+        return coverType;
     }
 
     public boolean isFeatured() {
@@ -262,20 +306,36 @@ public class Product {
         this.imageUrl = imageUrl;
     }
 
-    public void setModel(String model) {
-        this.model = model;
+    public void setPublisher(String publisher) {
+        this.publisher = publisher;
     }
 
-    public void setSerialNumber(String serialNumber) {
-        this.serialNumber = serialNumber;
+    public void setPaperType(String paperType) {
+        this.paperType = paperType;
     }
 
-    public void setWarrantyStatus(String warrantyStatus) {
-        this.warrantyStatus = warrantyStatus;
+    public void setPageCount(Integer pageCount) {
+        this.pageCount = pageCount;
     }
 
-    public void setDistributor(String distributor) {
-        this.distributor = distributor;
+    public void setDimensions(String dimensions) {
+        this.dimensions = dimensions;
+    }
+
+    public void setPublicationDate(String publicationDate) {
+        this.publicationDate = publicationDate;
+    }
+
+    public void setIsbn(String isbn) {
+        this.isbn = isbn;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public void setCoverType(String coverType) {
+        this.coverType = coverType;
     }
 
     public void setFeatured(boolean featured) {

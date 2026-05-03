@@ -215,23 +215,12 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
 
           <div className="account-card">
             <h2 className="account-card-title">Order History</h2>
-            {location.state?.recentInvoiceOrderId ? (
+            {location.state?.recentOrderId ? (
               <div className="order-success-banner">
                 <div>
                   <p className="order-item-name">Order {location.state.recentOrderId} was placed successfully.</p>
-                  <p className="order-meta">Your invoice PDF is ready.</p>
+                  <p className="order-meta">Your invoice PDF has been opened in a new tab and emailed to you.</p>
                 </div>
-                <button
-                  className="btn-primary"
-                  type="button"
-                  onClick={() => handleViewInvoiceClick({
-                    id: location.state.recentOrderId,
-                    backendOrderId: location.state.recentInvoiceOrderId,
-                  })}
-                  disabled={downloadingOrderId === location.state.recentOrderId}
-                >
-                  {downloadingOrderId === location.state.recentOrderId ? "Opening Invoice..." : "View Invoice PDF"}
-                </button>
               </div>
             ) : null}
 

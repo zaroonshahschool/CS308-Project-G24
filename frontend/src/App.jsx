@@ -12,7 +12,9 @@ import { initialReviewsByProduct } from "./data/reviews";
 import AccountPage from "./pages/AccountPage";
 import CataloguePage from "./pages/CataloguePage";
 import CheckoutPage from "./pages/CheckoutPage";
+import CommentModerationPage from "./pages/CommentModerationPage";
 import DashboardPage from "./pages/DashboardPage";
+import RatingModerationPage from "./pages/RatingModerationPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
@@ -330,24 +332,45 @@ export default function App() {
   }
 
   async function handleCheckoutSubmit(checkoutData) {
-    const createdOrder = await placeOrder(cartItems, checkoutData.shippingAddress);
-    const nextOrder = finalizePlacedOrder({
-      ...createdOrder,
-      shippingAddress: checkoutData.shippingAddress,
-      paymentSummary: checkoutData.paymentDetails,
-    });
+    // Open a blank tab now, while still in the synchronous user-gesture stack,
+    // so popup blockers won't interfere when we load the PDF asynchronously.
+    const invoiceTab = window.open("", "_blank", "noopener,noreferrer");
+
+    let nextOrder;
+    try {
+      const createdOrder = await placeOrder(cartItems, checkoutData.shippingAddress);
+      nextOrder = finalizePlacedOrder({
+        ...createdOrder,
+        shippingAddress: checkoutData.shippingAddress,
+        paymentSummary: checkoutData.paymentDetails,
+      });
+    } catch (orderError) {
+      invoiceTab?.close();
+      throw orderError;
+    }
 
     if (!nextOrder) {
+      invoiceTab?.close();
       return;
     }
 
     navigate("/account", {
-      state: {
-        recentOrderId: nextOrder.id,
-        recentInvoiceOrderId: nextOrder.backendOrderId,
-      },
+      state: { recentOrderId: nextOrder.id },
     });
     toast.success("Your order was placed successfully.", { title: "Order confirmed" });
+
+    try {
+      const invoiceBlob = await fetchInvoicePdf(nextOrder.backendOrderId);
+      const invoiceUrl = window.URL.createObjectURL(invoiceBlob);
+      if (invoiceTab && !invoiceTab.closed) {
+        invoiceTab.location.href = invoiceUrl;
+      } else {
+        window.open(invoiceUrl, "_blank", "noopener,noreferrer");
+      }
+      window.setTimeout(() => window.URL.revokeObjectURL(invoiceUrl), 60000);
+    } catch {
+      invoiceTab?.close();
+    }
   }
 
   async function handleViewInvoice(orderId) {
@@ -458,6 +481,22 @@ export default function App() {
           element={
             <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
               <DashboardPage />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/comments"
+          element={
+            <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
+              <CommentModerationPage />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/ratings"
+          element={
+            <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
+              <RatingModerationPage />
             </RoleProtectedRoute>
           }
         />

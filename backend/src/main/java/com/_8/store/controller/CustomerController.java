@@ -97,6 +97,23 @@ public class CustomerController {
         return ResponseEntity.ok(commentService.getApprovedComments(productId));
     }
 
+    @PutMapping("/comments/{commentId}")
+    public ResponseEntity<?> updateComment(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long commentId,
+            @Valid @RequestBody CommentRequest request) {
+
+        return ResponseEntity.ok(commentService.updateComment(userDetails.getUsername(), commentId, request));
+    }
+
+    @GetMapping("/products/{productId}/my-rating")
+    public ResponseEntity<?> getMyRating(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long productId) {
+
+        return ResponseEntity.ok(ratingService.getMyRating(userDetails.getUsername(), productId));
+    }
+
     @GetMapping("/wishlist")
     public ResponseEntity<List<WishlistItemResponse>> getWishlist() {
         return ResponseEntity.ok(wishlistService.getCurrentUserWishlist());
