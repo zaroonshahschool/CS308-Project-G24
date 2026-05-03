@@ -68,4 +68,17 @@ public class RatingService {
         Double average = ratingRepository.findAverageScoreByProductId(productId);
         return Map.of("productId", productId, "averageRating", average != null ? average : 0.0);
     }
+
+    public Map<String, Object> getMyRating(String email, Long productId) {
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+        return ratingRepository.findByUserIdAndProductId(user.getId(), productId)
+                .<Map<String, Object>>map(r -> Map.of("score", r.getScore()))
+                .orElseGet(() -> {
+                    Map<String, Object> empty = new java.util.HashMap<>();
+                    empty.put("score", null);
+                    return empty;
+                });
+    }
 }

@@ -8,6 +8,7 @@ import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
 import com._8.store.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,6 +49,21 @@ public class CommentService {
         commentRepository.save(comment);
 
         return Map.of("message", "Comment submitted and awaiting approval.");
+    }
+
+    @Transactional
+    public Map<String, String> updateComment(String email, Long commentId, CommentRequest request) {
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+        Comment comment = commentRepository.findByIdAndUserId(commentId, user.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Comment not found or does not belong to you."));
+
+        comment.setContent(request.getContent());
+        comment.setStatus(CommentStatus.PENDING);
+        commentRepository.save(comment);
+
+        return Map.of("message", "Comment updated and awaiting approval.");
     }
 
     public List<CommentResponse> getApprovedComments(Long productId) {

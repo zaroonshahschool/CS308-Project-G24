@@ -11,6 +11,7 @@ public class CommentResponse {
     private String content;
     private CommentStatus status;
     private String customerName;
+    private String userEmail;
     private Long productId;
     private String productName;
     private LocalDateTime createdAt;
@@ -20,6 +21,7 @@ public class CommentResponse {
         this.content = comment.getContent();
         this.status = comment.getStatus();
         this.customerName = comment.getUser().getName();
+        this.userEmail = comment.getUser().getEmail();
         this.productId = comment.getProduct().getId();
         this.productName = comment.getProduct().getName();
         this.createdAt = comment.getCreatedAt();
@@ -29,6 +31,7 @@ public class CommentResponse {
     public String getContent() { return content; }
     public CommentStatus getStatus() { return status; }
     public String getCustomerName() { return customerName; }
+    public String getUserEmail() { return userEmail; }
     public Long getProductId() { return productId; }
     public String getProductName() { return productName; }
     public LocalDateTime getCreatedAt() { return createdAt; }

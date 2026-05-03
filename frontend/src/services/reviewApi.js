@@ -14,6 +14,17 @@ export async function submitComment(productId, content) {
   });
 }
 
+export async function updateComment(commentId, content) {
+  return apiFetch(`/api/customer/comments/${commentId}`, {
+    method: "PUT",
+    body: JSON.stringify({ content }),
+  });
+}
+
 export async function fetchApprovedComments(productId) {
   return apiFetch(`/api/customer/products/${productId}/comments`);
+}
+
+export async function fetchMyRating(productId) {
+  return apiFetch(`/api/customer/products/${productId}/my-rating`);
 }

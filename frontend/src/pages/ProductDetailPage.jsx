@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { fetchProductById, fetchProducts } from "../services/catalogApi";
-import { fetchApprovedComments, rateProduct, submitComment } from "../services/reviewApi";
+import { fetchApprovedComments, fetchMyRating, rateProduct, submitComment, updateComment } from "../services/reviewApi";
 
 function RatingStars({ rating }) {
   return (
@@ -16,7 +16,34 @@ function RatingStars({ rating }) {
   );
 }
 
-function ReviewCard({ review }) {
+function ReviewCard({ review, isOwn, userRating, onEditSaved }) {
+  const toast = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(review.content);
+  const [editError, setEditError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleEditSubmit(event) {
+    event.preventDefault();
+    setSaving(true);
+    setEditError("");
+    try {
+      await updateComment(review.id, editContent);
+      toast.success("Comment updated and pending approval.", { title: "Comment updated" });
+      onEditSaved(review.id);
+    } catch (err) {
+      setEditError(err.message || "Failed to update comment.");
+      toast.error(err.message || "Failed to update comment.", { title: "Update failed" });
+      setSaving(false);
+    }
+  }
+
+  function handleEditStart() {
+    setEditContent(review.content);
+    setEditError("");
+    setIsEditing(true);
+  }
+
   return (
     <article className="review-card">
       <div className="review-card-head">
@@ -24,8 +51,60 @@ function ReviewCard({ review }) {
           <p className="review-card-name">{review.customerName}</p>
           <p className="review-card-date">{review.createdAt?.slice(0, 10)}</p>
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          {isOwn && userRating != null && (
+            <span
+              className="detail-stars"
+              aria-label={`Your rating: ${userRating} out of 5`}
+              style={{ fontSize: "0.85rem" }}
+              title={`Your rating: ${userRating}/5`}
+            >
+              {Array.from({ length: 5 }, (_, i) => (
+                <span key={i} className={i < userRating ? "detail-star detail-star--filled" : "detail-star"}>
+                  {"★"}
+                </span>
+              ))}
+            </span>
+          )}
+          {isOwn && !isEditing && (
+            <button
+              type="button"
+              className="wishlist-secondary-btn"
+              style={{ fontSize: "0.75rem", padding: "0.2rem 0.6rem" }}
+              onClick={handleEditStart}
+            >
+              Edit
+            </button>
+          )}
+        </div>
       </div>
-      <p className="review-card-comment">{review.content}</p>
+      {isEditing ? (
+        <form onSubmit={handleEditSubmit} style={{ marginTop: "0.5rem" }}>
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            rows="4"
+            required
+            style={{ width: "100%", marginBottom: "0.5rem", boxSizing: "border-box" }}
+          />
+          {editError && <p style={{ color: "red", marginBottom: "0.5rem", fontSize: "0.85rem" }}>{editError}</p>}
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              type="button"
+              className="wishlist-secondary-btn"
+              onClick={() => { setIsEditing(false); setEditError(""); }}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <p className="review-card-comment">{review.content}</p>
+      )}
     </article>
   );
 }
@@ -60,6 +139,7 @@ export default function ProductDetailPage({
 
   const [approvedComments, setApprovedComments] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
+  const [myRating, setMyRating] = useState(null);
 
   const [ratingScore, setRatingScore] = useState(5);
   const [ratingMessage, setRatingMessage] = useState("");
@@ -70,6 +150,7 @@ export default function ProductDetailPage({
   const [commentError, setCommentError] = useState("");
 
   const isLoggedIn = !!window.localStorage.getItem("auth_token");
+  const currentUserEmail = isLoggedIn ? window.localStorage.getItem("auth_email") : null;
 
   useEffect(() => {
     let ignore = false;
@@ -112,6 +193,13 @@ export default function ProductDetailPage({
       .catch(() => {});
   }, [productId]);
 
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetchMyRating(productId)
+      .then((data) => setMyRating(data.score ?? null))
+      .catch(() => {});
+  }, [productId, isLoggedIn]);
+
   async function handleRatingSubmit(event) {
     event.preventDefault();
     setRatingMessage("");
@@ -119,6 +207,7 @@ export default function ProductDetailPage({
     try {
       const result = await rateProduct(productId, ratingScore);
       setAverageRating(result.averageRating);
+      setMyRating(ratingScore);
       setRatingMessage("Your rating has been saved.");
       toast.success("Your rating has been saved.", { title: "Rating submitted" });
     } catch (err) {
@@ -243,7 +332,15 @@ export default function ProductDetailPage({
         <div className="product-review-layout">
           <div className="review-list">
             {approvedComments.length > 0 ? (
-              approvedComments.map((comment) => <ReviewCard key={comment.id} review={comment} />)
+              approvedComments.map((comment) => (
+                <ReviewCard
+                  key={comment.id}
+                  review={comment}
+                  isOwn={!!currentUserEmail && comment.userEmail === currentUserEmail}
+                  userRating={!!currentUserEmail && comment.userEmail === currentUserEmail ? myRating : null}
+                  onEditSaved={(id) => setApprovedComments((prev) => prev.filter((c) => c.id !== id))}
+                />
+              ))
             ) : (
               <div className="review-empty">
                 <p className="review-empty-title">No approved comments yet</p>
