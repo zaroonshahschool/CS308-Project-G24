@@ -38,12 +38,11 @@ function WishlistButton({ active, onClick }) {
   );
 }
 
-function ProductCard({ product, onAddToCart, onToggleWishlist, reviews, wishlistProductIds }) {
+function ProductCard({ product, onAddToCart, onToggleWishlist, wishlistProductIds }) {
   const outOfStock = product.stock === 0;
-  const averageRating =
-    reviews.length > 0
-      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-      : null;
+  const averageRating = Number(product.averageRating ?? 0);
+  const hasRating = Number.isFinite(averageRating) && averageRating > 0;
+  const filledStarCount = Math.max(1, Math.min(5, Math.round(averageRating)));
   const inWishlist = wishlistProductIds.includes(product.id);
 
   return (
@@ -85,13 +84,13 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, reviews, wishlist
         <p className="catalog-card-author">{product.author}</p>
 
         <div className="catalog-rating-row">
-          {averageRating ? (
+          {hasRating ? (
             <>
               <span className="catalog-rating-stars" aria-hidden="true">
-                {"\u2605".repeat(Math.round(averageRating))}
+                {"\u2605".repeat(filledStarCount)}
               </span>
               <span className="catalog-rating-text">
-                {averageRating.toFixed(1)} | {reviews.length} rating{reviews.length !== 1 ? "s" : ""}
+                {averageRating.toFixed(1)} average rating
               </span>
             </>
           ) : (
@@ -122,7 +121,6 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, reviews, wishlist
 export default function ProductCatalogSection({
   onAddToCart,
   onToggleWishlist,
-  reviewsByProduct = {},
   stockByProduct = {},
   wishlistProductIds = [],
 }) {
@@ -345,7 +343,6 @@ export default function ProductCatalogSection({
               product={product}
               onAddToCart={onAddToCart}
               onToggleWishlist={onToggleWishlist}
-              reviews={reviewsByProduct[product.id] ?? []}
               wishlistProductIds={wishlistProductIds}
             />
           ))}
