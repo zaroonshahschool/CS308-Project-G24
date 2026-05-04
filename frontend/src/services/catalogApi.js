@@ -25,6 +25,7 @@ function mapApiProductToUiProduct(product) {
     featured: product.featured,
     editorChoice: product.editorChoice,
     newArrival: product.newArrival,
+    averageRating: product.averageRating != null ? Number(product.averageRating) : 0,
     createdAt: product.createdAt,
   };
 }

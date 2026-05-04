@@ -26,6 +26,7 @@ public record ProductDto(
         boolean featured,
         boolean editorChoice,
         boolean newArrival,
+        Double averageRating,
         LocalDateTime createdAt
 ) {
 }

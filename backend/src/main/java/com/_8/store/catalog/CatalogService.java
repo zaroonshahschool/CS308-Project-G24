@@ -6,6 +6,7 @@ import com._8.store.entity.Category;
 import com._8.store.entity.Product;
 import com._8.store.repository.CategoryRepository;
 import com._8.store.repository.ProductRepository;
+import com._8.store.repository.RatingRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,10 +16,14 @@ public class CatalogService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final RatingRepository ratingRepository;
 
-    public CatalogService(ProductRepository productRepository, CategoryRepository categoryRepository) {
+    public CatalogService(ProductRepository productRepository,
+                          CategoryRepository categoryRepository,
+                          RatingRepository ratingRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.ratingRepository = ratingRepository;
     }
 
     public List<ProductDto> getAllProducts(String category) {
@@ -49,6 +54,7 @@ public class CatalogService {
     }
 
     private ProductDto toProductDto(Product product) {
+        Double average = ratingRepository.findAverageScoreByProductId(product.getId());
         return new ProductDto(
                 product.getId(),
                 product.getName(),
@@ -72,6 +78,7 @@ public class CatalogService {
                 product.isFeatured(),
                 product.isEditorChoice(),
                 product.isNewArrival(),
+                average != null ? average : 0.0,
                 product.getCreatedAt()
         );
     }
