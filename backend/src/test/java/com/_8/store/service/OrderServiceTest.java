@@ -1,5 +1,6 @@
 package com._8.store.service;
 
+import com._8.store.dto.AddressRequest;
 import com._8.store.dto.CreateOrderRequest;
 import com._8.store.dto.OrderItemRequest;
 import com._8.store.dto.OrderResponse;
@@ -8,6 +9,7 @@ import com._8.store.entity.Order;
 import com._8.store.entity.Product;
 import com._8.store.entity.Role;
 import com._8.store.entity.User;
+import com._8.store.repository.CartItemRepository;
 import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
 import com._8.store.repository.UserRepository;
@@ -45,6 +47,8 @@ class OrderServiceTest {
     private InvoicePdfService invoicePdfService;
     @Mock
     private EmailService emailService;
+    @Mock
+    private CartItemRepository cartItemRepository;
 
     @InjectMocks
     private OrderService orderService;
@@ -88,10 +92,17 @@ class OrderServiceTest {
         itemRequest.setQuantity(2);
         request.setItems(List.of(itemRequest));
 
+        AddressRequest addressRequest = new AddressRequest();
+        addressRequest.setStreet("123 Test Street");
+        addressRequest.setCity("Istanbul");
+        addressRequest.setPostalCode("34000");
+        addressRequest.setCountry("Turkey");
+        request.setShippingAddress(addressRequest);
+
         byte[] pdfBytes = "invoice-pdf".getBytes();
 
         given(userRepository.findByEmailIgnoreCase(user.getEmail())).willReturn(Optional.of(user));
-        given(productRepository.findById(product.getId())).willReturn(Optional.of(product));
+        given(productRepository.findByIdForUpdate(product.getId())).willReturn(Optional.of(product));
         given(orderRepository.save(any(Order.class))).willAnswer(invocation -> {
             Order savedOrder = invocation.getArgument(0);
             savedOrder.setId(42L);
@@ -110,5 +121,6 @@ class OrderServiceTest {
         assertThat(orderCaptor.getValue().getId()).isEqualTo(42L);
 
         verify(emailService).sendInvoiceEmail(user.getEmail(), user.getName(), 42L, pdfBytes);
+        verify(cartItemRepository).deleteByUser_Id(user.getId());
     }
 }
