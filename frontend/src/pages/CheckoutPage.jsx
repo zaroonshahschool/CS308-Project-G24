@@ -78,6 +78,199 @@ function isValidFutureExpiry(monthValue, yearValue) {
   return year > currentYear || (year === currentYear && month >= currentMonth);
 }
 
+function formatMoney(value) {
+  return `$${Number(value).toFixed(2)}`;
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
+}
+
+function getCardBrand(cardNumber) {
+  if (/^4/.test(cardNumber)) return "Visa";
+  if (/^5[1-5]/.test(cardNumber)) return "Mastercard";
+  if (/^3[47]/.test(cardNumber)) return "American Express";
+  if (/^6/.test(cardNumber)) return "Discover";
+  return "Card";
+}
+
+function createReference(prefix) {
+  return `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
+function createInvoiceSnapshot(cartItems, address, payment, orderSummary) {
+  const rawCardNumber = payment.cardNumber.replace(/\D/g, "");
+  const issuedAt = new Date().toISOString();
+
+  return {
+    invoiceNumber: createReference("INV"),
+    issuedAt,
+    currency: "USD",
+    shippingAddress: { ...address },
+    paymentCard: {
+      cardholderName: payment.cardholderName.trim(),
+      brand: getCardBrand(rawCardNumber),
+      last4: getLastFour(rawCardNumber),
+      expiry: payment.expiry,
+    },
+    items: cartItems.map((item) => ({
+      productId: item.id,
+      name: item.name,
+      quantity: item.qty,
+      unitPrice: item.price,
+      lineTotal: item.price * item.qty,
+    })),
+    totals: {
+      subtotal: orderSummary.subtotal,
+      shipping: orderSummary.shipping,
+      total: orderSummary.total,
+      itemCount: orderSummary.itemCount,
+    },
+  };
+}
+
+function createMockBankingResponse({ rawCardNumber, payment, address, amount }) {
+  const cardholderName = payment.cardholderName.trim();
+  const declinedByCardNumber = rawCardNumber.endsWith("0000");
+  const declinedByName = cardholderName.toLowerCase().includes("decline");
+  const declinedByLimit = amount > 10000;
+  const approved = !(declinedByCardNumber || declinedByName || declinedByLimit);
+  const responseCode = approved ? "00" : declinedByLimit ? "61" : declinedByName ? "51" : "05";
+
+  return {
+    gateway: "Aurelia Mock Bank Gateway",
+    transactionId: createReference("TXN"),
+    retrievalReference: createReference("RRN"),
+    authorizationCode: approved ? createReference("AUTH") : null,
+    status: approved ? "APPROVED" : "DECLINED",
+    responseCode,
+    responseMessage: approved
+      ? "Payment authorized successfully."
+      : "Payment was declined by the mock bank.",
+    amount,
+    currency: "USD",
+    cardBrand: getCardBrand(rawCardNumber),
+    cardLast4: getLastFour(rawCardNumber),
+    cardholderName,
+    avsResult: address.postalCode ? "MATCH" : "NOT_CHECKED",
+    cvvResult: /^\d{3,4}$/.test(payment.cvv) ? "MATCH" : "NO_MATCH",
+    processedAt: new Date().toISOString(),
+  };
+}
+
+function PaymentReviewModal({ placingOrder, review, onClose, onConfirm }) {
+  const isProcessing = review.status === "processing";
+  const isApproved = review.bankResponse?.status === "APPROVED";
+  const isDeclined = review.bankResponse?.status === "DECLINED";
+  const address = review.invoice.shippingAddress;
+  const card = review.invoice.paymentCard;
+
+  return (
+    <div className="payment-review-backdrop" role="presentation">
+      <section
+        className={`payment-review-modal payment-review-modal--${review.status}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="payment-review-title"
+      >
+        <div className="payment-review-head">
+          <div>
+            <p className="payment-review-kicker">Secure Checkout</p>
+            <h2 id="payment-review-title" className="payment-review-title">
+              {isProcessing ? "Authorizing Payment" : isApproved ? "Payment Authorized" : "Payment Declined"}
+            </h2>
+          </div>
+          <span className="payment-review-status">
+            {isProcessing ? "Processing" : review.bankResponse.status}
+          </span>
+        </div>
+
+        <div className="payment-review-body">
+          <div className="payment-review-panel payment-review-panel--bank">
+            <h3 className="payment-review-panel-title">Bank Response</h3>
+            {isProcessing ? (
+              <div className="payment-processing">
+                <span className="payment-processing-dot" />
+                <p>Contacting mock bank gateway...</p>
+              </div>
+            ) : (
+              <dl className="payment-response-grid">
+                <div><dt>Status</dt><dd>{review.bankResponse.status}</dd></div>
+                <div><dt>Response Code</dt><dd>{review.bankResponse.responseCode}</dd></div>
+                <div><dt>Transaction ID</dt><dd>{review.bankResponse.transactionId}</dd></div>
+                <div><dt>Authorization</dt><dd>{review.bankResponse.authorizationCode || "Not issued"}</dd></div>
+                <div><dt>Card</dt><dd>{review.bankResponse.cardBrand} ending {review.bankResponse.cardLast4}</dd></div>
+                <div><dt>AVS / CVV</dt><dd>{review.bankResponse.avsResult} / {review.bankResponse.cvvResult}</dd></div>
+                <div><dt>Processed</dt><dd>{new Date(review.bankResponse.processedAt).toLocaleString()}</dd></div>
+              </dl>
+            )}
+          </div>
+
+          <div className="payment-review-panel">
+            <div className="invoice-summary-head">
+              <div>
+                <h3 className="payment-review-panel-title">Invoice Summary</h3>
+                <p className="invoice-number">{review.invoice.invoiceNumber}</p>
+              </div>
+              <p className="invoice-issued">{new Date(review.invoice.issuedAt).toLocaleString()}</p>
+            </div>
+
+            <div className="invoice-address-grid">
+              <div>
+                <p className="invoice-label">Ship To</p>
+                <p>{address.street}</p>
+                <p>{address.city}, {address.postalCode}</p>
+                <p>{address.country}</p>
+              </div>
+              <div>
+                <p className="invoice-label">Payment</p>
+                <p>{card.cardholderName}</p>
+                <p>{card.brand} ending {card.last4}</p>
+                <p>Expires {card.expiry}</p>
+              </div>
+            </div>
+
+            <div className="invoice-items">
+              {review.invoice.items.map((item) => (
+                <div key={item.productId} className="invoice-item-row">
+                  <div>
+                    <p className="invoice-item-name">{item.name}</p>
+                    <p className="invoice-item-meta">Product #{item.productId} · Qty {item.quantity} · {formatMoney(item.unitPrice)} each</p>
+                  </div>
+                  <strong>{formatMoney(item.lineTotal)}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="invoice-total-grid">
+              <div><span>Subtotal</span><strong>{formatMoney(review.invoice.totals.subtotal)}</strong></div>
+              <div><span>Shipping</span><strong>{review.invoice.totals.shipping === 0 ? "Free" : formatMoney(review.invoice.totals.shipping)}</strong></div>
+              <div className="invoice-grand-total"><span>Total</span><strong>{formatMoney(review.invoice.totals.total)}</strong></div>
+            </div>
+          </div>
+        </div>
+
+        {isDeclined ? (
+          <p className="payment-review-message payment-review-message--error">{review.bankResponse.responseMessage}</p>
+        ) : null}
+
+        <div className="payment-review-actions">
+          <button className="wishlist-secondary-btn" type="button" onClick={onClose} disabled={isProcessing || placingOrder}>
+            {isApproved ? "Back to Checkout" : "Edit Payment"}
+          </button>
+          {isApproved ? (
+            <button className="btn-dark" type="button" onClick={onConfirm} disabled={placingOrder}>
+              {placingOrder ? "Placing Order..." : "Confirm and Place Order"}
+            </button>
+          ) : null}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
   const toast = useToast();
   const [address, setAddress] = useState({
@@ -95,6 +288,8 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
   const [profileError, setProfileError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [paymentReview, setPaymentReview] = useState(null);
 
   const orderSummary = useMemo(() => {
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
@@ -203,23 +398,79 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
 
     setSubmitting(true);
     setSubmitError("");
+    const invoice = createInvoiceSnapshot(cartItems, address, payment, orderSummary);
+    setPaymentReview({
+      status: "processing",
+      invoice,
+      bankResponse: null,
+    });
 
     try {
-      await updateAddress(address).catch(() => {});
+      await wait(850);
+      const bankResponse = createMockBankingResponse({
+        rawCardNumber,
+        payment,
+        address,
+        amount: orderSummary.total,
+      });
+
+      setPaymentReview({
+        status: bankResponse.status === "APPROVED" ? "approved" : "declined",
+        invoice,
+        bankResponse,
+      });
+
+      if (bankResponse.status === "DECLINED") {
+        setSubmitError(bankResponse.responseMessage);
+        toast.error(bankResponse.responseMessage, { title: "Payment declined" });
+      } else {
+        toast.success("Payment authorized. Review the invoice before placing the order.", { title: "Payment authorized" });
+      }
+    } catch (error) {
+      const message = error.message || "Payment authorization failed. Please try again.";
+      setSubmitError(message);
+      setPaymentReview(null);
+      toast.error(message, { title: "Payment failed" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function closePaymentReview() {
+    if (submitting || placingOrder) {
+      return;
+    }
+
+    setPaymentReview(null);
+  }
+
+  async function handleConfirmOrder() {
+    if (!paymentReview?.bankResponse || paymentReview.bankResponse.status !== "APPROVED") {
+      return;
+    }
+
+    setPlacingOrder(true);
+    setSubmitError("");
+
+    try {
+      await updateAddress(paymentReview.invoice.shippingAddress).catch(() => {});
 
       await onCheckoutSubmit({
-        shippingAddress: address,
+        shippingAddress: paymentReview.invoice.shippingAddress,
         paymentDetails: {
-          cardholderName: payment.cardholderName.trim(),
+          cardholderName: paymentReview.bankResponse.cardholderName,
           paymentMethod: "credit-card",
-          cardLast4: getLastFour(payment.cardNumber),
+          cardBrand: paymentReview.bankResponse.cardBrand,
+          cardLast4: paymentReview.bankResponse.cardLast4,
+          mockBankResponse: paymentReview.bankResponse,
+          invoiceNumber: paymentReview.invoice.invoiceNumber,
         },
       });
     } catch (error) {
       const message = error.message || "Checkout failed. Please try again.";
       setSubmitError(message);
       toast.error(message, { title: "Checkout failed" });
-      setSubmitting(false);
+      setPlacingOrder(false);
     }
   }
 
@@ -346,7 +597,7 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
             {submitError ? <p className="checkout-error">{submitError}</p> : null}
 
             <button className="btn-dark checkout-submit" type="submit" disabled={submitting}>
-              {submitting ? "Placing Order..." : "Pay and Place Order"}
+              {submitting ? "Authorizing Payment..." : "Pay and Review Invoice"}
             </button>
           </form>
 
@@ -383,6 +634,15 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
           </aside>
         </div>
       </section>
+
+      {paymentReview ? (
+        <PaymentReviewModal
+          placingOrder={placingOrder}
+          review={paymentReview}
+          onClose={closePaymentReview}
+          onConfirm={handleConfirmOrder}
+        />
+      ) : null}
     </main>
   );
 }

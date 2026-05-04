@@ -219,7 +219,7 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
               <div className="order-success-banner">
                 <div>
                   <p className="order-item-name">Order {location.state.recentOrderId} was placed successfully.</p>
-                  <p className="order-meta">Your invoice PDF has been opened in a new tab and emailed to you.</p>
+                  <p className="order-meta">Your invoice PDF has been emailed to you. Click “View Invoice PDF” below to open it.</p>
                 </div>
               </div>
             ) : null}

@@ -17,8 +17,11 @@ public class CatalogController {
     }
 
     @GetMapping("/products")
-    public List<ProductDto> getProducts(@RequestParam(required = false) String category) {
-        return catalogService.getAllProducts(category);
+    public List<ProductDto> getProducts(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String sort
+    ) {
+        return catalogService.getAllProducts(category, sort);
     }
 
     @GetMapping("/products/{id}")

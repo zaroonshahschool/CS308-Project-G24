@@ -11,6 +11,7 @@ import com._8.store.entity.Product;
 import com._8.store.repository.CategoryRepository;
 import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
+import com._8.store.repository.RatingRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,15 +27,18 @@ public class AdminService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final OrderRepository orderRepository;
+    private final RatingRepository ratingRepository;
 
     public AdminService(
             ProductRepository productRepository,
             CategoryRepository categoryRepository,
-            OrderRepository orderRepository
+            OrderRepository orderRepository,
+            RatingRepository ratingRepository
     ) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.orderRepository = orderRepository;
+        this.ratingRepository = ratingRepository;
     }
 
     @Transactional(readOnly = true)
@@ -181,6 +185,7 @@ public class AdminService {
     }
 
     private ProductDto toProductDto(Product product) {
+        Double average = ratingRepository.findAverageScoreByProductId(product.getId());
         return new ProductDto(
                 product.getId(),
                 product.getName(),
@@ -204,6 +209,7 @@ public class AdminService {
                 product.isFeatured(),
                 product.isEditorChoice(),
                 product.isNewArrival(),
+                average != null ? average : 0.0,
                 product.getCreatedAt()
         );
     }

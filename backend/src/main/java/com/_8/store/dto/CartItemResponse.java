@@ -3,8 +3,8 @@ package com._8.store.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public record ProductDto(
-        Long id,
+public record CartItemResponse(
+        Long productId,
         String name,
         String author,
         String description,
@@ -27,6 +27,7 @@ public record ProductDto(
         boolean editorChoice,
         boolean newArrival,
         Double averageRating,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Integer quantity
 ) {
 }

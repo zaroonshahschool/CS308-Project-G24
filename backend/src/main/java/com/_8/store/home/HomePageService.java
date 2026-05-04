@@ -87,11 +87,20 @@ public class HomePageService {
         String icon = LIBRARY_ICONS[index % LIBRARY_ICONS.length];
         String cardClass = LIBRARY_CARD_CLASSES[index % LIBRARY_CARD_CLASSES.length];
 
+        String coverImage = productRepository
+                .findByCategory_NameIgnoreCaseOrderByCreatedAtDesc(category.getName())
+                .stream()
+                .map(Product::getImageUrl)
+                .filter(url -> url != null && !url.isBlank())
+                .findFirst()
+                .orElse(null);
+
         return new HomePageResponse.LibraryCollection(
                 category.getName(),
                 icon,
                 cardClass,
-                "/catalogue?category=" + encodeCategory(category.getName())
+                "/catalogue?category=" + encodeCategory(category.getName()),
+                coverImage
         );
     }
 

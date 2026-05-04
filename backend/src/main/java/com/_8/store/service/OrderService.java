@@ -10,11 +10,13 @@ import com._8.store.entity.OrderItem;
 import com._8.store.entity.OrderStatus;
 import com._8.store.entity.Product;
 import com._8.store.entity.User;
+import com._8.store.repository.CartItemRepository;
 import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
 import com._8.store.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -35,19 +38,22 @@ public class OrderService {
     private final UserRepository userRepository;
     private final InvoicePdfService invoicePdfService;
     private final EmailService emailService;
+    private final CartItemRepository cartItemRepository;
 
     public OrderService(
             OrderRepository orderRepository,
             ProductRepository productRepository,
             UserRepository userRepository,
             InvoicePdfService invoicePdfService,
-            EmailService emailService
+            EmailService emailService,
+            CartItemRepository cartItemRepository
     ) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.invoicePdfService = invoicePdfService;
         this.emailService = emailService;
+        this.cartItemRepository = cartItemRepository;
     }
 
     @Transactional
@@ -63,9 +69,13 @@ public class OrderService {
 
         BigDecimal totalPrice = BigDecimal.ZERO;
 
-        for (OrderItemRequest itemRequest : request.getItems()) {
-            Product product = productRepository.findById(itemRequest.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("Product not found: " + itemRequest.getProductId()));
+        List<OrderItemRequest> requestedItems = request.getItems()
+                .stream()
+                .sorted(Comparator.comparing(OrderItemRequest::getProductId))
+                .toList();
+
+        for (OrderItemRequest itemRequest : requestedItems) {
+            Product product = findProductForCheckout(itemRequest.getProductId());
 
             if (product.getStock() < itemRequest.getQuantity()) {
                 throw new IllegalArgumentException("Insufficient stock for product: " + product.getName());
@@ -87,6 +97,7 @@ public class OrderService {
 
         order.setTotalPrice(totalPrice);
         Order savedOrder = orderRepository.save(order);
+        cartItemRepository.deleteByUser_Id(user.getId());
 
         byte[] invoicePdf = invoicePdfService.generateInvoicePdf(savedOrder);
 
@@ -97,6 +108,15 @@ public class OrderService {
         }
 
         return mapToResponse(savedOrder);
+    }
+
+    private Product findProductForCheckout(Long productId) {
+        try {
+            return productRepository.findByIdForUpdate(productId)
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found: " + productId));
+        } catch (ConcurrencyFailureException exception) {
+            throw new IllegalArgumentException("Stock is being updated by another checkout. Please refresh your cart and try again.", exception);
+        }
     }
 
     @Transactional(readOnly = true)

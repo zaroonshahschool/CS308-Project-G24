@@ -47,7 +47,7 @@ class HomePageControllerTest {
                         "Explore Edition",
                         "/catalogue"
                 ),
-                List.of(new HomePageResponse.LibraryCollection("Classic Fiction", "◌", "library-card-3", "/catalogue")),
+                List.of(new HomePageResponse.LibraryCollection("Classic Fiction", "◌", "library-card-3", "/catalogue", null)),
                 List.of(new HomePageResponse.FeaturedBook(
                         1L,
                         "The Midnight Library",

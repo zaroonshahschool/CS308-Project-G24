@@ -163,6 +163,7 @@ export default function ProductDetailPage({
         if (ignore) return;
 
         setProduct({ ...dbProduct, stock: stockByProduct[dbProduct.id] ?? dbProduct.stock });
+        setAverageRating(dbProduct.averageRating ?? 0);
 
         const categoryProducts = await fetchProducts(dbProduct.category);
         if (ignore) return;

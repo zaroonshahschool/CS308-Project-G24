@@ -23,15 +23,6 @@ function normalizeSearchValue(value) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-function getPopularityScore(reviews) {
-  if (reviews.length === 0) return 0;
-
-  const averageRating =
-    reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
-
-  return reviews.length * 20 + averageRating;
-}
-
 function WishlistButton({ active, onClick }) {
   return (
     <button
@@ -47,12 +38,11 @@ function WishlistButton({ active, onClick }) {
   );
 }
 
-function ProductCard({ product, onAddToCart, onToggleWishlist, reviews, wishlistProductIds }) {
+function ProductCard({ product, onAddToCart, onToggleWishlist, wishlistProductIds }) {
   const outOfStock = product.stock === 0;
-  const averageRating =
-    reviews.length > 0
-      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-      : null;
+  const averageRating = Number(product.averageRating ?? 0);
+  const hasRating = Number.isFinite(averageRating) && averageRating > 0;
+  const filledStarCount = Math.max(1, Math.min(5, Math.round(averageRating)));
   const inWishlist = wishlistProductIds.includes(product.id);
 
   return (
@@ -94,13 +84,13 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, reviews, wishlist
         <p className="catalog-card-author">{product.author}</p>
 
         <div className="catalog-rating-row">
-          {averageRating ? (
+          {hasRating ? (
             <>
               <span className="catalog-rating-stars" aria-hidden="true">
-                {"\u2605".repeat(Math.round(averageRating))}
+                {"\u2605".repeat(filledStarCount)}
               </span>
               <span className="catalog-rating-text">
-                {averageRating.toFixed(1)} | {reviews.length} rating{reviews.length !== 1 ? "s" : ""}
+                {averageRating.toFixed(1)} average rating
               </span>
             </>
           ) : (
@@ -131,7 +121,6 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, reviews, wishlist
 export default function ProductCatalogSection({
   onAddToCart,
   onToggleWishlist,
-  reviewsByProduct = {},
   stockByProduct = {},
   wishlistProductIds = [],
 }) {
@@ -213,7 +202,7 @@ export default function ProductCatalogSection({
       try {
         setLoadingProducts(true);
         setError("");
-        const data = await fetchProducts(activeCategory);
+        const data = await fetchProducts(activeCategory, sortOption);
 
         if (ignore) return;
         setProducts(data);
@@ -236,7 +225,7 @@ export default function ProductCatalogSection({
     return () => {
       ignore = true;
     };
-  }, [activeCategory, toast]);
+  }, [activeCategory, sortOption, toast]);
 
   function updateSearchParams(nextValues) {
     const nextParams = new URLSearchParams(searchParams);
@@ -270,20 +259,8 @@ export default function ProductCatalogSection({
       });
     }
 
-    if (sortOption === "price-asc") {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortOption === "price-desc") {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sortOption === "popularity") {
-      result.sort((a, b) => {
-        const popularityA = getPopularityScore(reviewsByProduct[a.id] ?? []);
-        const popularityB = getPopularityScore(reviewsByProduct[b.id] ?? []);
-        return popularityB - popularityA;
-      });
-    }
-
     return result;
-  }, [products, reviewsByProduct, searchQuery, sortOption, stockByProduct]);
+  }, [products, searchQuery, stockByProduct]);
 
   return (
     <section className="section-catalog">
@@ -366,7 +343,6 @@ export default function ProductCatalogSection({
               product={product}
               onAddToCart={onAddToCart}
               onToggleWishlist={onToggleWishlist}
-              reviews={reviewsByProduct[product.id] ?? []}
               wishlistProductIds={wishlistProductIds}
             />
           ))}
