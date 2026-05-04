@@ -332,54 +332,30 @@ export default function App() {
   }
 
   async function handleCheckoutSubmit(checkoutData) {
-    // Open a blank tab now, while still in the synchronous user-gesture stack,
-    // so popup blockers won't interfere when we load the PDF asynchronously.
-    const invoiceTab = window.open("", "_blank", "noopener,noreferrer");
-
-    let nextOrder;
-    try {
-      const createdOrder = await placeOrder(cartItems, checkoutData.shippingAddress);
-      nextOrder = finalizePlacedOrder({
-        ...createdOrder,
-        shippingAddress: checkoutData.shippingAddress,
-        paymentSummary: checkoutData.paymentDetails,
-      });
-    } catch (orderError) {
-      invoiceTab?.close();
-      throw orderError;
-    }
+    const createdOrder = await placeOrder(cartItems, checkoutData.shippingAddress);
+    const nextOrder = finalizePlacedOrder({
+      ...createdOrder,
+      shippingAddress: checkoutData.shippingAddress,
+      paymentSummary: checkoutData.paymentDetails,
+    });
 
     if (!nextOrder) {
-      invoiceTab?.close();
       return;
     }
 
     navigate("/account", {
       state: { recentOrderId: nextOrder.id },
     });
-    toast.success("Your order was placed successfully.", { title: "Order confirmed" });
-
-    try {
-      const invoiceBlob = await fetchInvoicePdf(nextOrder.backendOrderId);
-      const invoiceUrl = window.URL.createObjectURL(invoiceBlob);
-      if (invoiceTab && !invoiceTab.closed) {
-        invoiceTab.location.href = invoiceUrl;
-      } else {
-        window.open(invoiceUrl, "_blank", "noopener,noreferrer");
-      }
-      window.setTimeout(() => window.URL.revokeObjectURL(invoiceUrl), 60000);
-    } catch {
-      invoiceTab?.close();
-    }
+    toast.success("Your order was placed successfully. Your invoice has been emailed to you.", { title: "Order confirmed" });
   }
 
   async function handleViewInvoice(orderId) {
     const invoiceBlob = await fetchInvoicePdf(orderId);
     const invoiceUrl = window.URL.createObjectURL(invoiceBlob);
-    const invoiceWindow = window.open(invoiceUrl, "_blank", "noopener,noreferrer");
+    const invoiceWindow = window.open(invoiceUrl, "_blank");
 
     if (!invoiceWindow) {
-      window.location.assign(invoiceUrl);
+      toast.warning("Please allow pop-ups to view your invoice.", { title: "Invoice" });
     }
 
     window.setTimeout(() => {
