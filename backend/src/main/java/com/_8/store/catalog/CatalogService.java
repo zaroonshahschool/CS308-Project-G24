@@ -26,18 +26,30 @@ public class CatalogService {
         this.ratingRepository = ratingRepository;
     }
 
-    public List<ProductDto> getAllProducts(String category) {
-        List<Product> products;
-
-        if (category == null || category.isBlank() || category.equalsIgnoreCase("All")) {
-            products = productRepository.findAllByOrderByCreatedAtDesc();
-        } else {
-            products = productRepository.findByCategory_NameIgnoreCaseOrderByCreatedAtDesc(category);
-        }
+    public List<ProductDto> getAllProducts(String category, String sort) {
+        String normalizedCategory = normalizeCategory(category);
+        List<Product> products = switch (normalizeSort(sort)) {
+            case "price-asc" -> normalizedCategory == null
+                    ? productRepository.findAllByOrderByPriceAscCreatedAtDesc()
+                    : productRepository.findByCategory_NameIgnoreCaseOrderByPriceAscCreatedAtDesc(normalizedCategory);
+            case "price-desc" -> normalizedCategory == null
+                    ? productRepository.findAllByOrderByPriceDescCreatedAtDesc()
+                    : productRepository.findByCategory_NameIgnoreCaseOrderByPriceDescCreatedAtDesc(normalizedCategory);
+            case "popularity" -> normalizedCategory == null
+                    ? productRepository.findAllByPopularity()
+                    : productRepository.findByCategoryPopularity(normalizedCategory);
+            default -> normalizedCategory == null
+                    ? productRepository.findAllByOrderByCreatedAtDesc()
+                    : productRepository.findByCategory_NameIgnoreCaseOrderByCreatedAtDesc(normalizedCategory);
+        };
 
         return products.stream()
                 .map(this::toProductDto)
                 .toList();
+    }
+
+    public List<ProductDto> getAllProducts(String category) {
+        return getAllProducts(category, null);
     }
 
     public ProductDto getProductById(Long id) {
@@ -90,5 +102,21 @@ public class CatalogService {
                 category.getImageUrl(),
                 category.getDisplayOrder()
         );
+    }
+
+    private String normalizeCategory(String category) {
+        if (category == null || category.isBlank() || category.equalsIgnoreCase("All")) {
+            return null;
+        }
+
+        return category.trim();
+    }
+
+    private String normalizeSort(String sort) {
+        if (sort == null || sort.isBlank()) {
+            return "relevance";
+        }
+
+        return sort.trim().toLowerCase();
     }
 }

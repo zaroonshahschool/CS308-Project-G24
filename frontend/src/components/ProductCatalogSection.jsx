@@ -23,15 +23,6 @@ function normalizeSearchValue(value) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-function getPopularityScore(reviews) {
-  if (reviews.length === 0) return 0;
-
-  const averageRating =
-    reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
-
-  return reviews.length * 20 + averageRating;
-}
-
 function WishlistButton({ active, onClick }) {
   return (
     <button
@@ -213,7 +204,7 @@ export default function ProductCatalogSection({
       try {
         setLoadingProducts(true);
         setError("");
-        const data = await fetchProducts(activeCategory);
+        const data = await fetchProducts(activeCategory, sortOption);
 
         if (ignore) return;
         setProducts(data);
@@ -236,7 +227,7 @@ export default function ProductCatalogSection({
     return () => {
       ignore = true;
     };
-  }, [activeCategory, toast]);
+  }, [activeCategory, sortOption, toast]);
 
   function updateSearchParams(nextValues) {
     const nextParams = new URLSearchParams(searchParams);
@@ -270,20 +261,8 @@ export default function ProductCatalogSection({
       });
     }
 
-    if (sortOption === "price-asc") {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortOption === "price-desc") {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sortOption === "popularity") {
-      result.sort((a, b) => {
-        const popularityA = getPopularityScore(reviewsByProduct[a.id] ?? []);
-        const popularityB = getPopularityScore(reviewsByProduct[b.id] ?? []);
-        return popularityB - popularityA;
-      });
-    }
-
     return result;
-  }, [products, reviewsByProduct, searchQuery, sortOption, stockByProduct]);
+  }, [products, searchQuery, stockByProduct]);
 
   return (
     <section className="section-catalog">

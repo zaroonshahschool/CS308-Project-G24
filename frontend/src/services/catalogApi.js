@@ -34,10 +34,18 @@ export async function fetchCategories() {
   return apiFetch("/api/categories");
 }
 
-export async function fetchProducts(category = "All") {
-  const query = category && category !== "All"
-    ? `?category=${encodeURIComponent(category)}`
-    : "";
+export async function fetchProducts(category = "All", sort = "relevance") {
+  const params = new URLSearchParams();
+
+  if (category && category !== "All") {
+    params.set("category", category);
+  }
+
+  if (sort && sort !== "relevance") {
+    params.set("sort", sort);
+  }
+
+  const query = params.toString() ? `?${params.toString()}` : "";
   const data = await apiFetch(`/api/products${query}`);
   return data.map(mapApiProductToUiProduct);
 }
