@@ -26,7 +26,8 @@ public record HomePageResponse(
             String name,
             String icon,
             String cardClass,
-            String href
+            String href,
+            String coverImage
     ) {
     }
 

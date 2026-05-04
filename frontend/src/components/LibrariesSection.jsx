@@ -22,7 +22,14 @@ export default function LibrariesSection({ libraries }) {
 
       <div className="libraries-grid">
         {items.map((lib) => (
-          <Link key={lib.name} to={lib.href ?? "/catalogue"} className={`library-card ${lib.cardClass}`}>
+          <Link
+            key={lib.name}
+            to={lib.href ?? "/catalogue"}
+            className={`library-card ${lib.coverImage ? "library-card--image" : lib.cardClass}`}
+          >
+            {lib.coverImage ? (
+              <img src={lib.coverImage} alt={lib.name} className="library-card-image" loading="lazy" />
+            ) : null}
             <div className="library-overlay" />
             <div className="library-card-content">
               <span className="library-icon">{lib.icon}</span>
