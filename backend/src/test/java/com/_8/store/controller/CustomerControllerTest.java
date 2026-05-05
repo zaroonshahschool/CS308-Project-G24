@@ -5,6 +5,9 @@ import com._8.store.entity.User;
 import com._8.store.repository.UserRepository;
 import com._8.store.security.CustomUserDetailsService;
 import com._8.store.security.JwtService;
+import com._8.store.service.CommentService;
+import com._8.store.service.RatingService;
+import com._8.store.service.WishlistService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +40,15 @@ class CustomerControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private RatingService ratingService;
+
+    @MockitoBean
+    private CommentService commentService;
+
+    @MockitoBean
+    private WishlistService wishlistService;
 
     private User mockUser;
 
