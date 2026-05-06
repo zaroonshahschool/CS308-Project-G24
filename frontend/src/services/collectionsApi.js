@@ -1,5 +1,4 @@
 import { apiFetch } from "../lib/api";
-import { fetchProductById } from "./catalogApi";
 
 function mapApiProductToUiProduct(product) {
   return {
