@@ -73,6 +73,9 @@ public class Product {
     @Column(name = "new_arrival", nullable = false)
     private boolean newArrival;
 
+    @Column(name = "limited_edition", nullable = false)
+    private boolean limitedEdition;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -258,6 +261,10 @@ public class Product {
         return newArrival;
     }
 
+    public boolean isLimitedEdition() {
+        return limitedEdition;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -348,6 +355,10 @@ public class Product {
 
     public void setNewArrival(boolean newArrival) {
         this.newArrival = newArrival;
+    }
+
+    public void setLimitedEdition(boolean limitedEdition) {
+        this.limitedEdition = limitedEdition;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

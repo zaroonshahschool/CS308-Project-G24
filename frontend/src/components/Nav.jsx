@@ -1,10 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 
 const NAV_LINKS = [
-  { label: "Limited Editions", to: "#" },
+  { label: "Limited Editions", to: "/limited-editions" },
   { label: "Catalogue", to: "/catalogue" },
-  { label: "New Releases", to: "#" },
-  { label: "Collections", to: "#" },
+  { label: "New Releases", to: "/catalogue?sort=new" },
+  { label: "Collections", to: "/collections" },
 ];
 
 export default function Nav() {

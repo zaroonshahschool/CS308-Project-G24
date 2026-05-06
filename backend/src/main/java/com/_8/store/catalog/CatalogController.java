@@ -1,6 +1,8 @@
 package com._8.store.catalog;
 
 import com._8.store.dto.CategoryDto;
+import com._8.store.dto.CollectionDetailDto;
+import com._8.store.dto.CollectionSummaryDto;
 import com._8.store.dto.ProductDto;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +26,13 @@ public class CatalogController {
         return catalogService.getAllProducts(category, sort);
     }
 
+    @GetMapping("/products/limited-editions")
+    public List<ProductDto> getLimitedEditions(
+            @RequestParam(required = false) String sort
+    ) {
+        return catalogService.getLimitedEditionProducts(sort);
+    }
+
     @GetMapping("/products/{id}")
     public ProductDto getProductById(@PathVariable Long id) {
         return catalogService.getProductById(id);
@@ -32,5 +41,15 @@ public class CatalogController {
     @GetMapping("/categories")
     public List<CategoryDto> getCategories() {
         return catalogService.getAllCategories();
+    }
+
+    @GetMapping("/collections")
+    public List<CollectionSummaryDto> getCollections() {
+        return catalogService.getAllCollections();
+    }
+
+    @GetMapping("/collections/{id}")
+    public CollectionDetailDto getCollectionById(@PathVariable Long id) {
+        return catalogService.getCollectionById(id);
     }
 }

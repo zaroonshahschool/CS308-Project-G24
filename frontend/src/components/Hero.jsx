@@ -22,7 +22,7 @@ export default function Hero({ hero }) {
             </div>
 
             <div className="hero-cta-row">
-              <span className="btn-primary">Explore Edition</span>
+              <Link to="/catalogue" className="btn-primary">Explore Edition</Link>
               <span className="placeholder-bar price-ph" />
             </div>
           </div>
