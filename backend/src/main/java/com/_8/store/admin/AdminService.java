@@ -1,14 +1,17 @@
 package com._8.store.admin;
 
 import com._8.store.dto.CategoryDto;
+import com._8.store.dto.CollectionSummaryDto;
 import com._8.store.dto.DeliveryResponse;
 import com._8.store.dto.ProductDto;
 import com._8.store.entity.Category;
+import com._8.store.entity.Collection;
 import com._8.store.entity.Order;
 import com._8.store.entity.OrderItem;
 import com._8.store.entity.OrderStatus;
 import com._8.store.entity.Product;
 import com._8.store.repository.CategoryRepository;
+import com._8.store.repository.CollectionRepository;
 import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
 import com._8.store.repository.RatingRepository;
@@ -28,17 +31,20 @@ public class AdminService {
     private final CategoryRepository categoryRepository;
     private final OrderRepository orderRepository;
     private final RatingRepository ratingRepository;
+    private final CollectionRepository collectionRepository;
 
     public AdminService(
             ProductRepository productRepository,
             CategoryRepository categoryRepository,
             OrderRepository orderRepository,
-            RatingRepository ratingRepository
+            RatingRepository ratingRepository,
+            CollectionRepository collectionRepository
     ) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.orderRepository = orderRepository;
         this.ratingRepository = ratingRepository;
+        this.collectionRepository = collectionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -169,6 +175,50 @@ public class AdminService {
         if (isCreate || product.getCreatedAt() == null) {
             product.setCreatedAt(LocalDateTime.now());
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<CollectionSummaryDto> getAllCollections() {
+        return collectionRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(c -> new CollectionSummaryDto(c.getId(), c.getName(), c.getDescription(), c.getImageUrl(), c.getProducts().size()))
+                .toList();
+    }
+
+    @Transactional
+    public CollectionSummaryDto createCollection(CollectionUpsertRequest request) {
+        String name = requireText(request.getName(), "Collection name is required.");
+        Collection collection = new Collection(name, blankToNull(request.getDescription()), blankToNull(request.getImageUrl()), LocalDateTime.now());
+        assignProducts(collection, request.getProductIds());
+        Collection saved = collectionRepository.save(collection);
+        return new CollectionSummaryDto(saved.getId(), saved.getName(), saved.getDescription(), saved.getImageUrl(), saved.getProducts().size());
+    }
+
+    @Transactional
+    public CollectionSummaryDto updateCollection(Long id, CollectionUpsertRequest request) {
+        Collection collection = collectionRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found."));
+        collection.setName(requireText(request.getName(), "Collection name is required."));
+        collection.setDescription(blankToNull(request.getDescription()));
+        collection.setImageUrl(blankToNull(request.getImageUrl()));
+        assignProducts(collection, request.getProductIds());
+        Collection saved = collectionRepository.save(collection);
+        return new CollectionSummaryDto(saved.getId(), saved.getName(), saved.getDescription(), saved.getImageUrl(), saved.getProducts().size());
+    }
+
+    public void deleteCollection(Long id) {
+        if (!collectionRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection not found.");
+        }
+        collectionRepository.deleteById(id);
+    }
+
+    private void assignProducts(Collection collection, List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            collection.setProducts(new java.util.ArrayList<>());
+            return;
+        }
+        List<Product> products = productRepository.findByIdIn(productIds);
+        collection.setProducts(products);
     }
 
     private String requireText(String value, String message) {

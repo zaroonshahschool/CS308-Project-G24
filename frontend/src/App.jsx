@@ -21,6 +21,8 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import RegisterPage from "./pages/RegisterPage";
 import WishlistPage from "./pages/WishlistPage";
 import LimitedEditionsPage from "./pages/LimitedEditionsPage";
+import CollectionsPage from "./pages/CollectionsPage";
+import CollectionDetailPage from "./pages/CollectionDetailPage";
 import { fetchCartItems, syncCartItems } from "./services/cartApi";
 import { fetchProductById } from "./services/catalogApi";
 import { cancelOrder, fetchInvoicePdf, fetchOrders, placeOrder, returnOrderItem } from "./services/customerApi";
@@ -607,6 +609,27 @@ export default function App() {
                 onSubmitReview={handleSubmitReview}
                 onToggleWishlist={handleToggleWishlist}
                 reviewsByProduct={reviewsByProduct}
+                stockByProduct={stockByProduct}
+                wishlistProductIds={wishlistProductIds}
+              />
+            </StoreLayout>
+          }
+        />
+        <Route
+          path="/collections"
+          element={
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <CollectionsPage />
+            </StoreLayout>
+          }
+        />
+        <Route
+          path="/collections/:id"
+          element={
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <CollectionDetailPage
+                onAddToCart={handleAddToCart}
+                onToggleWishlist={handleToggleWishlist}
                 stockByProduct={stockByProduct}
                 wishlistProductIds={wishlistProductIds}
               />

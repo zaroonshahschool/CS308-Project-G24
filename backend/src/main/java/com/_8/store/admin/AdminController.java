@@ -1,6 +1,7 @@
 package com._8.store.admin;
 
 import com._8.store.dto.CategoryDto;
+import com._8.store.dto.CollectionSummaryDto;
 import com._8.store.dto.DeliveryResponse;
 import com._8.store.dto.OrderResponse;
 import com._8.store.dto.ProductDto;
@@ -44,6 +45,28 @@ public class AdminController {
     @ResponseStatus(HttpStatus.CREATED)
     public CategoryDto createCategory(@RequestBody CategoryCreateRequest request) {
         return adminService.createCategory(request);
+    }
+
+    @GetMapping("/collections")
+    public List<CollectionSummaryDto> getCollections() {
+        return adminService.getAllCollections();
+    }
+
+    @PostMapping("/collections")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CollectionSummaryDto createCollection(@RequestBody CollectionUpsertRequest request) {
+        return adminService.createCollection(request);
+    }
+
+    @PutMapping("/collections/{id}")
+    public CollectionSummaryDto updateCollection(@PathVariable Long id, @RequestBody CollectionUpsertRequest request) {
+        return adminService.updateCollection(id, request);
+    }
+
+    @DeleteMapping("/collections/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCollection(@PathVariable Long id) {
+        adminService.deleteCollection(id);
     }
 
     @GetMapping("/deliveries")

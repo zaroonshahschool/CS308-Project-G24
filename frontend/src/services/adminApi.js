@@ -30,3 +30,19 @@ export function fetchDeliveries() {
 export function advanceDeliveryStatus(orderId) {
   return sendJson(`/product-manager/deliveries/${orderId}/advance-status`, "PUT");
 }
+
+export function fetchAdminCollections() {
+  return sendJson("/product-manager/collections", "GET");
+}
+
+export function createCollection(payload) {
+  return sendJson("/product-manager/collections", "POST", payload);
+}
+
+export function updateCollection(id, payload) {
+  return sendJson(`/product-manager/collections/${id}`, "PUT", payload);
+}
+
+export function deleteCollection(id) {
+  return sendJson(`/product-manager/collections/${id}`, "DELETE");
+}

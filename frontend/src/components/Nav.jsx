@@ -4,7 +4,7 @@ const NAV_LINKS = [
   { label: "Limited Editions", to: "/limited-editions" },
   { label: "Catalogue", to: "/catalogue" },
   { label: "New Releases", to: "/catalogue?sort=new" },
-  { label: "Collections", to: "#" },
+  { label: "Collections", to: "/collections" },
 ];
 
 export default function Nav() {
