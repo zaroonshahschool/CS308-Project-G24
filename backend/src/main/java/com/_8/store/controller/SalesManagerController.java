@@ -43,6 +43,11 @@ public class SalesManagerController {
         return Map.of("message", "Sales manager placeholder endpoint.");
     }
 
+    @GetMapping("/comments")
+    public ResponseEntity<List<CommentResponse>> getAllComments() {
+        return ResponseEntity.ok(commentService.getAllComments());
+    }
+
     @GetMapping("/comments/pending")
     public ResponseEntity<List<CommentResponse>> getPendingComments() {
         return ResponseEntity.ok(commentService.getPendingComments());

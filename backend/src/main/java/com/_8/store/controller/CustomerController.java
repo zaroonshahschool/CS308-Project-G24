@@ -97,6 +97,15 @@ public class CustomerController {
         return ResponseEntity.ok(commentService.getApprovedComments(productId));
     }
 
+    @GetMapping("/products/{productId}/my-comment")
+    public ResponseEntity<CommentResponse> getMyComment(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long productId) {
+        return commentService.getMyComment(userDetails.getUsername(), productId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
     @PutMapping("/comments/{commentId}")
     public ResponseEntity<?> updateComment(
             @AuthenticationPrincipal UserDetails userDetails,

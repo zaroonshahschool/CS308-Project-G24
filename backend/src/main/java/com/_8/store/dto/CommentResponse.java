@@ -15,6 +15,8 @@ public class CommentResponse {
     private Long productId;
     private String productName;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private boolean edited;
 
     public CommentResponse(Comment comment) {
         this.id = comment.getId();
@@ -25,6 +27,8 @@ public class CommentResponse {
         this.productId = comment.getProduct().getId();
         this.productName = comment.getProduct().getName();
         this.createdAt = comment.getCreatedAt();
+        this.updatedAt = comment.getUpdatedAt();
+        this.edited = comment.getUpdatedAt() != null;
     }
 
     public Long getId() { return id; }
@@ -35,4 +39,6 @@ public class CommentResponse {
     public Long getProductId() { return productId; }
     public String getProductName() { return productName; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public boolean isEdited() { return edited; }
 }
