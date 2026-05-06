@@ -29,6 +29,9 @@ public class Comment {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     public Comment() {}
 
     public Comment(User user, Product product, String content, CommentStatus status, LocalDateTime createdAt) {
@@ -45,6 +48,7 @@ public class Comment {
     public String getContent() { return content; }
     public CommentStatus getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     public void setId(Long id) { this.id = id; }
     public void setUser(User user) { this.user = user; }
@@ -52,4 +56,5 @@ public class Comment {
     public void setContent(String content) { this.content = content; }
     public void setStatus(CommentStatus status) { this.status = status; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
