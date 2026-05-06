@@ -24,6 +24,13 @@ public class CatalogController {
         return catalogService.getAllProducts(category, sort);
     }
 
+    @GetMapping("/products/limited-editions")
+    public List<ProductDto> getLimitedEditions(
+            @RequestParam(required = false) String sort
+    ) {
+        return catalogService.getLimitedEditionProducts(sort);
+    }
+
     @GetMapping("/products/{id}")
     public ProductDto getProductById(@PathVariable Long id) {
         return catalogService.getProductById(id);

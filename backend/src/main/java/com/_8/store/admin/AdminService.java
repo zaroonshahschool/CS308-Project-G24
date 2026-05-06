@@ -164,6 +164,7 @@ public class AdminService {
         product.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
         product.setEditorChoice(Boolean.TRUE.equals(request.getEditorChoice()));
         product.setNewArrival(Boolean.TRUE.equals(request.getNewArrival()));
+        product.setLimitedEdition(Boolean.TRUE.equals(request.getLimitedEdition()));
 
         if (isCreate || product.getCreatedAt() == null) {
             product.setCreatedAt(LocalDateTime.now());
@@ -209,6 +210,7 @@ public class AdminService {
                 product.isFeatured(),
                 product.isEditorChoice(),
                 product.isNewArrival(),
+                product.isLimitedEdition(),
                 average != null ? average : 0.0,
                 product.getCreatedAt()
         );

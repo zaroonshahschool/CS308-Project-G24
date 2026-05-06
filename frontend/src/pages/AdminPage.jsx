@@ -31,6 +31,7 @@ const emptyProductForm = {
   featured: false,
   editorChoice: false,
   newArrival: false,
+  limitedEdition: false,
 };
 
 const emptyCategoryForm = {
@@ -140,6 +141,7 @@ export default function AdminPage() {
       featured: productForm.featured,
       editorChoice: productForm.editorChoice,
       newArrival: productForm.newArrival,
+      limitedEdition: productForm.limitedEdition,
     };
   }
 
@@ -224,6 +226,7 @@ export default function AdminPage() {
       featured: Boolean(product.featured),
       editorChoice: Boolean(product.editorChoice),
       newArrival: Boolean(product.newArrival),
+      limitedEdition: Boolean(product.limitedEdition),
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -401,6 +404,7 @@ export default function AdminPage() {
                 ["featured", "Featured on Home"],
                 ["editorChoice", "Editor's Choice"],
                 ["newArrival", "New Arrival"],
+                ["limitedEdition", "Limited Edition"],
               ].map(([name, label]) => (
                 <label key={name} className="admin-flag">
                   <input type="checkbox" name={name} checked={productForm[name]} onChange={handleProductChange} />

@@ -90,9 +90,19 @@ public class CatalogService {
                 product.isFeatured(),
                 product.isEditorChoice(),
                 product.isNewArrival(),
+                product.isLimitedEdition(),
                 average != null ? average : 0.0,
                 product.getCreatedAt()
         );
+    }
+
+    public List<ProductDto> getLimitedEditionProducts(String sort) {
+        List<Product> products = switch (normalizeSort(sort)) {
+            case "price-asc" -> productRepository.findByLimitedEditionTrueOrderByPriceAscCreatedAtDesc();
+            case "price-desc" -> productRepository.findByLimitedEditionTrueOrderByPriceDescCreatedAtDesc();
+            default -> productRepository.findByLimitedEditionTrueOrderByCreatedAtDesc();
+        };
+        return products.stream().map(this::toProductDto).toList();
     }
 
     private CategoryDto toCategoryDto(Category category) {

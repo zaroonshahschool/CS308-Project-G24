@@ -25,6 +25,7 @@ function mapApiProductToUiProduct(product) {
     featured: product.featured,
     editorChoice: product.editorChoice,
     newArrival: product.newArrival,
+    limitedEdition: product.limitedEdition,
     averageRating: product.averageRating != null ? Number(product.averageRating) : 0,
     createdAt: product.createdAt,
   };
@@ -53,4 +54,14 @@ export async function fetchProducts(category = "All", sort = "relevance") {
 export async function fetchProductById(productId) {
   const data = await apiFetch(`/api/products/${productId}`);
   return mapApiProductToUiProduct(data);
+}
+
+export async function fetchLimitedEditionProducts(sort = "relevance") {
+  const params = new URLSearchParams();
+  if (sort && sort !== "relevance") {
+    params.set("sort", sort);
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const data = await apiFetch(`/api/products/limited-editions${query}`);
+  return data.map(mapApiProductToUiProduct);
 }

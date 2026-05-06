@@ -20,6 +20,7 @@ import LoginPage from "./pages/LoginPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import RegisterPage from "./pages/RegisterPage";
 import WishlistPage from "./pages/WishlistPage";
+import LimitedEditionsPage from "./pages/LimitedEditionsPage";
 import { fetchCartItems, syncCartItems } from "./services/cartApi";
 import { fetchProductById } from "./services/catalogApi";
 import { cancelOrder, fetchInvoicePdf, fetchOrders, placeOrder, returnOrderItem } from "./services/customerApi";
@@ -606,6 +607,19 @@ export default function App() {
                 onSubmitReview={handleSubmitReview}
                 onToggleWishlist={handleToggleWishlist}
                 reviewsByProduct={reviewsByProduct}
+                stockByProduct={stockByProduct}
+                wishlistProductIds={wishlistProductIds}
+              />
+            </StoreLayout>
+          }
+        />
+        <Route
+          path="/limited-editions"
+          element={
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <LimitedEditionsPage
+                onAddToCart={handleAddToCart}
+                onToggleWishlist={handleToggleWishlist}
                 stockByProduct={stockByProduct}
                 wishlistProductIds={wishlistProductIds}
               />
