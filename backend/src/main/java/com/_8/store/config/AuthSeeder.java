@@ -6,6 +6,7 @@ import com._8.store.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Random;
@@ -14,6 +15,7 @@ import java.util.Random;
 public class AuthSeeder {
 
     @Bean
+    @Order(1)
     CommandLineRunner seedAuthUsers(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         return args -> {
             createUserIfMissing(userRepository, passwordEncoder,
