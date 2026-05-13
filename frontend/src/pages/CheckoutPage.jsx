@@ -467,9 +467,22 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
         },
       });
     } catch (error) {
-      const message = error.message || "Checkout failed. Please try again.";
+      const isConcurrencyError = typeof error.message === "string" &&
+        error.message.includes("Stock levels have changed");
+
+      const message = isConcurrencyError
+        ? "Stock levels have changed. Your cart has been updated for accuracy. Please review and try again."
+        : error.message || "Checkout failed. Please try again.";
+
       setSubmitError(message);
-      toast.error(message, { title: "Checkout failed" });
+      setPaymentReview(null);
+
+      if (isConcurrencyError) {
+        toast.warning(message, { title: "Cart updated" });
+      } else {
+        toast.error(message, { title: "Checkout failed" });
+      }
+
       setPlacingOrder(false);
     }
   }

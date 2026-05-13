@@ -3,6 +3,24 @@ import { Link } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { fetchProducts } from "../services/catalogApi";
 
+function AddToCartButton({ product, onAddToCart }) {
+  const [adding, setAdding] = useState(false);
+  const outOfStock = product.stock === 0;
+
+  function handleClick() {
+    if (adding || outOfStock) return;
+    setAdding(true);
+    onAddToCart(product);
+    window.setTimeout(() => setAdding(false), 500);
+  }
+
+  return (
+    <button className="btn-dark" disabled={outOfStock || adding} onClick={handleClick}>
+      {outOfStock ? "Unavailable" : adding ? "Adding..." : "Add to Cart"}
+    </button>
+  );
+}
+
 export default function WishlistPage({ onAddToCart, onToggleWishlist, stockByProduct, wishlistProductIds }) {
   const toast = useToast();
   const [products, setProducts] = useState([]);
@@ -88,9 +106,7 @@ export default function WishlistPage({ onAddToCart, onToggleWishlist, stockByPro
                   <p className="catalog-card-author">{product.author}</p>
                   <p className="wishlist-stock">{product.stock > 0 ? `${product.stock} in stock` : "Currently out of stock"}</p>
                   <div className="wishlist-actions">
-                    <button className="btn-dark" disabled={product.stock === 0} onClick={() => onAddToCart(product)}>
-                      {product.stock === 0 ? "Unavailable" : "Add to Cart"}
-                    </button>
+                    <AddToCartButton product={product} onAddToCart={onAddToCart} />
                     <button className="wishlist-secondary-btn" onClick={() => onToggleWishlist(product.id, product.name)}>
                       Remove
                     </button>

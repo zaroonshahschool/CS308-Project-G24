@@ -239,6 +239,7 @@ export default function ProductDetailPage({
   const [commentError, setCommentError] = useState("");
 
   const [myComment, setMyComment] = useState(null);
+  const [adding, setAdding] = useState(false);
 
   const isLoggedIn = !!window.localStorage.getItem("auth_token");
   const currentUserEmail = isLoggedIn ? window.localStorage.getItem("auth_email") : null;
@@ -409,10 +410,15 @@ export default function ProductDetailPage({
             </div>
             <button
               className="btn-dark"
-              onClick={() => onAddToCart(product)}
-              disabled={product.stock === 0}
+              onClick={() => {
+                if (adding || product.stock === 0) return;
+                setAdding(true);
+                onAddToCart(product);
+                window.setTimeout(() => setAdding(false), 500);
+              }}
+              disabled={product.stock === 0 || adding}
             >
-              {product.stock === 0 ? "Unavailable" : "Add to Cart"}
+              {product.stock === 0 ? "Unavailable" : adding ? "Adding..." : "Add to Cart"}
             </button>
           </div>
 
