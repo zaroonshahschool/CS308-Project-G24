@@ -69,6 +69,8 @@ public class OrderService {
 
         BigDecimal totalPrice = BigDecimal.ZERO;
 
+        // Sort by productId to ensure consistent lock acquisition order and prevent deadlocks
+        // when multiple transactions lock multiple products simultaneously.
         List<OrderItemRequest> requestedItems = request.getItems()
                 .stream()
                 .sorted(Comparator.comparing(OrderItemRequest::getProductId))
@@ -149,7 +151,8 @@ public class OrderService {
         }
 
         for (OrderItem item : order.getItems()) {
-            Product product = item.getProduct();
+            Product product = productRepository.findByIdForUpdate(item.getProduct().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found during stock restoration."));
             product.setStock(product.getStock() + item.getQuantity());
         }
 
@@ -183,7 +186,8 @@ public class OrderService {
         }
 
         orderItem.setReturnedAt(LocalDateTime.now());
-        Product product = orderItem.getProduct();
+        Product product = productRepository.findByIdForUpdate(orderItem.getProduct().getId())
+                .orElseThrow(() -> new IllegalArgumentException("Product not found during stock restoration."));
         product.setStock(product.getStock() + orderItem.getQuantity());
 
         boolean allReturned = order.getItems().stream().allMatch(item -> item.getReturnedAt() != null);
