@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { clearAuthSession } from "../lib/securityStorage";
 
 const NAV_LINKS = [
   { label: "Limited Editions", to: "/limited-editions" },
@@ -15,9 +16,7 @@ export default function Nav() {
   const isSalesManager = role === "SALES_MANAGER";
 
   function handleLogout() {
-    window.localStorage.removeItem("auth_token");
-    window.localStorage.removeItem("auth_role");
-    window.localStorage.removeItem("auth_email");
+    clearAuthSession();
   }
 
   return (
