@@ -4,7 +4,6 @@ export const initialCustomer = {
   taxId: "",
   email: "",
   homeAddress: "",
-  password: "",
 };
 
 export function getInitialOrders() {

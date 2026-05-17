@@ -2,10 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { apiFetch } from "../lib/api";
-
-function generateCustomerId() {
-  return String(Math.floor(1000000 + Math.random() * 9000000));
-}
+import { persistAuthSession } from "../lib/securityStorage";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -32,28 +29,11 @@ export default function LoginPage() {
         body: JSON.stringify(form),
       });
 
-      const existingProfile = (() => {
-        try {
-          const rawValue = window.localStorage.getItem("customer_profile");
-          return rawValue ? JSON.parse(rawValue) : null;
-        } catch {
-          return null;
-        }
-      })();
-
-      const nextProfile = {
-        id: existingProfile?.id || generateCustomerId(),
-        name: data.name || existingProfile?.name || "",
-        taxId: existingProfile?.taxId || "",
-        email: data.email || form.email.trim().toLowerCase(),
-        homeAddress: existingProfile?.homeAddress || "",
-        password: form.password,
-      };
-
-      window.localStorage.setItem("auth_token", data.token);
-      window.localStorage.setItem("auth_role", data.role);
-      window.localStorage.setItem("auth_email", nextProfile.email);
-      window.localStorage.setItem("customer_profile", JSON.stringify(nextProfile));
+      persistAuthSession({
+        token: data.token,
+        role: data.role,
+        email: data.email || form.email,
+      });
       toast.success("You are signed in.", { title: "Welcome back" });
       navigate(nextPath);
     } catch (err) {

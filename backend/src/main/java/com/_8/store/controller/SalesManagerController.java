@@ -12,6 +12,7 @@ import com._8.store.service.CommentService;
 import com._8.store.service.OrderService;
 import com._8.store.service.SalesManagerService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -109,6 +110,9 @@ public class SalesManagerController {
         byte[] invoicePdf = salesManagerService.getInvoicePdf(orderId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"invoice-order-" + orderId + ".pdf\"")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.EXPIRES, "0")
+                .cacheControl(CacheControl.noStore())
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(invoicePdf);
     }
