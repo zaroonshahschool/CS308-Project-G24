@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { fetchProfile, updateAddress } from "../services/customerApi";
+import { createSafePaymentSummary } from "../lib/secureCheckout";
 
 const ENABLE_LUHN_VALIDATION = import.meta.env.VITE_ENABLE_LUHN_VALIDATION === "true";
 
@@ -457,14 +458,10 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
 
       await onCheckoutSubmit({
         shippingAddress: paymentReview.invoice.shippingAddress,
-        paymentDetails: {
-          cardholderName: paymentReview.bankResponse.cardholderName,
-          paymentMethod: "credit-card",
-          cardBrand: paymentReview.bankResponse.cardBrand,
-          cardLast4: paymentReview.bankResponse.cardLast4,
-          mockBankResponse: paymentReview.bankResponse,
-          invoiceNumber: paymentReview.invoice.invoiceNumber,
-        },
+        paymentDetails: createSafePaymentSummary(
+          paymentReview.bankResponse,
+          paymentReview.invoice.invoiceNumber
+        ),
       });
     } catch (error) {
       const isConcurrencyError = typeof error.message === "string" &&
