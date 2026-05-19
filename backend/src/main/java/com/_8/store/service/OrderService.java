@@ -79,7 +79,9 @@ public class OrderService {
         for (OrderItemRequest itemRequest : requestedItems) {
             Product product = findProductForCheckout(itemRequest.getProductId());
 
-            if (product.getStock() < itemRequest.getQuantity()) {
+            // Atomic stock decrement — returns 0 if stock is insufficient
+            int updated = productRepository.decrementStock(itemRequest.getProductId(), itemRequest.getQuantity());
+            if (updated == 0) {
                 throw new IllegalArgumentException("Insufficient stock for product: " + product.getName());
             }
 
@@ -93,7 +95,6 @@ public class OrderService {
             orderItem.setLineTotal(lineTotal);
             order.addItem(orderItem);
 
-            product.setStock(product.getStock() - itemRequest.getQuantity());
             totalPrice = totalPrice.add(lineTotal);
         }
 
