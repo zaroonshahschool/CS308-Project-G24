@@ -1,6 +1,5 @@
 package com._8.store.controller;
 
-import com._8.store.service.CommentService;
 import com._8.store.service.OrderService;
 import com._8.store.service.SalesManagerService;
 import com._8.store.repository.RatingRepository;
@@ -19,8 +18,6 @@ class InvoiceSecurityHeaderTest {
 
     @Mock
     private OrderService orderService;
-    @Mock
-    private CommentService commentService;
     @Mock
     private SalesManagerService salesManagerService;
     @Mock
@@ -42,7 +39,6 @@ class InvoiceSecurityHeaderTest {
     void salesManagerInvoicePdfResponseDisablesBrowserAndProxyCaching() {
         given(salesManagerService.getInvoicePdf(42L)).willReturn("pdf".getBytes());
         SalesManagerController controller = new SalesManagerController(
-                commentService,
                 orderService,
                 salesManagerService,
                 ratingRepository

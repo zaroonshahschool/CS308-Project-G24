@@ -73,7 +73,7 @@ public class Product {
     @Column(name = "new_arrival", nullable = false)
     private boolean newArrival;
 
-    @Column(name = "limited_edition", nullable = false)
+    @Column(name = "limited_edition", nullable = false, columnDefinition = "boolean default false")
     private boolean limitedEdition;
 
     @Column(name = "created_at", nullable = false)

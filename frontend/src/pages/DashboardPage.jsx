@@ -228,7 +228,7 @@ export default function DashboardPage() {
       <section className="customer-shell">
         <div className="customer-page-head">
           <h1 className="section-title">Sales Manager Dashboard</h1>
-          <p className="section-subtitle">Manage discounts, invoices, financial analytics, order flow, and comment moderation.</p>
+          <p className="section-subtitle">Manage discounts, invoices, financial analytics, order flow, and rating moderation.</p>
         </div>
 
         {!isSalesManager && (
@@ -425,16 +425,6 @@ export default function DashboardPage() {
               <h2 className="account-card-title">Moderation</h2>
               <p className="section-subtitle">Review and action customer-submitted content from dedicated moderation panels.</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginTop: "1rem" }}>
-                <Link
-                  to="/dashboard/comments"
-                  style={{ display: "block", padding: "1.25rem", borderRadius: 16, background: "rgba(0,0,0,0.03)", textDecoration: "none", color: "inherit" }}
-                >
-                  <p className="order-item-name" style={{ marginBottom: "0.35rem" }}>Comment Moderation</p>
-                  <p className="order-meta">Approve or reject pending customer comments before they appear on product pages.</p>
-                  <p className="btn-primary" style={{ display: "inline-block", marginTop: "0.75rem", padding: "0.45rem 1rem", fontSize: "0.85rem" }}>
-                    Open →
-                  </p>
-                </Link>
                 <Link
                   to="/dashboard/ratings"
                   style={{ display: "block", padding: "1.25rem", borderRadius: 16, background: "rgba(0,0,0,0.03)", textDecoration: "none", color: "inherit" }}

@@ -22,7 +22,7 @@ export async function updateComment(commentId, content) {
 }
 
 export async function fetchApprovedComments(productId) {
-  return apiFetch(`/api/customer/products/${productId}/comments`);
+  return apiFetch(`/api/products/${productId}/comments`);
 }
 
 export async function fetchMyRating(productId) {

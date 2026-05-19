@@ -48,8 +48,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/home").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/*/comments").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/comments/*/approve").hasRole("PRODUCT_MANAGER")
                         .requestMatchers("/api/admin/**").hasRole("PRODUCT_MANAGER")
                         .requestMatchers("/api/product-manager/**").hasRole("PRODUCT_MANAGER")
                         .requestMatchers("/api/sales-manager/**").hasRole("SALES_MANAGER")
@@ -85,7 +87,7 @@ public class SecurityConfig {
                 "http://localhost:*",
                 "http://127.0.0.1:*"
         ));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
 

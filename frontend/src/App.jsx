@@ -676,9 +676,9 @@ export default function App() {
           }
         />
         <Route
-          path="/dashboard/comments"
+          path="/product-manager/comments"
           element={
-            <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
+            <RoleProtectedRoute allowedRoles={["PRODUCT_MANAGER"]}>
               <CommentModerationPage />
             </RoleProtectedRoute>
           }

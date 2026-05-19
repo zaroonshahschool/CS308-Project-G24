@@ -440,7 +440,7 @@ export default function ProductDetailPage({
           <div>
             <h2 className="section-title">Ratings & Comments</h2>
           </div>
-          <p className="section-subtitle">Available for customers with a delivered order. Ratings count immediately; comments appear after manager approval.</p>
+          <p className="section-subtitle">Approved comments are visible to everyone. Customers with a delivered order can sign in to rate or leave a comment.</p>
         </div>
 
         <div className="product-review-layout">
@@ -506,8 +506,8 @@ export default function ProductDetailPage({
               </>
             ) : (
               <div className="review-form">
-                <p className="review-empty-title">Login required</p>
-                <p className="review-empty-text">You must be logged in to rate or comment on products.</p>
+                <p className="review-empty-title">Join the discussion</p>
+                <p className="review-empty-text">Approved comments are visible above. Sign in to rate this product or leave your own comment.</p>
                 <Link to="/login" className="btn-primary" style={{ display: "inline-block", marginTop: "0.75rem" }}>
                   Login
                 </Link>

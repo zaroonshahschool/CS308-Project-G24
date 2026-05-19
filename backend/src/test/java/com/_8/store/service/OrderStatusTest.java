@@ -7,6 +7,7 @@ import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
 import com._8.store.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -71,6 +72,11 @@ class OrderStatusTest {
         SecurityContextHolder.setContext(securityContext);
     }
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void advanceOrderStatus_fromProcessing_toInTransit() {
         mockOrder.setStatus(OrderStatus.PROCESSING);
@@ -113,6 +119,7 @@ class OrderStatusTest {
 
         given(userRepository.findByEmailIgnoreCase("john@example.com")).willReturn(Optional.of(mockUser));
         given(orderRepository.findByIdAndUserId(1L, 1L)).willReturn(Optional.of(mockOrder));
+        given(productRepository.findByIdForUpdate(mockProduct.getId())).willReturn(Optional.of(mockProduct));
         given(orderRepository.save(any())).willReturn(mockOrder);
 
         orderService.cancelOrder(1L);
