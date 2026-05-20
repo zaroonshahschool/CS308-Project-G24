@@ -411,7 +411,11 @@ export default function ProductDetailPage({
             <button
               className="btn-dark"
               onClick={() => {
-                if (adding || product.stock === 0) return;
+                if (adding) return;
+                if (product.stock === 0) {
+                  toast.warning("This item is out of stock and cannot be added to your cart.", { title: "Out of Stock" });
+                  return;
+                }
                 setAdding(true);
                 onAddToCart(product);
                 window.setTimeout(() => setAdding(false), 500);
