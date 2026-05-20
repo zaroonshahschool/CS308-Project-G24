@@ -13,10 +13,35 @@ function canReturn(placedAt) {
 function SavedTick({ visible }) {
   if (!visible) return null;
   return (
-    <span className="profile-saved-indicator" aria-label="Stored">
-      <span className="profile-saved-check">✓</span>
+      <span className="profile-saved-indicator" aria-label="Stored">
+      <span className="profile-saved-check">✔</span>
       Stored
     </span>
+  );
+}
+
+function DeliveryStatusStepper({ status }) {
+  const steps = ["processing", "in-transit", "delivered"];
+  const labels = ["Processing", "In Transit", "Delivered"];
+  const normalized = status?.toLowerCase().replace(/\s+/g, "-");
+  const currentIndex = steps.indexOf(normalized);
+
+  return (
+      <div className="delivery-stepper">
+        {steps.map((step, i) => (
+            <div key={step} className="delivery-stepper-step">
+              <div className={`delivery-stepper-circle${i <= currentIndex ? " delivery-stepper-circle--active" : ""}`}>
+                {i < currentIndex ? "✓" : i + 1}
+              </div>
+              <p className={`delivery-stepper-label${i === currentIndex ? " delivery-stepper-label--active" : ""}`}>
+                {labels[i]}
+              </p>
+              {i < steps.length - 1 && (
+                  <div className={`delivery-stepper-line${i < currentIndex ? " delivery-stepper-line--active" : ""}`} />
+              )}
+            </div>
+        ))}
+      </div>
   );
 }
 
@@ -34,19 +59,19 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
 
   useEffect(() => {
     fetchProfile()
-      .then((data) => {
-        setProfile(data);
-        setAddressForm({
-          street: data.street || "",
-          city: data.city || "",
-          postalCode: data.postalCode || "",
-          country: data.country || "",
+        .then((data) => {
+          setProfile(data);
+          setAddressForm({
+            street: data.street || "",
+            city: data.city || "",
+            postalCode: data.postalCode || "",
+            country: data.country || "",
+          });
+        })
+        .catch(() => {
+          setError("Failed to load profile.");
+          toast.error("Failed to load profile.", { title: "Account error" });
         });
-      })
-      .catch(() => {
-        setError("Failed to load profile.");
-        toast.error("Failed to load profile.", { title: "Account error" });
-      });
   }, [toast]);
 
   useEffect(() => {
@@ -85,13 +110,9 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
   }
 
   async function handleViewInvoiceClick(order) {
-    if (!order.backendOrderId) {
-      return;
-    }
-
+    if (!order.backendOrderId) return;
     setInvoiceError("");
     setDownloadingOrderId(order.id);
-
     try {
       await onViewInvoice(order.backendOrderId);
       toast.info("Invoice opened in a new tab.", { title: "Invoice ready" });
@@ -106,7 +127,6 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
   async function handleCancelOrderClick(order) {
     setOrderActionError("");
     setActingOrderKey(`cancel-${order.id}`);
-
     try {
       await onCancelOrder(order.backendOrderId);
     } catch (actionError) {
@@ -120,7 +140,6 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
   async function handleReturnOrderItemClick(order, item) {
     setOrderActionError("");
     setActingOrderKey(`return-${item.id}`);
-
     try {
       await onReturnOrderItem(order.backendOrderId, item.productId);
     } catch (actionError) {
@@ -133,14 +152,14 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
 
   if (!profile) {
     return (
-      <main className="customer-page">
-        <div className="catalogue-breadcrumb">
-          <Link to="/" className="breadcrumb-link">Back to Home</Link>
-        </div>
-        <section className="customer-shell">
-          <p className="section-subtitle">{error || "Loading profile..."}</p>
-        </section>
-      </main>
+        <main className="customer-page">
+          <div className="catalogue-breadcrumb">
+            <Link to="/" className="breadcrumb-link">Back to Home</Link>
+          </div>
+          <section className="customer-shell">
+            <p className="section-subtitle">{error || "Loading profile..."}</p>
+          </section>
+        </main>
     );
   }
 
@@ -152,154 +171,157 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
   ];
 
   return (
-    <main className="customer-page">
-      <div className="catalogue-breadcrumb">
-        <Link to="/" className="breadcrumb-link">Back to Home</Link>
-      </div>
-
-      <section className="customer-shell">
-        <div className="customer-page-head">
-          <div>
-            <h1 className="section-title">Customer Account</h1>
-          </div>
-          <p className="section-subtitle">Manage your home address and view your orders.</p>
+      <main className="customer-page">
+        <div className="catalogue-breadcrumb">
+          <Link to="/" className="breadcrumb-link">Back to Home</Link>
         </div>
 
-        <div className="account-grid">
-          <div className="account-card">
-            <h2 className="account-card-title">Profile</h2>
-
-            <div className="review-field review-field--readonly">
-              <span>Name</span>
-              <input type="text" value={profile.name} readOnly disabled />
+        <section className="customer-shell">
+          <div className="customer-page-head">
+            <div>
+              <h1 className="section-title">Customer Account</h1>
             </div>
-
-            <div className="review-field review-field--readonly">
-              <span>Email Address</span>
-              <input type="email" value={profile.email} readOnly disabled />
-            </div>
-
-            <div className="review-field review-field--readonly">
-              <span>Tax Number</span>
-              <input type="text" value={profile.taxNumber} readOnly disabled />
-            </div>
-
-            <h3 className="account-card-title" style={{ marginTop: "1.5rem" }}>Home Address</h3>
-
-            {ADDRESS_FIELDS.map((field) => (
-              <div key={field.name} className="review-field">
-                <div className="profile-field-head">
-                  <span>{field.label}</span>
-                  <SavedTick visible={savedField === field.name} />
-                </div>
-                <input
-                  name={field.name}
-                  type="text"
-                  value={addressForm[field.name]}
-                  onChange={handleAddressChange}
-                  onKeyDown={(e) => handleAddressKeyDown(e, field.name)}
-                  placeholder={`Enter ${field.label.toLowerCase()}`}
-                />
-              </div>
-            ))}
-
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.75rem" }}>
-              <button className="btn-primary" onClick={handleSaveAddress}>
-                Save Address
-              </button>
-              <SavedTick visible={savedField === "address"} />
-            </div>
-
-            {error && <p style={{ color: "red", marginTop: "0.5rem" }}>{error}</p>}
+            <p className="section-subtitle">Manage your home address and view your orders.</p>
           </div>
 
-          <div className="account-card">
-            <h2 className="account-card-title">Order History</h2>
-            {location.state?.recentOrderId ? (
-              <div className="order-success-banner">
-                <div>
-                  <p className="order-item-name">Order {location.state.recentOrderId} was placed successfully.</p>
-                  <p className="order-meta">Your invoice PDF has been emailed to you. Click “View Invoice PDF” below to open it.</p>
-                </div>
+          <div className="account-grid">
+            <div className="account-card">
+              <h2 className="account-card-title">Profile</h2>
+
+              <div className="review-field review-field--readonly">
+                <span>Name</span>
+                <input type="text" value={profile.name} readOnly disabled />
               </div>
-            ) : null}
 
-            {invoiceError ? <p className="checkout-error">{invoiceError}</p> : null}
-            {orderActionError ? <p className="checkout-error">{orderActionError}</p> : null}
-            <div className="order-list">
-              {orders.length > 0 ? (
-                orders.map((order) => (
-                  <article key={order.id} className="order-card">
-                    <div className="order-card-head">
-                      <div>
-                        <p className="order-id">{order.id}</p>
-                        <p className="order-meta">Placed on {order.placedAt}</p>
-                      </div>
-                      <div className={`order-status order-status--${order.status.replace(/\s+/g, "-")}`}>
-                        {order.status}
-                      </div>
+              <div className="review-field review-field--readonly">
+                <span>Email Address</span>
+                <input type="email" value={profile.email} readOnly disabled />
+              </div>
+
+              <div className="review-field review-field--readonly">
+                <span>Tax Number</span>
+                <input type="text" value={profile.taxNumber} readOnly disabled />
+              </div>
+
+              <h3 className="account-card-title" style={{ marginTop: "1.5rem" }}>Home Address</h3>
+
+              {ADDRESS_FIELDS.map((field) => (
+                  <div key={field.name} className="review-field">
+                    <div className="profile-field-head">
+                      <span>{field.label}</span>
+                      <SavedTick visible={savedField === field.name} />
                     </div>
+                    <input
+                        name={field.name}
+                        type="text"
+                        value={addressForm[field.name]}
+                        onChange={handleAddressChange}
+                        onKeyDown={(e) => handleAddressKeyDown(e, field.name)}
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                    />
+                  </div>
+              ))}
 
-                    <div className="order-items">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="order-item-row">
-                          <div>
-                            <p className="order-item-name">{item.name}</p>
-                            <p className="order-item-meta">Qty {item.qty} · ${item.price.toFixed(2)} each</p>
+              <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "0.75rem" }}>
+                <button className="btn-primary" onClick={handleSaveAddress}>
+                  Save Address
+                </button>
+                <SavedTick visible={savedField === "address"} />
+              </div>
+
+              {error && <p style={{ color: "red", marginTop: "0.5rem" }}>{error}</p>}
+            </div>
+
+            <div className="account-card">
+              <h2 className="account-card-title">Order History</h2>
+              {location.state?.recentOrderId ? (
+                  <div className="order-success-banner">
+                    <div>
+                      <p className="order-item-name">Order {location.state.recentOrderId} was placed successfully.</p>
+                      <p className="order-meta">Your invoice PDF has been emailed to you. Click "View Invoice PDF" below to open it.</p>
+                    </div>
+                  </div>
+              ) : null}
+
+              {invoiceError ? <p className="checkout-error">{invoiceError}</p> : null}
+              {orderActionError ? <p className="checkout-error">{orderActionError}</p> : null}
+
+              <div className="order-list">
+                {orders.length > 0 ? (
+                    orders.map((order) => (
+                        <article key={order.id} className="order-card">
+                          <div className="order-card-head">
+                            <div>
+                              <p className="order-id">{order.id}</p>
+                              <p className="order-meta">Placed on {order.placedAt}</p>
+                            </div>
+                            <div className={`order-status order-status--${order.status.replace(/\s+/g, "-")}`}>
+                              {order.status}
+                            </div>
                           </div>
-                          <div className="order-item-actions">
-                            {item.returnedAt ? (
-                              <span className="order-note">Returned on {item.returnedAt}</span>
-                            ) : order.status === "delivered" && canReturn(order.placedAt) ? (
-                              <button
-                                className="wishlist-secondary-btn"
-                                onClick={() => handleReturnOrderItemClick(order, item)}
-                                disabled={actingOrderKey === `return-${item.id}`}
-                              >
-                                {actingOrderKey === `return-${item.id}` ? "Returning..." : "Return Item"}
-                              </button>
-                            ) : null}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
 
-                    <div className="order-card-footer">
-                      <p className="order-total">Total ${order.total.toFixed(2)}</p>
-                      <div className="order-card-actions">
-                        {order.backendOrderId ? (
-                          <button
-                            className="wishlist-secondary-btn"
-                            type="button"
-                            onClick={() => handleViewInvoiceClick(order)}
-                            disabled={downloadingOrderId === order.id}
-                          >
-                            {downloadingOrderId === order.id ? "Opening Invoice..." : "View Invoice PDF"}
-                          </button>
-                        ) : null}
-                        {order.status === "processing" && order.allowCancellation !== false ? (
-                          <button
-                            className="wishlist-secondary-btn"
-                            onClick={() => handleCancelOrderClick(order)}
-                            disabled={actingOrderKey === `cancel-${order.id}`}
-                          >
-                            {actingOrderKey === `cancel-${order.id}` ? "Cancelling..." : "Cancel Order"}
-                          </button>
-                        ) : null}
-                      </div>
+                          <DeliveryStatusStepper status={order.status} />
+
+                          <div className="order-items">
+                            {order.items.map((item) => (
+                                <div key={item.id} className="order-item-row">
+                                  <div>
+                                    <p className="order-item-name">{item.name}</p>
+                                    <p className="order-item-meta">Qty {item.qty} · ${item.price.toFixed(2)} each</p>
+                                  </div>
+                                  <div className="order-item-actions">
+                                    {item.returnedAt ? (
+                                        <span className="order-note">Returned on {item.returnedAt}</span>
+                                    ) : order.status === "delivered" && canReturn(order.placedAt) ? (
+                                        <button
+                                            className="wishlist-secondary-btn"
+                                            onClick={() => handleReturnOrderItemClick(order, item)}
+                                            disabled={actingOrderKey === `return-${item.id}`}
+                                        >
+                                          {actingOrderKey === `return-${item.id}` ? "Returning..." : "Return Item"}
+                                        </button>
+                                    ) : null}
+                                  </div>
+                                </div>
+                            ))}
+                          </div>
+
+                          <div className="order-card-footer">
+                            <p className="order-total">Total ${order.total.toFixed(2)}</p>
+                            <div className="order-card-actions">
+                              {order.backendOrderId ? (
+                                  <button
+                                      className="wishlist-secondary-btn"
+                                      type="button"
+                                      onClick={() => handleViewInvoiceClick(order)}
+                                      disabled={downloadingOrderId === order.id}
+                                  >
+                                    {downloadingOrderId === order.id ? "Opening Invoice..." : "View Invoice PDF"}
+                                  </button>
+                              ) : null}
+                              {order.status === "processing" && order.allowCancellation !== false ? (
+                                  <button
+                                      className="wishlist-secondary-btn"
+                                      onClick={() => handleCancelOrderClick(order)}
+                                      disabled={actingOrderKey === `cancel-${order.id}`}
+                                  >
+                                    {actingOrderKey === `cancel-${order.id}` ? "Cancelling..." : "Cancel Order"}
+                                  </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        </article>
+                    ))
+                ) : (
+                    <div className="customer-empty">
+                      <h3 className="customer-empty-title">No orders yet</h3>
+                      <p className="customer-empty-text">Your completed orders will appear here with invoice PDFs.</p>
                     </div>
-                  </article>
-                ))
-              ) : (
-                <div className="customer-empty">
-                  <h3 className="customer-empty-title">No orders yet</h3>
-                  <p className="customer-empty-text">Your completed orders will appear here with invoice PDFs.</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
   );
 }

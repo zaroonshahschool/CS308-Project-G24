@@ -2318,3 +2318,64 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
     grid-template-columns: 1fr;
   }
 }
+/* Delivery Status Stepper */
+.delivery-stepper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem 0;
+  gap: 0;
+}
+
+.delivery-stepper-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 1;
+}
+
+.delivery-stepper-circle {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  z-index: 1;
+}
+
+.delivery-stepper-circle--active {
+  background: #4f46e5;
+  color: #fff;
+}
+
+.delivery-stepper-label {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  margin-top: 0.4rem;
+  text-align: center;
+}
+
+.delivery-stepper-label--active {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.delivery-stepper-line {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: #e5e7eb;
+  z-index: 0;
+}
+
+.delivery-stepper-line--active {
+  background: #4f46e5;
+}
