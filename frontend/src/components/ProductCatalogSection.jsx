@@ -40,6 +40,7 @@ function WishlistButton({ active, onClick }) {
 
 function ProductCard({ product, onAddToCart, onToggleWishlist, wishlistProductIds }) {
   const outOfStock = product.stock === 0;
+  const toast = useToast();
   const averageRating = Number(product.averageRating ?? 0);
   const hasRating = Number.isFinite(averageRating) && averageRating > 0;
   const filledStarCount = Math.max(1, Math.min(5, Math.round(averageRating)));
@@ -47,7 +48,11 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, wishlistProductId
   const [adding, setAdding] = useState(false);
 
   function handleAddToCart() {
-    if (adding || outOfStock) return;
+    if (adding) return;
+    if (outOfStock) {
+      toast.warning("This item is out of stock and cannot be added to your cart.", { title: "Out of Stock" });
+      return;
+    }
     setAdding(true);
     onAddToCart(product);
     window.setTimeout(() => setAdding(false), 500);
