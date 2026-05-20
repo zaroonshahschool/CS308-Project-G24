@@ -90,7 +90,7 @@ public class OrderService {
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new IllegalArgumentException("Product not found: " + itemRequest.getProductId()));
 
-            int rowsUpdated;
+int rowsUpdated;
             try {
                 rowsUpdated = productRepository.decrementStock(product.getId(), itemRequest.getQuantity());
             } catch (ObjectOptimisticLockingFailureException ex) {

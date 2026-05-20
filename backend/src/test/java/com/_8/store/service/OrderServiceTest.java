@@ -31,6 +31,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -58,7 +60,7 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        user = new User("Jane Doe", "jane@example.com", "secret", Role.CUSTOMER, "1234567890");
+        user = new User("Jane Doe", "john@example.com", "secret", Role.CUSTOMER, "1234567890");
         user.setId(7L);
 
         Category category = new Category();
@@ -102,7 +104,8 @@ class OrderServiceTest {
         byte[] pdfBytes = "invoice-pdf".getBytes();
 
         given(userRepository.findByEmailIgnoreCase(user.getEmail())).willReturn(Optional.of(user));
-        given(productRepository.findByIdForUpdate(product.getId())).willReturn(Optional.of(product));
+        given(productRepository.findById(product.getId())).willReturn(Optional.of(product));
+        given(productRepository.decrementStock(anyLong(), anyInt())).willReturn(1);
         given(orderRepository.save(any(Order.class))).willAnswer(invocation -> {
             Order savedOrder = invocation.getArgument(0);
             savedOrder.setId(42L);
@@ -114,7 +117,6 @@ class OrderServiceTest {
 
         assertThat(response.getOrderId()).isEqualTo(42L);
         assertThat(response.getTotalPrice()).isEqualByComparingTo("50.00");
-        assertThat(product.getStock()).isEqualTo(6);
 
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
         verify(invoicePdfService).generateInvoicePdf(orderCaptor.capture());

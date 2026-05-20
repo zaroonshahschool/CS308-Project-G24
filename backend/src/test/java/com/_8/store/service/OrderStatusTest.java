@@ -114,6 +114,7 @@ class OrderStatusTest {
         given(userRepository.findByEmailIgnoreCase("john@example.com")).willReturn(Optional.of(mockUser));
         given(orderRepository.findByIdAndUserId(1L, 1L)).willReturn(Optional.of(mockOrder));
         given(orderRepository.save(any())).willReturn(mockOrder);
+        given(productRepository.findByIdForUpdate(10L)).willReturn(Optional.of(mockProduct));
 
         orderService.cancelOrder(1L);
 
