@@ -1,5 +1,9 @@
 import { apiFetch, apiFetchBlob } from "../lib/api";
 
+export async function fetchAllComments() {
+  return apiFetch("/api/sales-manager/comments");
+}
+
 export async function fetchPendingComments() {
   return apiFetch("/api/sales-manager/comments/pending");
 }

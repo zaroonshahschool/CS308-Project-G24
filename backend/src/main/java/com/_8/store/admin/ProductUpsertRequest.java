@@ -22,6 +22,7 @@ public class ProductUpsertRequest {
     private Boolean featured;
     private Boolean editorChoice;
     private Boolean newArrival;
+    private Boolean limitedEdition;
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -61,4 +62,6 @@ public class ProductUpsertRequest {
     public void setEditorChoice(Boolean editorChoice) { this.editorChoice = editorChoice; }
     public Boolean getNewArrival() { return newArrival; }
     public void setNewArrival(Boolean newArrival) { this.newArrival = newArrival; }
+    public Boolean getLimitedEdition() { return limitedEdition; }
+    public void setLimitedEdition(Boolean limitedEdition) { this.limitedEdition = limitedEdition; }
 }

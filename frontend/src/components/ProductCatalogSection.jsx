@@ -44,6 +44,14 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, wishlistProductId
   const hasRating = Number.isFinite(averageRating) && averageRating > 0;
   const filledStarCount = Math.max(1, Math.min(5, Math.round(averageRating)));
   const inWishlist = wishlistProductIds.includes(product.id);
+  const [adding, setAdding] = useState(false);
+
+  function handleAddToCart() {
+    if (adding || outOfStock) return;
+    setAdding(true);
+    onAddToCart(product);
+    window.setTimeout(() => setAdding(false), 500);
+  }
 
   return (
     <div className={`catalog-card${outOfStock ? " catalog-card--oos" : ""}`}>
@@ -107,11 +115,11 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, wishlistProductId
 
         <button
           className="catalog-add-btn"
-          disabled={outOfStock}
-          onClick={() => onAddToCart(product)}
+          disabled={outOfStock || adding}
+          onClick={handleAddToCart}
           aria-label={`Add ${product.name} to cart`}
         >
-          {outOfStock ? "Unavailable" : "Add to Cart"}
+          {outOfStock ? "Unavailable" : adding ? "Adding..." : "Add to Cart"}
         </button>
       </div>
     </div>

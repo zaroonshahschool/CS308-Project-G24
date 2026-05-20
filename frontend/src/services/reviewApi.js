@@ -28,3 +28,7 @@ export async function fetchApprovedComments(productId) {
 export async function fetchMyRating(productId) {
   return apiFetch(`/api/customer/products/${productId}/my-rating`);
 }
+
+export async function fetchMyComment(productId) {
+  return apiFetch(`/api/customer/products/${productId}/my-comment`);
+}

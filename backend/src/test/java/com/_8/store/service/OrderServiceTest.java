@@ -60,7 +60,7 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        user = new User("Jane Doe", "jane@example.com", "secret", Role.CUSTOMER, "1234567890");
+        user = new User("Jane Doe", "john@example.com", "secret", Role.CUSTOMER, "1234567890");
         user.setId(7L);
 
         Category category = new Category();
@@ -104,7 +104,7 @@ class OrderServiceTest {
         byte[] pdfBytes = "invoice-pdf".getBytes();
 
         given(userRepository.findByEmailIgnoreCase(user.getEmail())).willReturn(Optional.of(user));
-        given(productRepository.findByIdForUpdate(product.getId())).willReturn(Optional.of(product));
+        given(productRepository.findById(product.getId())).willReturn(Optional.of(product));
         given(productRepository.decrementStock(anyLong(), anyInt())).willReturn(1);
         given(orderRepository.save(any(Order.class))).willAnswer(invocation -> {
             Order savedOrder = invocation.getArgument(0);

@@ -73,8 +73,15 @@ public class Product {
     @Column(name = "new_arrival", nullable = false)
     private boolean newArrival;
 
+    @Column(name = "limited_edition", nullable = false)
+    private boolean limitedEdition;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "category_id", nullable = false)
@@ -258,6 +265,10 @@ public class Product {
         return newArrival;
     }
 
+    public boolean isLimitedEdition() {
+        return limitedEdition;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -350,11 +361,23 @@ public class Product {
         this.newArrival = newArrival;
     }
 
+    public void setLimitedEdition(boolean limitedEdition) {
+        this.limitedEdition = limitedEdition;
+    }
+
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
     public void setCategory(Category category) {
         this.category = category;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

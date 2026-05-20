@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { fetchProfile, updateAddress } from "../services/customerApi";
+import { createSafePaymentSummary } from "../lib/secureCheckout";
 
 const ENABLE_LUHN_VALIDATION = import.meta.env.VITE_ENABLE_LUHN_VALIDATION === "true";
 
@@ -457,19 +458,28 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
 
       await onCheckoutSubmit({
         shippingAddress: paymentReview.invoice.shippingAddress,
-        paymentDetails: {
-          cardholderName: paymentReview.bankResponse.cardholderName,
-          paymentMethod: "credit-card",
-          cardBrand: paymentReview.bankResponse.cardBrand,
-          cardLast4: paymentReview.bankResponse.cardLast4,
-          mockBankResponse: paymentReview.bankResponse,
-          invoiceNumber: paymentReview.invoice.invoiceNumber,
-        },
+        paymentDetails: createSafePaymentSummary(
+          paymentReview.bankResponse,
+          paymentReview.invoice.invoiceNumber
+        ),
       });
     } catch (error) {
-      const message = error.message || "Checkout failed. Please try again.";
+      const isConcurrencyError = typeof error.message === "string" &&
+        error.message.includes("Stock levels have changed");
+
+      const message = isConcurrencyError
+        ? "Stock levels have changed. Your cart has been updated for accuracy. Please review and try again."
+        : error.message || "Checkout failed. Please try again.";
+
       setSubmitError(message);
-      toast.error(message, { title: "Checkout failed" });
+      setPaymentReview(null);
+
+      if (isConcurrencyError) {
+        toast.warning(message, { title: "Cart updated" });
+      } else {
+        toast.error(message, { title: "Checkout failed" });
+      }
+
       setPlacingOrder(false);
     }
   }

@@ -21,6 +21,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findTop5ByNewArrivalTrueOrderByCreatedAtDesc();
     Optional<Product> findFirstByFeaturedTrueOrderByCreatedAtDesc();
     Optional<Product> findFirstByEditorChoiceTrueOrderByCreatedAtDesc();
+    List<Product> findByLimitedEditionTrueOrderByCreatedAtDesc();
+    List<Product> findByLimitedEditionTrueOrderByPriceAscCreatedAtDesc();
+    List<Product> findByLimitedEditionTrueOrderByPriceDescCreatedAtDesc();
     List<Product> findByIdIn(List<Long> ids);
 
     @Query(value = """

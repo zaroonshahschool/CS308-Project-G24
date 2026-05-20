@@ -1,6 +1,7 @@
 package com._8.store.controller;
 
 import com._8.store.dto.ErrorResponse;
+import com._8.store.exception.ConcurrencyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -33,5 +34,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("Invalid email or password."));
+    }
+
+    @ExceptionHandler(ConcurrencyException.class)
+    public ResponseEntity<ErrorResponse> handleConcurrency(ConcurrencyException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(ex.getMessage()));
     }
 }

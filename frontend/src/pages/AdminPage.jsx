@@ -5,9 +5,13 @@ import { fetchCategories, fetchProducts } from "../services/catalogApi";
 import {
   advanceDeliveryStatus,
   createCategory,
+  createCollection,
   createProduct,
+  deleteCollection,
   deleteProduct,
+  fetchAdminCollections,
   fetchDeliveries,
+  updateCollection,
   updateProduct,
 } from "../services/adminApi";
 
@@ -31,12 +35,20 @@ const emptyProductForm = {
   featured: false,
   editorChoice: false,
   newArrival: false,
+  limitedEdition: false,
 };
 
 const emptyCategoryForm = {
   name: "",
   imageUrl: "",
   displayOrder: "",
+};
+
+const emptyCollectionForm = {
+  name: "",
+  description: "",
+  imageUrl: "",
+  productIds: [],
 };
 
 function normalizeOrderStatus(status) {
@@ -61,20 +73,25 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [actingOrderId, setActingOrderId] = useState(null);
+  const [collections, setCollections] = useState([]);
+  const [collectionForm, setCollectionForm] = useState(emptyCollectionForm);
+  const [editingCollectionId, setEditingCollectionId] = useState(null);
 
   const loadAdminData = useCallback(async function loadAdminData() {
     setLoading(true);
     setError("");
 
     try {
-      const [categoryDtos, productDtos, deliveryDtos] = await Promise.all([
+      const [categoryDtos, productDtos, deliveryDtos, collectionDtos] = await Promise.all([
         fetchCategories(),
         fetchProducts(),
         fetchDeliveries(),
+        fetchAdminCollections(),
       ]);
       setCategories(categoryDtos);
       setProducts(productDtos);
       setDeliveries(deliveryDtos);
+      setCollections(collectionDtos);
       setProductForm((prev) => ({
         ...prev,
         categoryName: prev.categoryName || categoryDtos[0]?.name || "",
@@ -111,6 +128,76 @@ export default function AdminPage() {
     }));
   }
 
+  function handleCollectionChange(event) {
+    const { name, value } = event.target;
+    setCollectionForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function handleCollectionProductToggle(productId) {
+    setCollectionForm((prev) => {
+      const ids = prev.productIds.includes(productId)
+        ? prev.productIds.filter((id) => id !== productId)
+        : [...prev.productIds, productId];
+      return { ...prev, productIds: ids };
+    });
+  }
+
+  function startEditCollection(col) {
+    setEditingCollectionId(col.id);
+    setCollectionForm({
+      name: col.name || "",
+      description: col.description || "",
+      imageUrl: col.imageUrl || "",
+      productIds: col.productIds || [],
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetCollectionForm() {
+    setEditingCollectionId(null);
+    setCollectionForm(emptyCollectionForm);
+  }
+
+  async function handleCollectionSubmit(event) {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      const payload = {
+        name: collectionForm.name,
+        description: collectionForm.description,
+        imageUrl: collectionForm.imageUrl,
+        productIds: collectionForm.productIds,
+      };
+      if (editingCollectionId) {
+        await updateCollection(editingCollectionId, payload);
+        toast.success("Collection updated.", { title: "Collection saved" });
+      } else {
+        await createCollection(payload);
+        toast.success("Collection created.", { title: "Collection saved" });
+      }
+      resetCollectionForm();
+      await loadAdminData();
+    } catch (err) {
+      toast.error(err.message || "Failed to save collection.", { title: "Collection error" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDeleteCollection(id) {
+    if (!window.confirm("Delete this collection?")) return;
+    setSubmitting(true);
+    try {
+      await deleteCollection(id);
+      toast.success("Collection deleted.", { title: "Collection" });
+      await loadAdminData();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete collection.", { title: "Collection error" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function handleCategoryChange(event) {
     const { name, value } = event.target;
     setCategoryForm((prev) => ({
@@ -140,6 +227,7 @@ export default function AdminPage() {
       featured: productForm.featured,
       editorChoice: productForm.editorChoice,
       newArrival: productForm.newArrival,
+      limitedEdition: productForm.limitedEdition,
     };
   }
 
@@ -224,6 +312,7 @@ export default function AdminPage() {
       featured: Boolean(product.featured),
       editorChoice: Boolean(product.editorChoice),
       newArrival: Boolean(product.newArrival),
+      limitedEdition: Boolean(product.limitedEdition),
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -401,6 +490,7 @@ export default function AdminPage() {
                 ["featured", "Featured on Home"],
                 ["editorChoice", "Editor's Choice"],
                 ["newArrival", "New Arrival"],
+                ["limitedEdition", "Limited Edition"],
               ].map(([name, label]) => (
                 <label key={name} className="admin-flag">
                   <input type="checkbox" name={name} checked={productForm[name]} onChange={handleProductChange} />
@@ -450,6 +540,79 @@ export default function AdminPage() {
             </div>
           </form>
         </div>
+
+        <form onSubmit={handleCollectionSubmit} className="account-card">
+          <h2 className="account-card-title">
+            {editingCollectionId ? "Edit Collection" : "Create Collection"}
+          </h2>
+          <p className="section-subtitle" style={{ marginBottom: "1rem" }}>
+            Group books into a themed collection visible on the Collections page.
+          </p>
+
+          <label className="review-field">
+            <span>Collection Name</span>
+            <input name="name" value={collectionForm.name} onChange={handleCollectionChange} required />
+          </label>
+          <label className="review-field">
+            <span>Description</span>
+            <textarea name="description" rows="3" value={collectionForm.description} onChange={handleCollectionChange} />
+          </label>
+          <label className="review-field">
+            <span>Cover Image URL</span>
+            <input name="imageUrl" value={collectionForm.imageUrl} onChange={handleCollectionChange} />
+          </label>
+
+          <p className="section-subtitle" style={{ margin: "1rem 0 0.5rem" }}>Assign Products</p>
+          <div className="admin-product-list" style={{ maxHeight: 300, overflowY: "auto", gap: "0.5rem" }}>
+            {sortedProducts.map((product) => (
+              <label key={product.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={collectionForm.productIds.includes(product.id)}
+                  onChange={() => handleCollectionProductToggle(product.id)}
+                />
+                <span style={{ fontSize: "0.875rem" }}>{product.name} <span className="order-meta">— {product.author}</span></span>
+              </label>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem" }}>
+            <button type="submit" disabled={submitting || loading} className="btn-dark admin-submit">
+              {submitting ? "Saving..." : editingCollectionId ? "Update Collection" : "Create Collection"}
+            </button>
+            {editingCollectionId && (
+              <button type="button" onClick={resetCollectionForm} className="wishlist-secondary-btn">
+                Cancel
+              </button>
+            )}
+          </div>
+
+          <h3 className="account-card-title" style={{ marginTop: "1.5rem", fontSize: "1.25rem" }}>
+            Existing Collections
+          </h3>
+          {collections.length === 0 ? (
+            <p className="section-subtitle">No collections yet.</p>
+          ) : (
+            <div className="admin-category-list">
+              {collections.map((col) => (
+                <div key={col.id} className="admin-category-chip" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <strong>{col.name}</strong>
+                    <span className="order-meta" style={{ marginLeft: "0.5rem" }}>{col.productCount} books</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <button type="button" onClick={() => startEditCollection(col)} className="btn-primary" style={{ padding: "0.25rem 0.75rem", fontSize: "0.8rem" }}>
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => handleDeleteCollection(col.id)} className="wishlist-secondary-btn" style={{ padding: "0.25rem 0.75rem", fontSize: "0.8rem" }} disabled={submitting}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </form>
 
         <div className="account-card">
           <div className="customer-page-head" style={{ borderBottom: "none", marginBottom: "0.5rem", paddingBottom: 0 }}>

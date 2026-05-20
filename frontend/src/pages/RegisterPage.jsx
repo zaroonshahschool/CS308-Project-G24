@@ -2,10 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { apiFetch } from "../lib/api";
-
-function generateCustomerId() {
-  return String(Math.floor(1000000 + Math.random() * 9000000));
-}
+import { persistRegistrationHint } from "../lib/securityStorage";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -32,27 +29,7 @@ export default function RegisterPage() {
         body: JSON.stringify(form),
       });
 
-      const email = form.email.trim().toLowerCase();
-      const existingProfile = (() => {
-        try {
-          const rawValue = window.localStorage.getItem("customer_profile");
-          return rawValue ? JSON.parse(rawValue) : null;
-        } catch {
-          return null;
-        }
-      })();
-
-      const nextProfile = {
-        id: existingProfile?.id || generateCustomerId(),
-        name: form.name,
-        taxId: existingProfile?.taxId ?? "",
-        email,
-        homeAddress: existingProfile?.homeAddress ?? "",
-        password: form.password,
-      };
-
-      window.localStorage.setItem("customer_profile", JSON.stringify(nextProfile));
-      window.localStorage.setItem("last_registered_email", email);
+      persistRegistrationHint(form.email);
       toast.success("Your account was created. Please sign in.", { title: "Registration complete" });
       navigate(nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login");
     } catch (err) {

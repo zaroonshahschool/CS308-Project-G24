@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { fetchProductById, fetchProducts } from "../services/catalogApi";
-import { fetchApprovedComments, fetchMyRating, rateProduct, submitComment, updateComment } from "../services/reviewApi";
+import { fetchApprovedComments, fetchMyComment, fetchMyRating, rateProduct, submitComment, updateComment } from "../services/reviewApi";
 
 function RatingStars({ rating }) {
   return (
@@ -124,6 +124,95 @@ function WishlistButton({ active, onClick }) {
   );
 }
 
+const STATUS_LABELS = {
+  PENDING: { label: "Pending approval", color: "#b45309" },
+  REJECTED: { label: "Rejected", color: "#dc2626" },
+  APPROVED: { label: "Approved", color: "#16a34a" },
+};
+
+function MyCommentPanel({ comment, onEdited }) {
+  const toast = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+  const [editError, setEditError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const statusInfo = STATUS_LABELS[comment.status] ?? { label: comment.status, color: "#6b7280" };
+
+  async function handleEditSubmit(event) {
+    event.preventDefault();
+    setSaving(true);
+    setEditError("");
+    try {
+      await updateComment(comment.id, editContent);
+      toast.success("Comment updated and pending approval.", { title: "Comment updated" });
+      onEdited(comment.id);
+      setIsEditing(false);
+    } catch (err) {
+      setEditError(err.message || "Failed to update comment.");
+      toast.error(err.message || "Failed to update comment.", { title: "Update failed" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (comment.status === "APPROVED") {
+    return (
+      <div className="review-form">
+        <h3 className="review-form-title">Your Comment</h3>
+        <p className="review-form-note" style={{ color: statusInfo.color, fontWeight: 600 }}>
+          ✓ Your comment is approved and visible in the list above.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="review-form">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+        <h3 className="review-form-title" style={{ margin: 0 }}>Your Comment</h3>
+        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: statusInfo.color, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          {statusInfo.label}
+        </span>
+      </div>
+      {comment.status === "REJECTED" && (
+        <p style={{ color: "#dc2626", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
+          Your comment was not approved. You may edit and resubmit it.
+        </p>
+      )}
+      {isEditing ? (
+        <form onSubmit={handleEditSubmit}>
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            rows="4"
+            required
+            style={{ width: "100%", marginBottom: "0.5rem", boxSizing: "border-box" }}
+          />
+          {editError && <p style={{ color: "red", marginBottom: "0.5rem", fontSize: "0.85rem" }}>{editError}</p>}
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button type="submit" className="btn-primary" disabled={saving}>{saving ? "Saving..." : "Save"}</button>
+            <button type="button" className="wishlist-secondary-btn" onClick={() => { setIsEditing(false); setEditError(""); }} disabled={saving}>Cancel</button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <p className="review-card-comment">{comment.content}</p>
+          <p style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>{comment.createdAt?.slice(0, 10)}</p>
+          <button
+            type="button"
+            className="wishlist-secondary-btn"
+            style={{ fontSize: "0.75rem", padding: "0.2rem 0.6rem", marginTop: "0.5rem" }}
+            onClick={() => { setEditContent(comment.content); setIsEditing(true); }}
+          >
+            Edit
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function ProductDetailPage({
   onAddToCart,
   onToggleWishlist,
@@ -148,6 +237,9 @@ export default function ProductDetailPage({
   const [commentContent, setCommentContent] = useState("");
   const [commentMessage, setCommentMessage] = useState("");
   const [commentError, setCommentError] = useState("");
+
+  const [myComment, setMyComment] = useState(null);
+  const [adding, setAdding] = useState(false);
 
   const isLoggedIn = !!window.localStorage.getItem("auth_token");
   const currentUserEmail = isLoggedIn ? window.localStorage.getItem("auth_email") : null;
@@ -201,6 +293,13 @@ export default function ProductDetailPage({
       .catch(() => {});
   }, [productId, isLoggedIn]);
 
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetchMyComment(productId)
+      .then((data) => setMyComment(data))
+      .catch(() => setMyComment(null));
+  }, [productId, isLoggedIn]);
+
   async function handleRatingSubmit(event) {
     event.preventDefault();
     setRatingMessage("");
@@ -215,6 +314,11 @@ export default function ProductDetailPage({
       setRatingError(err.message || "Failed to submit rating.");
       toast.error(err.message || "Failed to submit rating.", { title: "Rating failed" });
     }
+  }
+
+  function handleCommentEdited(commentId) {
+    setApprovedComments((prev) => prev.filter((c) => c.id !== commentId));
+    setMyComment((prev) => (prev ? { ...prev, status: "PENDING" } : prev));
   }
 
   async function handleCommentSubmit(event) {
@@ -306,10 +410,15 @@ export default function ProductDetailPage({
             </div>
             <button
               className="btn-dark"
-              onClick={() => onAddToCart(product)}
-              disabled={product.stock === 0}
+              onClick={() => {
+                if (adding || product.stock === 0) return;
+                setAdding(true);
+                onAddToCart(product);
+                window.setTimeout(() => setAdding(false), 500);
+              }}
+              disabled={product.stock === 0 || adding}
             >
-              {product.stock === 0 ? "Unavailable" : "Add to Cart"}
+              {product.stock === 0 ? "Unavailable" : adding ? "Adding..." : "Add to Cart"}
             </button>
           </div>
 
@@ -343,7 +452,7 @@ export default function ProductDetailPage({
                   review={comment}
                   isOwn={!!currentUserEmail && comment.userEmail === currentUserEmail}
                   userRating={!!currentUserEmail && comment.userEmail === currentUserEmail ? myRating : null}
-                  onEditSaved={(id) => setApprovedComments((prev) => prev.filter((c) => c.id !== id))}
+                  onEditSaved={handleCommentEdited}
                 />
               ))
             ) : (
@@ -374,22 +483,26 @@ export default function ProductDetailPage({
                   {ratingError && <p style={{ color: "red" }}>{ratingError}</p>}
                 </form>
 
-                <form className="review-form" onSubmit={handleCommentSubmit}>
-                  <h3 className="review-form-title">Leave a comment</h3>
-                  <label className="review-field">
-                    <span>Comment</span>
-                    <textarea
-                      value={commentContent}
-                      onChange={(e) => setCommentContent(e.target.value)}
-                      rows="5"
-                      placeholder="Share your thoughts about this edition."
-                      required
-                    />
-                  </label>
-                  <button type="submit" className="btn-primary">Submit Comment</button>
-                  {commentMessage && <p className="review-form-note">{commentMessage}</p>}
-                  {commentError && <p style={{ color: "red" }}>{commentError}</p>}
-                </form>
+                {myComment ? (
+                  <MyCommentPanel comment={myComment} onEdited={handleCommentEdited} />
+                ) : (
+                  <form className="review-form" onSubmit={handleCommentSubmit}>
+                    <h3 className="review-form-title">Leave a comment</h3>
+                    <label className="review-field">
+                      <span>Comment</span>
+                      <textarea
+                        value={commentContent}
+                        onChange={(e) => setCommentContent(e.target.value)}
+                        rows="5"
+                        placeholder="Share your thoughts about this edition."
+                        required
+                      />
+                    </label>
+                    <button type="submit" className="btn-primary">Submit Comment</button>
+                    {commentMessage && <p className="review-form-note">{commentMessage}</p>}
+                    {commentError && <p style={{ color: "red" }}>{commentError}</p>}
+                  </form>
+                )}
               </>
             ) : (
               <div className="review-form">

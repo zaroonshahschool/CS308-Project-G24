@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import "./App.css";
 import CartDrawer from "./components/CartDrawer";
@@ -6,7 +6,6 @@ import Footer from "./components/Footer";
 import Header from "./components/Header";
 import Nav from "./components/Nav";
 import { useToast } from "./components/useToast";
-import { initialCustomer } from "./data/customer";
 import AdminPage from "./pages/AdminPage";
 import { initialReviewsByProduct } from "./data/reviews";
 import AccountPage from "./pages/AccountPage";
@@ -20,10 +19,14 @@ import LoginPage from "./pages/LoginPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import RegisterPage from "./pages/RegisterPage";
 import WishlistPage from "./pages/WishlistPage";
+import LimitedEditionsPage from "./pages/LimitedEditionsPage";
+import CollectionsPage from "./pages/CollectionsPage";
+import CollectionDetailPage from "./pages/CollectionDetailPage";
 import { fetchCartItems, syncCartItems } from "./services/cartApi";
 import { fetchProductById } from "./services/catalogApi";
 import { cancelOrder, fetchInvoicePdf, fetchOrders, placeOrder, returnOrderItem } from "./services/customerApi";
 import { addWishlistProduct, fetchWishlistProductIds, removeWishlistProduct } from "./services/wishlistApi";
+import { removeLegacySensitiveProfile } from "./lib/securityStorage";
 
 const GUEST_CART_STORAGE_KEY = "guest_cart_items";
 
@@ -119,24 +122,6 @@ async function refreshGuestCartItems(items) {
   return refreshedItems.filter(Boolean);
 }
 
-function generateCustomerId() {
-  return String(Math.floor(1000000 + Math.random() * 9000000));
-}
-
-function getStoredCustomer() {
-  const rawValue = window.localStorage.getItem("customer_profile");
-
-  if (!rawValue) {
-    return initialCustomer;
-  }
-
-  try {
-    return { ...initialCustomer, ...JSON.parse(rawValue) };
-  } catch {
-    return initialCustomer;
-  }
-}
-
 function ProtectedRoute({ children }) {
   const token = window.localStorage.getItem("auth_token");
   const location = useLocation();
@@ -191,6 +176,15 @@ export default function App() {
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
 
+  const setCartSnapshot = useCallback((nextItems) => {
+    const normalizedItems = normalizeCartItems(nextItems);
+
+    setCartItems(normalizedItems);
+    setStockByProduct(Object.fromEntries(normalizedItems.map((item) => [item.id, item.stock])));
+
+    return normalizedItems;
+  }, []);
+
   useEffect(() => {
     let ignore = false;
 
@@ -240,23 +234,10 @@ export default function App() {
       ignore = true;
       cartSyncSequence.current += 1;
     };
-  }, [location.pathname]);
+  }, [location.pathname, setCartSnapshot, toast]);
 
   useEffect(() => {
-    const authEmail = window.localStorage.getItem("auth_email");
-    const registeredEmail = window.localStorage.getItem("last_registered_email");
-    const storedCustomer = getStoredCustomer();
-    const nextEmail = authEmail || registeredEmail || storedCustomer.email || "";
-
-    const nextCustomer = {
-      ...storedCustomer,
-      id: storedCustomer.id || generateCustomerId(),
-      email: nextEmail,
-    };
-
-    if (JSON.stringify(storedCustomer) !== JSON.stringify(nextCustomer)) {
-      window.localStorage.setItem("customer_profile", JSON.stringify(nextCustomer));
-    }
+    removeLegacySensitiveProfile();
   }, [location.pathname]);
 
   useEffect(() => {
@@ -302,15 +283,6 @@ export default function App() {
       ignore = true;
     };
   }, [location.pathname]);
-
-  function setCartSnapshot(nextItems) {
-    const normalizedItems = normalizeCartItems(nextItems);
-
-    setCartItems(normalizedItems);
-    setStockByProduct(Object.fromEntries(normalizedItems.map((item) => [item.id, item.stock])));
-
-    return normalizedItems;
-  }
 
   async function persistCartSnapshot(nextItems) {
     const normalizedItems = setCartSnapshot(nextItems);
@@ -606,6 +578,40 @@ export default function App() {
                 onSubmitReview={handleSubmitReview}
                 onToggleWishlist={handleToggleWishlist}
                 reviewsByProduct={reviewsByProduct}
+                stockByProduct={stockByProduct}
+                wishlistProductIds={wishlistProductIds}
+              />
+            </StoreLayout>
+          }
+        />
+        <Route
+          path="/collections"
+          element={
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <CollectionsPage />
+            </StoreLayout>
+          }
+        />
+        <Route
+          path="/collections/:id"
+          element={
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <CollectionDetailPage
+                onAddToCart={handleAddToCart}
+                onToggleWishlist={handleToggleWishlist}
+                stockByProduct={stockByProduct}
+                wishlistProductIds={wishlistProductIds}
+              />
+            </StoreLayout>
+          }
+        />
+        <Route
+          path="/limited-editions"
+          element={
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <LimitedEditionsPage
+                onAddToCart={handleAddToCart}
+                onToggleWishlist={handleToggleWishlist}
                 stockByProduct={stockByProduct}
                 wishlistProductIds={wishlistProductIds}
               />

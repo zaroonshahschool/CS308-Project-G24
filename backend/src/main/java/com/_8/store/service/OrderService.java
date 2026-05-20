@@ -10,13 +10,14 @@ import com._8.store.entity.OrderItem;
 import com._8.store.entity.OrderStatus;
 import com._8.store.entity.Product;
 import com._8.store.entity.User;
+import com._8.store.exception.ConcurrencyException;
 import com._8.store.repository.CartItemRepository;
 import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
 import com._8.store.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -58,6 +59,15 @@ public class OrderService {
 
     @Transactional
     public OrderResponse placeOrder(CreateOrderRequest request) {
+        try {
+            return doPlaceOrder(request);
+        } catch (ObjectOptimisticLockingFailureException ex) {
+            throw new ConcurrencyException(
+                    "Stock levels have changed. Your cart has been updated for accuracy. Please review and try again.", ex);
+        }
+    }
+
+    private OrderResponse doPlaceOrder(CreateOrderRequest request) {
         User user = getAuthenticatedUser();
 
         Order order = new Order();
@@ -77,13 +87,24 @@ public class OrderService {
                 .toList();
 
         for (OrderItemRequest itemRequest : requestedItems) {
-            Product product = findProductForCheckout(itemRequest.getProductId());
+            Product product = productRepository.findById(itemRequest.getProductId())
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found: " + itemRequest.getProductId()));
 
-            // Atomic stock decrement — returns 0 if stock is insufficient
-            int updated = productRepository.decrementStock(itemRequest.getProductId(), itemRequest.getQuantity());
-            if (updated == 0) {
+int rowsUpdated;
+            try {
+                rowsUpdated = productRepository.decrementStock(product.getId(), itemRequest.getQuantity());
+            } catch (ObjectOptimisticLockingFailureException ex) {
+                throw new ConcurrencyException(
+                        "Stock levels have changed. Your cart has been updated for accuracy. Please review and try again.", ex);
+            }
+
+            if (rowsUpdated == 0) {
                 throw new IllegalArgumentException("Insufficient stock for product: " + product.getName());
             }
+
+            Long productId = product.getId();
+            product = productRepository.findById(productId)
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found after stock update: " + productId));
 
             BigDecimal lineTotal = product.getPrice().multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
 
@@ -113,14 +134,6 @@ public class OrderService {
         return mapToResponse(savedOrder);
     }
 
-    private Product findProductForCheckout(Long productId) {
-        try {
-            return productRepository.findByIdForUpdate(productId)
-                    .orElseThrow(() -> new IllegalArgumentException("Product not found: " + productId));
-        } catch (ConcurrencyFailureException exception) {
-            throw new IllegalArgumentException("Stock is being updated by another checkout. Please refresh your cart and try again.", exception);
-        }
-    }
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getCurrentUserOrders() {
