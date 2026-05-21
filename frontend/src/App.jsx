@@ -14,6 +14,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import CommentModerationPage from "./pages/CommentModerationPage";
 import DashboardPage from "./pages/DashboardPage";
 import RatingModerationPage from "./pages/RatingModerationPage";
+import ReturnRequestsPage from "./pages/ReturnRequestsPage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
@@ -701,6 +702,14 @@ export default function App() {
           element={
             <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
               <RatingModerationPage />
+            </RoleProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/returns"
+          element={
+            <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
+              <ReturnRequestsPage />
             </RoleProtectedRoute>
           }
         />

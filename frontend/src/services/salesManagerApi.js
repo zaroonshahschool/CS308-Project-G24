@@ -52,3 +52,15 @@ export async function fetchAllRatings() {
 export async function deleteRating(ratingId) {
   return apiFetch(`/api/sales-manager/ratings/${ratingId}`, { method: "DELETE" });
 }
+
+export async function fetchReturnRequests() {
+  return apiFetch("/api/returns");
+}
+
+export async function approveReturnRequest(returnRequestId) {
+  return apiFetch(`/api/returns/${returnRequestId}/approve`, { method: "PATCH" });
+}
+
+export async function rejectReturnRequest(returnRequestId) {
+  return apiFetch(`/api/returns/${returnRequestId}/reject`, { method: "PATCH" });
+}
