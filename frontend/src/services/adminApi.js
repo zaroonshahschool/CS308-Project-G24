@@ -46,3 +46,19 @@ export function updateCollection(id, payload) {
 export function deleteCollection(id) {
   return sendJson(`/product-manager/collections/${id}`, "DELETE");
 }
+
+export function fetchAllComments() {
+  return sendJson("/product-manager/comments", "GET");
+}
+
+export function fetchPendingComments() {
+  return sendJson("/product-manager/comments/pending", "GET");
+}
+
+export function approveComment(commentId) {
+  return apiFetch(`/api/comments/${commentId}/approve`, { method: "PATCH" });
+}
+
+export function rejectComment(commentId) {
+  return sendJson(`/product-manager/comments/${commentId}/reject`, "PUT");
+}

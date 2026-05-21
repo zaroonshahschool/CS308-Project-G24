@@ -3,7 +3,9 @@ package com._8.store.catalog;
 import com._8.store.dto.CategoryDto;
 import com._8.store.dto.CollectionDetailDto;
 import com._8.store.dto.CollectionSummaryDto;
+import com._8.store.dto.CommentResponse;
 import com._8.store.dto.ProductDto;
+import com._8.store.service.CommentService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,9 +15,11 @@ import java.util.List;
 public class CatalogController {
 
     private final CatalogService catalogService;
+    private final CommentService commentService;
 
-    public CatalogController(CatalogService catalogService) {
+    public CatalogController(CatalogService catalogService, CommentService commentService) {
         this.catalogService = catalogService;
+        this.commentService = commentService;
     }
 
     @GetMapping("/products")
@@ -36,6 +40,11 @@ public class CatalogController {
     @GetMapping("/products/{id}")
     public ProductDto getProductById(@PathVariable Long id) {
         return catalogService.getProductById(id);
+    }
+
+    @GetMapping("/products/{id}/comments")
+    public List<CommentResponse> getApprovedComments(@PathVariable Long id) {
+        return commentService.getApprovedComments(id);
     }
 
     @GetMapping("/categories")

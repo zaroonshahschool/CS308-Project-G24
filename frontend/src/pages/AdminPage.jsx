@@ -4,6 +4,7 @@ import { useToast } from "../components/useToast";
 import { fetchCategories, fetchProducts } from "../services/catalogApi";
 import {
   advanceDeliveryStatus,
+  approveComment,
   createCategory,
   createCollection,
   createProduct,
@@ -11,6 +12,8 @@ import {
   deleteProduct,
   fetchAdminCollections,
   fetchDeliveries,
+  fetchPendingComments,
+  rejectComment,
   updateCollection,
   updateProduct,
 } from "../services/adminApi";
@@ -76,22 +79,26 @@ export default function AdminPage() {
   const [collections, setCollections] = useState([]);
   const [collectionForm, setCollectionForm] = useState(emptyCollectionForm);
   const [editingCollectionId, setEditingCollectionId] = useState(null);
+  const [pendingComments, setPendingComments] = useState([]);
+  const [actingCommentId, setActingCommentId] = useState(null);
 
   const loadAdminData = useCallback(async function loadAdminData() {
     setLoading(true);
     setError("");
 
     try {
-      const [categoryDtos, productDtos, deliveryDtos, collectionDtos] = await Promise.all([
+      const [categoryDtos, productDtos, deliveryDtos, collectionDtos, commentDtos] = await Promise.all([
         fetchCategories(),
         fetchProducts(),
         fetchDeliveries(),
         fetchAdminCollections(),
+        fetchPendingComments(),
       ]);
       setCategories(categoryDtos);
       setProducts(productDtos);
       setDeliveries(deliveryDtos);
       setCollections(collectionDtos);
+      setPendingComments(commentDtos);
       setProductForm((prev) => ({
         ...prev,
         categoryName: prev.categoryName || categoryDtos[0]?.name || "",
@@ -369,6 +376,36 @@ export default function AdminPage() {
     }
   }
 
+  async function handleApproveComment(commentId) {
+    setActingCommentId(commentId);
+    try {
+      await approveComment(commentId);
+      setPendingComments((comments) => comments.filter((comment) => comment.id !== commentId));
+      toast.success("Comment approved.", { title: "Comment moderation" });
+    } catch (err) {
+      const message = err.message || "Failed to approve comment.";
+      setError(message);
+      toast.error(message, { title: "Comment moderation error" });
+    } finally {
+      setActingCommentId(null);
+    }
+  }
+
+  async function handleRejectComment(commentId) {
+    setActingCommentId(commentId);
+    try {
+      await rejectComment(commentId);
+      setPendingComments((comments) => comments.filter((comment) => comment.id !== commentId));
+      toast.info("Comment rejected.", { title: "Comment moderation" });
+    } catch (err) {
+      const message = err.message || "Failed to reject comment.";
+      setError(message);
+      toast.error(message, { title: "Comment moderation error" });
+    } finally {
+      setActingCommentId(null);
+    }
+  }
+
   return (
     <main className="customer-page">
       <div className="catalogue-breadcrumb">
@@ -613,6 +650,62 @@ export default function AdminPage() {
             </div>
           )}
         </form>
+
+        <div className="account-card">
+          <div className="customer-page-head" style={{ borderBottom: "none", marginBottom: "0.5rem", paddingBottom: 0 }}>
+            <h2 className="account-card-title" style={{ marginBottom: 0 }}>Pending Comments</h2>
+            <p className="section-subtitle">
+              {pendingComments.length === 0
+                ? "No comments awaiting approval."
+                : `${pendingComments.length} comment${pendingComments.length === 1 ? "" : "s"} awaiting approval`}
+            </p>
+          </div>
+
+          {loading ? (
+            <p className="section-subtitle">Loading comments...</p>
+          ) : pendingComments.length === 0 ? (
+            <div className="customer-empty">
+              <h3 className="customer-empty-title">No pending comments</h3>
+              <p className="customer-empty-text">New customer comments will appear here before they are visible on product pages.</p>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: "1rem" }}>
+              {pendingComments.slice(0, 4).map((comment) => (
+                <article key={comment.id} className="order-card">
+                  <div className="order-card-head">
+                    <div>
+                      <p className="order-item-name" style={{ marginBottom: "0.2rem" }}>{comment.productName}</p>
+                      <p className="order-meta">by {comment.customerName} · {comment.createdAt?.slice(0, 10)}</p>
+                    </div>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={() => handleApproveComment(comment.id)}
+                        disabled={actingCommentId === comment.id}
+                      >
+                        {actingCommentId === comment.id ? "..." : "Approve"}
+                      </button>
+                      <button
+                        type="button"
+                        className="wishlist-secondary-btn"
+                        onClick={() => handleRejectComment(comment.id)}
+                        disabled={actingCommentId === comment.id}
+                      >
+                        {actingCommentId === comment.id ? "..." : "Reject"}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="review-card-comment" style={{ marginTop: "0.75rem" }}>{comment.content}</p>
+                </article>
+              ))}
+            </div>
+          )}
+
+          <Link to="/product-manager/comments" className="wishlist-secondary-btn" style={{ display: "inline-block", marginTop: "1rem" }}>
+            View all comments
+          </Link>
+        </div>
 
         <div className="account-card">
           <div className="customer-page-head" style={{ borderBottom: "none", marginBottom: "0.5rem", paddingBottom: 0 }}>

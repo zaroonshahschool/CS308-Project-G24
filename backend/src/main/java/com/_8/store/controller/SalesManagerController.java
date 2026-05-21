@@ -1,14 +1,12 @@
 package com._8.store.controller;
 
 import com._8.store.dto.ApplyDiscountRequest;
-import com._8.store.dto.CommentResponse;
 import com._8.store.dto.DiscountedProductResponse;
 import com._8.store.dto.InvoiceSummaryResponse;
 import com._8.store.dto.OrderResponse;
 import com._8.store.dto.RatingResponse;
 import com._8.store.dto.SalesAnalyticsResponse;
 import com._8.store.repository.RatingRepository;
-import com._8.store.service.CommentService;
 import com._8.store.service.OrderService;
 import com._8.store.service.SalesManagerService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,21 +17,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/sales-manager")
 public class SalesManagerController {
 
-    private final CommentService commentService;
     private final OrderService orderService;
     private final SalesManagerService salesManagerService;
     private final RatingRepository ratingRepository;
 
-    public SalesManagerController(CommentService commentService, OrderService orderService,
+    public SalesManagerController(OrderService orderService,
                                    SalesManagerService salesManagerService, RatingRepository ratingRepository) {
-        this.commentService = commentService;
         this.orderService = orderService;
         this.salesManagerService = salesManagerService;
         this.ratingRepository = ratingRepository;
@@ -42,26 +38,6 @@ public class SalesManagerController {
     @GetMapping("/sales")
     public Map<String, String> sales() {
         return Map.of("message", "Sales manager placeholder endpoint.");
-    }
-
-    @GetMapping("/comments")
-    public ResponseEntity<List<CommentResponse>> getAllComments() {
-        return ResponseEntity.ok(commentService.getAllComments());
-    }
-
-    @GetMapping("/comments/pending")
-    public ResponseEntity<List<CommentResponse>> getPendingComments() {
-        return ResponseEntity.ok(commentService.getPendingComments());
-    }
-
-    @PutMapping("/comments/{commentId}/approve")
-    public ResponseEntity<?> approveComment(@PathVariable Long commentId) {
-        return ResponseEntity.ok(commentService.approveComment(commentId));
-    }
-
-    @PutMapping("/comments/{commentId}/reject")
-    public ResponseEntity<?> rejectComment(@PathVariable Long commentId) {
-        return ResponseEntity.ok(commentService.rejectComment(commentId));
     }
 
     @GetMapping("/ratings")

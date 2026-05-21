@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "../components/useToast";
-import { approveComment, fetchAllComments, rejectComment } from "../services/salesManagerApi";
+import { approveComment, fetchAllComments, rejectComment } from "../services/adminApi";
 
 const STATUS_CONFIG = {
   PENDING:  { label: "Pending",  color: "#b45309", bg: "#fef3c7" },
@@ -77,7 +77,7 @@ export default function CommentModerationPage() {
   return (
     <main className="customer-page">
       <div className="catalogue-breadcrumb">
-        <Link to="/dashboard" className="breadcrumb-link">← Back to Dashboard</Link>
+        <Link to="/product-manager" className="breadcrumb-link">Back to Product Manager</Link>
       </div>
 
       <section className="customer-shell">
