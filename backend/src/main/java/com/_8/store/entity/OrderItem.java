@@ -35,6 +35,9 @@ public class OrderItem {
     @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
+    @Column(name = "purchased_price", precision = 12, scale = 2)
+    private BigDecimal purchasedPrice;
+
     @Column(name = "unit_cost", precision = 12, scale = 2)
     private BigDecimal unitCost;
 
@@ -68,6 +71,10 @@ public class OrderItem {
         return lineTotal;
     }
 
+    public BigDecimal getPurchasedPrice() {
+        return purchasedPrice;
+    }
+
     public BigDecimal getUnitCost() {
         return unitCost;
     }
@@ -94,6 +101,10 @@ public class OrderItem {
 
     public void setUnitPrice(BigDecimal unitPrice) {
         this.unitPrice = unitPrice;
+    }
+
+    public void setPurchasedPrice(BigDecimal purchasedPrice) {
+        this.purchasedPrice = purchasedPrice;
     }
 
     public void setLineTotal(BigDecimal lineTotal) {

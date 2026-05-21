@@ -112,6 +112,7 @@ int rowsUpdated;
             orderItem.setProduct(product);
             orderItem.setQuantity(itemRequest.getQuantity());
             orderItem.setUnitPrice(product.getPrice());
+            orderItem.setPurchasedPrice(product.getPrice());
             orderItem.setUnitCost(product.getCostPrice() != null ? product.getCostPrice() : product.getPrice());
             orderItem.setLineTotal(lineTotal);
             order.addItem(orderItem);
@@ -259,7 +260,7 @@ int rowsUpdated;
                         item.getProduct().getId(),
                         item.getProduct().getName(),
                         item.getQuantity(),
-                        item.getUnitPrice(),
+                        getPurchasedPrice(item),
                         item.getLineTotal(),
                         item.getReturnedAt()
                 ))
@@ -278,5 +279,9 @@ int rowsUpdated;
 
     private OrderStatus getOrderStatus(Order order) {
         return order.getStatus() != null ? order.getStatus() : OrderStatus.PROCESSING;
+    }
+
+    private BigDecimal getPurchasedPrice(OrderItem item) {
+        return item.getPurchasedPrice() != null ? item.getPurchasedPrice() : item.getUnitPrice();
     }
 }

@@ -420,6 +420,7 @@ public class DataSeeder {
         item.setProduct(product);
         item.setQuantity(quantity);
         item.setUnitPrice(product.getPrice());
+        item.setPurchasedPrice(product.getPrice());
         item.setUnitCost(product.getCostPrice());
         BigDecimal lineTotal = product.getPrice().multiply(BigDecimal.valueOf(quantity));
         item.setLineTotal(lineTotal);
