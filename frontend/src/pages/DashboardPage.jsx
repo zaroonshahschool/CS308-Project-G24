@@ -447,6 +447,19 @@ export default function DashboardPage() {
                 </Link>
               </div>
             </div>
+
+            <div className="account-card">
+              <h2 className="account-card-title">Return Requests</h2>
+              <p className="section-subtitle">Review return request history and approve or reject pending refunds from a dedicated page.</p>
+              <Link
+                to="/dashboard/returns"
+                style={{ display: "inline-block", marginTop: "1rem", textDecoration: "none" }}
+              >
+                <span className="btn-primary" style={{ display: "inline-block", padding: "0.55rem 1.1rem", fontSize: "0.85rem" }}>
+                  Open Return Requests →
+                </span>
+              </Link>
+            </div>
           </div>
         )}
       </section>

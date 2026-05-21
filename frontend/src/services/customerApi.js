@@ -64,10 +64,13 @@ export async function cancelOrder(orderId) {
   return mapApiOrderToUiOrder(data);
 }
 
-export async function returnOrderItem(orderId, productId) {
-  const data = await apiFetch(`/api/customer/orders/${orderId}/items/${productId}/return`, {
-    method: "PUT",
+export async function createReturnRequest(orderId, productId, reason) {
+  return apiFetch("/api/returns", {
+    method: "POST",
+    body: JSON.stringify({ orderId, productId, reason }),
   });
+}
 
-  return mapApiOrderToUiOrder(data);
+export async function fetchReturnRequests() {
+  return apiFetch("/api/returns/my");
 }

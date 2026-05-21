@@ -21,7 +21,58 @@ function SavedTick({ visible }) {
   );
 }
 
-export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, onViewInvoice }) {
+function getReturnRequestStatusLabel(status) {
+  const normalizedStatus = (status || "").toLowerCase();
+
+  if (normalizedStatus === "approved") return "Return approved";
+  if (normalizedStatus === "rejected") return "Return rejected";
+  return "Waiting for review";
+}
+
+function ReturnRequestModal({ item, order, reason, submitting, onChangeReason, onClose, onSubmit }) {
+  if (!item || !order) return null;
+
+  return (
+    <div className="return-modal-backdrop" role="presentation">
+      <form className="return-modal" onSubmit={onSubmit}>
+        <div className="return-modal-head">
+          <div>
+            <p className="order-meta">Order {order.id}</p>
+            <h2 className="account-card-title">Request Return</h2>
+          </div>
+          <button className="toast-close" type="button" aria-label="Close return request modal" onClick={onClose}>
+            x
+          </button>
+        </div>
+
+        <p className="order-item-name">{item.name}</p>
+        <p className="order-item-meta">Qty {item.qty} · ${item.price.toFixed(2)} each</p>
+
+        <label className="return-modal-field">
+          <span>Reason</span>
+          <textarea
+            value={reason}
+            onChange={(event) => onChangeReason(event.target.value)}
+            placeholder="Tell us why you want to return this item"
+            maxLength={1000}
+            required
+          />
+        </label>
+
+        <div className="return-modal-actions">
+          <button className="wishlist-secondary-btn" type="button" onClick={onClose} disabled={submitting}>
+            Cancel
+          </button>
+          <button className="btn-primary" type="submit" disabled={submitting || !reason.trim()}>
+            {submitting ? "Submitting..." : "Submit Request"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export default function AccountPage({ orders, returnRequests = [], onCancelOrder, onRequestReturn, onViewInvoice }) {
   const location = useLocation();
   const toast = useToast();
   const [profile, setProfile] = useState(null);
@@ -32,6 +83,8 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
   const [downloadingOrderId, setDownloadingOrderId] = useState(null);
   const [orderActionError, setOrderActionError] = useState("");
   const [actingOrderKey, setActingOrderKey] = useState("");
+  const [returnModal, setReturnModal] = useState(null);
+  const [returnReason, setReturnReason] = useState("");
 
   useEffect(() => {
     fetchProfile()
@@ -113,14 +166,34 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
     }
   }
 
-  async function handleReturnOrderItemClick(order, item) {
+  function openReturnRequestModal(order, item) {
     setOrderActionError("");
-    setActingOrderKey(`return-${item.id}`);
+    setReturnReason("");
+    setReturnModal({ order, item });
+  }
+
+  function closeReturnRequestModal() {
+    if (actingOrderKey) return;
+    setReturnModal(null);
+    setReturnReason("");
+  }
+
+  async function handleSubmitReturnRequest(event) {
+    event.preventDefault();
+    if (!returnModal) return;
+
+    const { order, item } = returnModal;
+    const itemKey = item.id;
+
+    setOrderActionError("");
+    setActingOrderKey(`return-${itemKey}`);
     try {
-      await onReturnOrderItem(order.backendOrderId, item.productId);
+      await onRequestReturn(order.backendOrderId, item.productId, returnReason);
+      setReturnModal(null);
+      setReturnReason("");
     } catch (actionError) {
-      setOrderActionError(actionError.message || "Item could not be returned.");
-      toast.error(actionError.message || "Item could not be returned.", { title: "Order error" });
+      setOrderActionError(actionError.message || "Return request could not be submitted.");
+      toast.error(actionError.message || "Return request could not be submitted.", { title: "Return error" });
     } finally {
       setActingOrderKey("");
     }
@@ -146,8 +219,24 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
     { name: "country", label: "Country" },
   ];
 
+  function getReturnRequestForItem(order, item) {
+    return returnRequests.find((request) =>
+      request.orderId === order.backendOrderId && request.productId === item.productId
+    );
+  }
+
   return (
       <main className="customer-page">
+        <ReturnRequestModal
+          item={returnModal?.item}
+          order={returnModal?.order}
+          reason={returnReason}
+          submitting={Boolean(actingOrderKey)}
+          onChangeReason={setReturnReason}
+          onClose={closeReturnRequestModal}
+          onSubmit={handleSubmitReturnRequest}
+        />
+
         <div className="catalogue-breadcrumb">
           <Link to="/" className="breadcrumb-link">Back to Home</Link>
         </div>
@@ -241,6 +330,12 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
                           <div className="order-items">
                             {order.items.map((item) => (
                                 <div key={item.id} className="order-item-row">
+                                  {(() => {
+                                    const returnRequest = getReturnRequestForItem(order, item);
+                                    const returnRequestStatus = returnRequest?.status?.toLowerCase();
+
+                                    return (
+                                      <>
                                   <div>
                                     <p className="order-item-name">{item.name}</p>
                                     <p className="order-item-meta">Qty {item.qty} · ${item.price.toFixed(2)} each</p>
@@ -248,16 +343,23 @@ export default function AccountPage({ orders, onCancelOrder, onReturnOrderItem, 
                                   <div className="order-item-actions">
                                     {item.returnedAt ? (
                                         <span className="order-note">Returned on {item.returnedAt}</span>
-                                    ) : order.status === "delivered" && canReturn(order.placedAt) ? (
+                                    ) : returnRequest ? (
+                                        <span className={`return-request-chip return-request-chip--${returnRequestStatus}`}>
+                                          {getReturnRequestStatusLabel(returnRequest.status)}
+                                        </span>
+                                    ) : (order.status === "delivered" || order.status === "partially-returned") && canReturn(order.placedAt) ? (
                                         <button
                                             className="wishlist-secondary-btn"
-                                            onClick={() => handleReturnOrderItemClick(order, item)}
+                                            onClick={() => openReturnRequestModal(order, item)}
                                             disabled={actingOrderKey === `return-${item.id}`}
                                         >
-                                          {actingOrderKey === `return-${item.id}` ? "Returning..." : "Return Item"}
+                                          {actingOrderKey === `return-${item.id}` ? "Submitting..." : "Request Return"}
                                         </button>
                                     ) : null}
                                   </div>
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                             ))}
                           </div>
