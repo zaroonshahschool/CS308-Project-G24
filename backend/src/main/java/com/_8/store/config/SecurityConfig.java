@@ -50,6 +50,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/products").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/returns").hasRole("CUSTOMER")
+                        .requestMatchers(HttpMethod.GET, "/api/returns/my").hasRole("CUSTOMER")
+                        .requestMatchers(HttpMethod.GET, "/api/returns").hasRole("SALES_MANAGER")
+                        .requestMatchers(HttpMethod.GET, "/api/returns/pending").hasRole("SALES_MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/returns/*/approve", "/api/returns/*/reject").hasRole("SALES_MANAGER")
                         .requestMatchers("/api/admin/**").hasRole("PRODUCT_MANAGER")
                         .requestMatchers("/api/product-manager/**").hasRole("PRODUCT_MANAGER")
                         .requestMatchers("/api/sales-manager/**").hasRole("SALES_MANAGER")
@@ -85,7 +90,7 @@ public class SecurityConfig {
                 "http://localhost:*",
                 "http://127.0.0.1:*"
         ));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
 

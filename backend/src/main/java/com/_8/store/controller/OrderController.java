@@ -43,11 +43,6 @@ public class OrderController {
         return orderService.cancelOrder(orderId);
     }
 
-    @PutMapping("/{orderId}/items/{productId}/return")
-    public OrderResponse returnOrderItem(@PathVariable Long orderId, @PathVariable Long productId) {
-        return orderService.returnOrderItem(orderId, productId);
-    }
-
     @GetMapping(value = "/{orderId}/invoice", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> getInvoice(@PathVariable Long orderId) {
         byte[] invoicePdf = orderService.getInvoicePdfForCurrentUser(orderId);
