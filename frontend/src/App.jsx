@@ -24,7 +24,14 @@ import CollectionsPage from "./pages/CollectionsPage";
 import CollectionDetailPage from "./pages/CollectionDetailPage";
 import { fetchCartItems, syncCartItems } from "./services/cartApi";
 import { fetchProductById } from "./services/catalogApi";
-import { cancelOrder, fetchInvoicePdf, fetchOrders, placeOrder, returnOrderItem } from "./services/customerApi";
+import {
+  cancelOrder,
+  createReturnRequest,
+  fetchInvoicePdf,
+  fetchOrders,
+  fetchReturnRequests as fetchCustomerReturnRequests,
+  placeOrder,
+} from "./services/customerApi";
 import { addWishlistProduct, fetchWishlistProductIds, removeWishlistProduct } from "./services/wishlistApi";
 import { removeLegacySensitiveProfile } from "./lib/securityStorage";
 
@@ -172,6 +179,7 @@ export default function App() {
   const [wishlistProductIds, setWishlistProductIds] = useState(() => getStoredArray("wishlist_product_ids"));
   const [reviewsByProduct, setReviewsByProduct] = useState(initialReviewsByProduct);
   const [orders, setOrders] = useState([]);
+  const [returnRequests, setReturnRequests] = useState([]);
   const [stockByProduct, setStockByProduct] = useState({});
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
@@ -243,15 +251,22 @@ export default function App() {
   useEffect(() => {
     let ignore = false;
     const token = window.localStorage.getItem("auth_token");
+    const role = window.localStorage.getItem("auth_role");
 
-    if (!token) {
+    if (!token || role !== "CUSTOMER") {
       return undefined;
     }
 
-    fetchOrders()
-      .then((data) => {
+    Promise.allSettled([fetchOrders(), fetchCustomerReturnRequests()])
+      .then(([ordersResult, returnRequestsResult]) => {
         if (!ignore) {
-          setOrders(data);
+          if (ordersResult.status === "fulfilled") {
+            setOrders(ordersResult.value);
+          }
+
+          if (returnRequestsResult.status === "fulfilled") {
+            setReturnRequests(returnRequestsResult.value);
+          }
         }
       })
       .catch(() => {});
@@ -462,14 +477,11 @@ export default function App() {
     toast.success(`Order #${orderId} cancelled.`, { title: "Order updated" });
   }
 
-  async function handleReturnOrderItem(orderId, productId) {
-    const updatedOrder = await returnOrderItem(orderId, productId);
-    setOrders((currentOrders) =>
-      currentOrders.map((order) =>
-        order.backendOrderId === updatedOrder.backendOrderId ? updatedOrder : order
-      )
-    );
-    toast.success("Return request completed.", { title: "Order updated" });
+  async function handleRequestReturn(orderId, productId, reason) {
+    const returnRequest = await createReturnRequest(orderId, productId, reason);
+    setReturnRequests((requests) => [returnRequest, ...requests]);
+    toast.success("Return request submitted for sales manager review.", { title: "Return requested" });
+    return returnRequest;
   }
 
   function finalizePlacedOrder(nextOrder) {
@@ -649,8 +661,9 @@ export default function App() {
               <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
                 <AccountPage
                   orders={orders}
+                  returnRequests={returnRequests}
                   onCancelOrder={handleCancelOrder}
-                  onReturnOrderItem={handleReturnOrderItem}
+                  onRequestReturn={handleRequestReturn}
                   onViewInvoice={handleViewInvoice}
                 />
               </StoreLayout>

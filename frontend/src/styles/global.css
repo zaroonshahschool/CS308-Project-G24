@@ -1810,6 +1810,55 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
 .payment-review-modal--processing {
   border-top: 5px solid var(--gold);
 }
+.return-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(13, 17, 23, 0.62);
+}
+.return-modal {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  background: #fffdf8;
+  box-shadow: 0 24px 70px rgba(13, 17, 23, 0.28);
+}
+.return-modal-head,
+.return-modal-actions {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.return-modal-field {
+  display: grid;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--text-mid);
+}
+.return-modal-field textarea {
+  width: 100%;
+  min-height: 128px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 12px;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--dark);
+}
+.return-modal-actions {
+  align-items: center;
+  justify-content: flex-end;
+}
 .payment-review-head {
   display: flex;
   align-items: start;
@@ -2043,19 +2092,52 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   background: #efe6d4;
   color: #8b6a1e;
 }
+.order-status--pending {
+  background: #efe6d4;
+  color: #8b6a1e;
+}
 .order-status--in-transit {
   background: #dce6f2;
   color: #2a4c7a;
 }
 .order-status--delivered,
 .order-status--returned,
-.order-status--partially-returned {
+.order-status--partially-returned,
+.order-status--approved {
   background: #dde9df;
   color: #315a39;
 }
-.order-status--cancelled {
+.order-status--cancelled,
+.order-status--rejected {
   background: #eedddd;
   color: #8b3a3a;
+}
+.return-request-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.return-request-chip--pending {
+  background: #efe6d4;
+  color: #8b6a1e;
+  border-color: #d8c7a7;
+}
+.return-request-chip--approved {
+  background: #dde9df;
+  color: #315a39;
+  border-color: #b9cfbd;
+}
+.return-request-chip--rejected {
+  background: #eedddd;
+  color: #8b3a3a;
+  border-color: #d7bbbb;
 }
 .order-card-actions {
   display: flex;
@@ -2077,6 +2159,16 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   font-family: var(--serif);
   font-size: 24px;
   color: var(--dark);
+}
+.return-request-list {
+  display: grid;
+  gap: 14px;
+}
+.return-request-reason {
+  margin-top: 12px;
+}
+.return-request-actions {
+  margin-top: 16px;
 }
 
 /* ── PRODUCT MANAGER ADMIN PANEL ── */
