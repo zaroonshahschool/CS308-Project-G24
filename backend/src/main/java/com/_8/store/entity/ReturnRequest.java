@@ -41,6 +41,9 @@ public class ReturnRequest {
     @Column(length = 1000)
     private String reason;
 
+    @Column(name = "rejection_reason", length = 1000)
+    private String rejectionReason;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private ReturnRequestStatus status;
@@ -73,6 +76,10 @@ public class ReturnRequest {
 
     public String getReason() {
         return reason;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
     }
 
     public ReturnRequestStatus getStatus() {
@@ -109,6 +116,10 @@ public class ReturnRequest {
 
     public void setReason(String reason) {
         this.reason = reason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
     }
 
     public void setStatus(ReturnRequestStatus status) {

@@ -225,6 +225,14 @@ export default function AccountPage({ orders, returnRequests = [], onCancelOrder
     );
   }
 
+  function canRequestReturnForItem(order, item, returnRequestStatus) {
+    if (item.returnedAt) return false;
+    if (order.status !== "delivered" && order.status !== "partially-returned") return false;
+    if (!canReturn(order.placedAt)) return false;
+
+    return !returnRequestStatus || returnRequestStatus === "rejected";
+  }
+
   return (
       <main className="customer-page">
         <ReturnRequestModal
@@ -343,18 +351,34 @@ export default function AccountPage({ orders, returnRequests = [], onCancelOrder
                                   <div className="order-item-actions">
                                     {item.returnedAt ? (
                                         <span className="order-note">Returned on {item.returnedAt}</span>
-                                    ) : returnRequest ? (
-                                        <span className={`return-request-chip return-request-chip--${returnRequestStatus}`}>
-                                          {getReturnRequestStatusLabel(returnRequest.status)}
-                                        </span>
-                                    ) : (order.status === "delivered" || order.status === "partially-returned") && canReturn(order.placedAt) ? (
-                                        <button
-                                            className="wishlist-secondary-btn"
-                                            onClick={() => openReturnRequestModal(order, item)}
-                                            disabled={actingOrderKey === `return-${item.id}`}
-                                        >
-                                          {actingOrderKey === `return-${item.id}` ? "Submitting..." : "Request Return"}
-                                        </button>
+                                    ) : returnRequest || canRequestReturnForItem(order, item, returnRequestStatus) ? (
+                                        <div className="return-request-item-state">
+                                          {returnRequest ? (
+                                            <>
+                                              <span className={`return-request-chip return-request-chip--${returnRequestStatus}`}>
+                                                {getReturnRequestStatusLabel(returnRequest.status)}
+                                              </span>
+                                              {returnRequestStatus === "rejected" && returnRequest.rejectionReason ? (
+                                                <p className="order-note return-request-feedback">
+                                                  Rejection reason: {returnRequest.rejectionReason}
+                                                </p>
+                                              ) : null}
+                                            </>
+                                          ) : null}
+                                          {canRequestReturnForItem(order, item, returnRequestStatus) ? (
+                                            <button
+                                                className="wishlist-secondary-btn"
+                                                onClick={() => openReturnRequestModal(order, item)}
+                                                disabled={actingOrderKey === `return-${item.id}`}
+                                            >
+                                              {actingOrderKey === `return-${item.id}`
+                                                ? "Submitting..."
+                                                : returnRequestStatus === "rejected"
+                                                  ? "Request Return Again"
+                                                  : "Request Return"}
+                                            </button>
+                                          ) : null}
+                                        </div>
                                     ) : null}
                                   </div>
                                       </>

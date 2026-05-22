@@ -45,6 +45,9 @@ export async function approveReturnRequest(returnRequestId) {
   return apiFetch(`/api/returns/${returnRequestId}/approve`, { method: "PATCH" });
 }
 
-export async function rejectReturnRequest(returnRequestId) {
-  return apiFetch(`/api/returns/${returnRequestId}/reject`, { method: "PATCH" });
+export async function rejectReturnRequest(returnRequestId, reason) {
+  return apiFetch(`/api/returns/${returnRequestId}/reject`, {
+    method: "PATCH",
+    body: JSON.stringify({ reason }),
+  });
 }

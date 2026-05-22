@@ -1,6 +1,7 @@
 package com._8.store.controller;
 
 import com._8.store.dto.CreateReturnRequestRequest;
+import com._8.store.dto.RejectReturnRequestRequest;
 import com._8.store.dto.ReturnRequestResponse;
 import com._8.store.service.ReturnRequestService;
 import jakarta.validation.Valid;
@@ -53,7 +54,10 @@ public class ReturnRequestController {
     }
 
     @PatchMapping("/{id}/reject")
-    public ResponseEntity<ReturnRequestResponse> rejectReturnRequest(@PathVariable Long id) {
-        return ResponseEntity.ok(returnRequestService.rejectReturnRequest(id));
+    public ResponseEntity<ReturnRequestResponse> rejectReturnRequest(
+            @PathVariable Long id,
+            @Valid @RequestBody RejectReturnRequestRequest request
+    ) {
+        return ResponseEntity.ok(returnRequestService.rejectReturnRequest(id, request.getReason()));
     }
 }
