@@ -142,6 +142,20 @@ public class SalesManagerService {
     }
 
     @Transactional(readOnly = true)
+    public List<InvoiceSummaryResponse> getAllInvoices() {
+        return orderRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(order -> new InvoiceSummaryResponse(
+                        order.getId(),
+                        order.getUser().getName(),
+                        order.getUser().getEmail(),
+                        order.getCreatedAt(),
+                        (order.getStatus() != null ? order.getStatus() : OrderStatus.PROCESSING).name(),
+                        order.getTotalPrice()
+                ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<InvoiceSummaryResponse> getInvoices(LocalDate from, LocalDate to) {
         return getOrdersBetween(from, to).stream()
                 .map(order -> new InvoiceSummaryResponse(

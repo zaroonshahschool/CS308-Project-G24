@@ -55,6 +55,10 @@ export function fetchPendingComments() {
   return sendJson("/product-manager/comments/pending", "GET");
 }
 
+export function fetchAllInvoices() {
+  return sendJson("/product-manager/invoices", "GET");
+}
+
 export function approveComment(commentId) {
   return apiFetch(`/api/comments/${commentId}/approve`, { method: "PATCH" });
 }
