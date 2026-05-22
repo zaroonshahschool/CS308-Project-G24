@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping({"/api/product-manager", "/api/admin"})
+@RequestMapping({"/api/product-manager", "/api/admin", "/api"})
 public class AdminController {
 
     private final AdminService adminService;
