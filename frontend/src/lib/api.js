@@ -24,7 +24,6 @@ function buildRequestUrl(path) {
 }
 
 function createRequestHeaders(options = {}, accept = "application/json") {
-  const token = window.localStorage.getItem("auth_token");
   const headers = new Headers(options.headers ?? {});
 
   if (!headers.has("Content-Type") && options.body) {
@@ -33,10 +32,6 @@ function createRequestHeaders(options = {}, accept = "application/json") {
 
   if (accept && !headers.has("Accept")) {
     headers.set("Accept", accept);
-  }
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
   }
 
   return headers;
@@ -51,6 +46,7 @@ export async function apiFetch(path, options = {}) {
   try {
     response = await fetch(requestUrl, {
       ...options,
+      credentials: "include",
       headers,
     });
   } catch (error) {
@@ -95,6 +91,7 @@ export async function apiFetchBlob(path, options = {}) {
   try {
     response = await fetch(requestUrl, {
       ...options,
+      credentials: "include",
       headers,
     });
   } catch {
