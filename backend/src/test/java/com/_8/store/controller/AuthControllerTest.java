@@ -20,6 +20,7 @@ import static org.mockito.BDDMockito.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,7 +41,7 @@ class AuthControllerTest {
     private CustomUserDetailsService customUserDetailsService;
 
     @Test
-    void loginReturnsTokenPayload() throws Exception {
+    void loginSetsHttpOnlyJwtCookieAndDoesNotExposeTokenInBody() throws Exception {
         given(authService.login(any())).willReturn(
                 new AuthResponse("jwt-token", Role.CUSTOMER, "Customer Demo", "customer@aurelia.local")
         );
@@ -55,10 +56,24 @@ class AuthControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.token").value("jwt-token"))
+                .andExpect(header().string("Set-Cookie", containsString("AUTH_TOKEN=jwt-token")))
+                .andExpect(header().string("Set-Cookie", containsString("HttpOnly")))
+                .andExpect(header().string("Set-Cookie", containsString("Secure")))
+                .andExpect(header().string("Set-Cookie", containsString("SameSite=Strict")))
+                .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(jsonPath("$.role").value("CUSTOMER"))
                 .andExpect(jsonPath("$.name").value("Customer Demo"))
                 .andExpect(jsonPath("$.email").value("customer@aurelia.local"));
+    }
+
+    @Test
+    void logoutClearsJwtCookie() throws Exception {
+        mockMvc.perform(post("/auth/logout"))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string("Set-Cookie", containsString("AUTH_TOKEN=")))
+                .andExpect(header().string("Set-Cookie", containsString("Max-Age=0")))
+                .andExpect(header().string("Set-Cookie", containsString("HttpOnly")))
+                .andExpect(header().string("Set-Cookie", containsString("SameSite=Strict")));
     }
 
     @Test

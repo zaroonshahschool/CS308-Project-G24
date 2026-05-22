@@ -1,6 +1,7 @@
 package com._8.store.dto;
 
 import com._8.store.entity.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class AuthResponse {
 
@@ -16,6 +17,7 @@ public class AuthResponse {
         this.email = email;
     }
 
+    @JsonIgnore
     public String getToken() {
         return token;
     }
