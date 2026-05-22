@@ -9,6 +9,7 @@ import {
   fetchInvoicePdfForManager,
   fetchInvoices,
   fetchOrders,
+  setBasePrice,
 } from "../services/salesManagerApi";
 
 function normalizeOrderStatus(status) {
@@ -55,6 +56,8 @@ export default function DashboardPage() {
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [savingDiscount, setSavingDiscount] = useState(false);
+  const [basePriceInputs, setBasePriceInputs] = useState({});
+  const [savingPriceId, setSavingPriceId] = useState(null);
   const [error, setError] = useState("");
   const [orderError, setOrderError] = useState("");
   const [invoiceError, setInvoiceError] = useState("");
@@ -153,6 +156,28 @@ export default function DashboardPage() {
       toast.error(message, { title: "Order error" });
     } finally {
       setActingOrderId(null);
+    }
+  }
+
+  async function handleSetBasePrice(productId, basePriceStr) {
+    const basePrice = Number(basePriceStr);
+    if (!basePrice || basePrice <= 0) return;
+    setSavingPriceId(productId);
+    try {
+      await setBasePrice(productId, basePrice);
+      const refreshedProducts = await fetchProducts();
+      setProducts(refreshedProducts);
+      setBasePriceInputs((prev) => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+      toast.success("Base price updated.", { title: "Price updated" });
+    } catch (priceError) {
+      const message = priceError.message || "Failed to update base price.";
+      toast.error(message, { title: "Price error" });
+    } finally {
+      setSavingPriceId(null);
     }
   }
 
@@ -280,19 +305,48 @@ export default function DashboardPage() {
                   />
                 </label>
 
-                <div style={{ display: "grid", gap: "0.75rem", maxHeight: 280, overflow: "auto" }}>
+                <div style={{ display: "grid", gap: "0.75rem", maxHeight: 360, overflow: "auto" }}>
                   {products.map((product) => (
-                    <label key={product.id} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", padding: "0.75rem 0.9rem", borderRadius: 12, background: "rgba(0,0,0,0.03)" }}>
-                      <span>
-                        {product.name} · ${Number(product.price).toFixed(2)}
-                        {product.discountRate > 0 ? ` · ${product.discountRate}% off` : ""}
+                    <div key={product.id} style={{ display: "flex", gap: "0.75rem", alignItems: "center", padding: "0.75rem 0.9rem", borderRadius: 12, background: "rgba(0,0,0,0.03)", flexWrap: "wrap" }}>
+                      <span style={{ flex: 1, minWidth: 140 }}>
+                        <span style={{ fontWeight: 500 }}>{product.name}</span>
+                        <br />
+                        <small>
+                          ${Number(product.price).toFixed(2)}
+                          {product.discountRate > 0
+                            ? ` · ${Number(product.discountRate).toFixed(0)}% off (base $${Number(product.originalPrice || product.price).toFixed(2)})`
+                            : ""}
+                        </small>
                       </span>
-                      <input
-                        type="checkbox"
-                        checked={selectedProductIds.includes(product.id)}
-                        onChange={() => toggleProductSelection(product.id)}
-                      />
-                    </label>
+                      <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="Base price"
+                          value={basePriceInputs[product.id] ?? ""}
+                          onChange={(e) => setBasePriceInputs((prev) => ({ ...prev, [product.id]: e.target.value }))}
+                          style={{ width: 100, padding: "0.35rem 0.55rem", borderRadius: 8, border: "1px solid rgba(0,0,0,0.15)", fontSize: "0.85rem" }}
+                        />
+                        <button
+                          type="button"
+                          className="wishlist-secondary-btn"
+                          onClick={() => handleSetBasePrice(product.id, basePriceInputs[product.id])}
+                          disabled={!basePriceInputs[product.id] || savingPriceId === product.id}
+                          style={{ padding: "0.35rem 0.7rem", fontSize: "0.8rem" }}
+                        >
+                          {savingPriceId === product.id ? "..." : "Set Price"}
+                        </button>
+                      </div>
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.includes(product.id)}
+                          onChange={() => toggleProductSelection(product.id)}
+                        />
+                        <span style={{ fontSize: "0.8rem" }}>Discount</span>
+                      </label>
+                    </div>
                   ))}
                 </div>
 

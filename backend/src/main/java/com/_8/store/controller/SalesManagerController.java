@@ -6,6 +6,8 @@ import com._8.store.dto.InvoiceSummaryResponse;
 import com._8.store.dto.OrderResponse;
 import com._8.store.dto.RatingResponse;
 import com._8.store.dto.SalesAnalyticsResponse;
+import com._8.store.dto.SetBasePriceRequest;
+import com._8.store.dto.SetBasePriceResponse;
 import com._8.store.repository.RatingRepository;
 import com._8.store.service.OrderService;
 import com._8.store.service.SalesManagerService;
@@ -66,6 +68,13 @@ public class SalesManagerController {
     @PutMapping("/orders/{orderId}/advance-status")
     public ResponseEntity<OrderResponse> advanceOrderStatus(@PathVariable Long orderId) {
         return ResponseEntity.ok(orderService.advanceOrderStatus(orderId));
+    }
+
+    @PutMapping("/products/{productId}/price")
+    public ResponseEntity<SetBasePriceResponse> setBasePrice(
+            @PathVariable Long productId,
+            @RequestBody SetBasePriceRequest request) {
+        return ResponseEntity.ok(salesManagerService.setBasePrice(productId, request.basePrice()));
     }
 
     @PostMapping("/discounts")
