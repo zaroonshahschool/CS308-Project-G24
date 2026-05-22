@@ -1,5 +1,6 @@
 package com._8.store.entity;
 
+import com._8.store.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 
 import java.util.LinkedHashSet;
@@ -26,12 +27,24 @@ public class User {
     @Column(nullable = false, length = 40)
     private Role role;
 
-    @Column(unique = true, nullable = false, updatable = false, length = 10)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(unique = true, nullable = false, updatable = false, length = 512)
     private String taxNumber;
 
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(length = 1024)
     private String street;
+
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(length = 1024)
     private String city;
+
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(length = 1024)
     private String postalCode;
+
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(length = 1024)
     private String country;
 
     @ManyToMany

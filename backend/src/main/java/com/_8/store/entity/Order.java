@@ -1,7 +1,9 @@
 package com._8.store.entity;
 
+import com._8.store.security.EncryptedStringConverter;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -37,16 +39,20 @@ public class Order {
     @Column(name = "total_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalPrice;
 
-    @Column(name = "shipping_street")
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "shipping_street", length = 1024)
     private String shippingStreet;
 
-    @Column(name = "shipping_city")
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "shipping_city", length = 1024)
     private String shippingCity;
 
-    @Column(name = "shipping_postal_code")
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "shipping_postal_code", length = 1024)
     private String shippingPostalCode;
 
-    @Column(name = "shipping_country")
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "shipping_country", length = 1024)
     private String shippingCountry;
 
     @Enumerated(EnumType.STRING)
