@@ -9,6 +9,7 @@ import com._8.store.dto.SalesAnalyticsResponse;
 import com._8.store.repository.RatingRepository;
 import com._8.store.service.OrderService;
 import com._8.store.service.SalesManagerService;
+import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
@@ -69,7 +70,7 @@ public class SalesManagerController {
     }
 
     @PostMapping("/discounts")
-    public ResponseEntity<List<DiscountedProductResponse>> applyDiscount(@RequestBody ApplyDiscountRequest request) {
+    public ResponseEntity<List<DiscountedProductResponse>> applyDiscount(@Valid @RequestBody ApplyDiscountRequest request) {
         return ResponseEntity.ok(salesManagerService.applyDiscount(request.discountRate(), request.productIds()));
     }
 

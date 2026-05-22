@@ -6,15 +6,6 @@ function getApiBaseUrl() {
     return CONFIGURED_API_BASE_URL.replace(/\/$/, "");
   }
 
-  const { protocol, hostname, port } = window.location;
-  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
-
-  // When the frontend is served by Vite or another local static server,
-  // send API traffic straight to Spring Boot instead of relying on a dev proxy.
-  if (isLocalhost && port !== DEFAULT_API_PORT) {
-    return `${protocol}//${hostname}:${DEFAULT_API_PORT}`;
-  }
-
   return "";
 }
 
@@ -76,7 +67,7 @@ export async function apiFetch(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(data?.message ?? "Request failed.");
+    throw new Error(data?.message ?? getHttpErrorMessage(response.status));
   }
 
   return data;
@@ -100,7 +91,7 @@ export async function apiFetchBlob(path, options = {}) {
 
   if (!response.ok) {
     const text = await response.text();
-    let message = "Request failed.";
+    let message = getHttpErrorMessage(response.status);
 
     if (text) {
       try {
@@ -115,4 +106,16 @@ export async function apiFetchBlob(path, options = {}) {
   }
 
   return response.blob();
+}
+
+function getHttpErrorMessage(status) {
+  if (status === 401) {
+    return "Please sign in again.";
+  }
+
+  if (status === 403) {
+    return "You do not have permission to access this data.";
+  }
+
+  return "Request failed.";
 }

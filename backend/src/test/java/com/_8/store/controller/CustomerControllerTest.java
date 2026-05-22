@@ -72,7 +72,9 @@ class CustomerControllerTest {
         mockMvc.perform(get("/api/customer/me"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.taxNumber").value("1234567890"))
-                .andExpect(jsonPath("$.email").value("john@example.com"));
+                .andExpect(jsonPath("$.email").value("john@example.com"))
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.token").doesNotExist());
     }
 
     @Test

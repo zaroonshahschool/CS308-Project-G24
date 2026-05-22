@@ -60,7 +60,7 @@ export default function RegisterPage() {
 
           <label className="auth-field">
             <span>Password</span>
-            <input name="password" type="password" value={form.password} onChange={handleChange} required />
+            <input name="password" type="password" minLength={8} maxLength={72} value={form.password} onChange={handleChange} required />
           </label>
 
           {error ? <p className="auth-error">{error}</p> : null}

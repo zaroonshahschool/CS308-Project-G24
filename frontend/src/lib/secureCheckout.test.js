@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createSafePaymentSummary } from "./secureCheckout.js";
+import { createSafePaymentSummary, maskCardNumber } from "./secureCheckout.js";
 
 test("createSafePaymentSummary keeps only display-safe card details", () => {
   const summary = createSafePaymentSummary({
@@ -12,10 +12,10 @@ test("createSafePaymentSummary keeps only display-safe card details", () => {
   }, "INV-123");
 
   assert.deepEqual(summary, {
-    cardholderName: "Jane Doe",
     paymentMethod: "credit-card",
     cardBrand: "Visa",
     cardLast4: "4242",
+    maskedCardNumber: "**** **** **** 4242",
     invoiceNumber: "INV-123",
   });
 });
@@ -35,6 +35,7 @@ test("createSafePaymentSummary does not expose full bank response fields", () =>
   assert.equal("retrievalReference" in summary, false);
   assert.equal("responseCode" in summary, false);
   assert.equal("cvvResult" in summary, false);
+  assert.equal("cardholderName" in summary, false);
 });
 
 test("createSafePaymentSummary never includes raw card numbers", () => {
@@ -49,4 +50,11 @@ test("createSafePaymentSummary never includes raw card numbers", () => {
   assert.equal("rawCardNumber" in summary, false);
   assert.equal("cardNumber" in summary, false);
   assert.equal(summary.cardLast4, "4242");
+  assert.equal(summary.maskedCardNumber, "**** **** **** 4242");
+});
+
+test("maskCardNumber never exposes more than the last four digits", () => {
+  assert.equal(maskCardNumber("4242424242424242"), "**** **** **** 4242");
+  assert.equal(maskCardNumber("123"), "**** **** **** 123");
+  assert.equal(maskCardNumber(""), "**** **** ****");
 });

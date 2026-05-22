@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { fetchProfile, updateAddress } from "../services/customerApi";
-import { createSafePaymentSummary } from "../lib/secureCheckout";
+import { createSafePaymentSummary, maskCardNumber } from "../lib/secureCheckout";
 
 const ENABLE_LUHN_VALIDATION = import.meta.env.VITE_ENABLE_LUHN_VALIDATION === "true";
 
@@ -111,10 +111,9 @@ function createInvoiceSnapshot(cartItems, address, payment, orderSummary) {
     currency: "USD",
     shippingAddress: { ...address },
     paymentCard: {
-      cardholderName: payment.cardholderName.trim(),
       brand: getCardBrand(rawCardNumber),
       last4: getLastFour(rawCardNumber),
-      expiry: payment.expiry,
+      maskedNumber: maskCardNumber(getLastFour(rawCardNumber)),
     },
     items: cartItems.map((item) => ({
       productId: item.id,
@@ -154,9 +153,8 @@ function createMockBankingResponse({ rawCardNumber, payment, address, amount }) 
     currency: "USD",
     cardBrand: getCardBrand(rawCardNumber),
     cardLast4: getLastFour(rawCardNumber),
-    cardholderName,
+    maskedCardNumber: maskCardNumber(getLastFour(rawCardNumber)),
     avsResult: address.postalCode ? "MATCH" : "NOT_CHECKED",
-    cvvResult: /^\d{3,4}$/.test(payment.cvv) ? "MATCH" : "NO_MATCH",
     processedAt: new Date().toISOString(),
   };
 }
@@ -202,8 +200,8 @@ function PaymentReviewModal({ placingOrder, review, onClose, onConfirm }) {
                 <div><dt>Response Code</dt><dd>{review.bankResponse.responseCode}</dd></div>
                 <div><dt>Transaction ID</dt><dd>{review.bankResponse.transactionId}</dd></div>
                 <div><dt>Authorization</dt><dd>{review.bankResponse.authorizationCode || "Not issued"}</dd></div>
-                <div><dt>Card</dt><dd>{review.bankResponse.cardBrand} ending {review.bankResponse.cardLast4}</dd></div>
-                <div><dt>AVS / CVV</dt><dd>{review.bankResponse.avsResult} / {review.bankResponse.cvvResult}</dd></div>
+                <div><dt>Card</dt><dd>{review.bankResponse.cardBrand} {review.bankResponse.maskedCardNumber}</dd></div>
+                <div><dt>Address Check</dt><dd>{review.bankResponse.avsResult}</dd></div>
                 <div><dt>Processed</dt><dd>{new Date(review.bankResponse.processedAt).toLocaleString()}</dd></div>
               </dl>
             )}
@@ -227,9 +225,8 @@ function PaymentReviewModal({ placingOrder, review, onClose, onConfirm }) {
               </div>
               <div>
                 <p className="invoice-label">Payment</p>
-                <p>{card.cardholderName}</p>
-                <p>{card.brand} ending {card.last4}</p>
-                <p>Expires {card.expiry}</p>
+                <p>{card.brand}</p>
+                <p>{card.maskedNumber}</p>
               </div>
             </div>
 
@@ -455,14 +452,23 @@ export default function CheckoutPage({ cartItems, onCheckoutSubmit }) {
 
     try {
       await updateAddress(paymentReview.invoice.shippingAddress).catch(() => {});
+      const safePaymentDetails = createSafePaymentSummary(
+        paymentReview.bankResponse,
+        paymentReview.invoice.invoiceNumber
+      );
+
+      setPayment({
+        cardholderName: "",
+        cardNumber: "",
+        expiry: "",
+        cvv: "",
+      });
 
       await onCheckoutSubmit({
         shippingAddress: paymentReview.invoice.shippingAddress,
-        paymentDetails: createSafePaymentSummary(
-          paymentReview.bankResponse,
-          paymentReview.invoice.invoiceNumber
-        ),
+        paymentDetails: safePaymentDetails,
       });
+      setPaymentReview(null);
     } catch (error) {
       const isConcurrencyError = typeof error.message === "string" &&
         error.message.includes("Stock levels have changed");

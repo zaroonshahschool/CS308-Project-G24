@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -124,5 +125,23 @@ class OrderServiceTest {
 
         verify(emailService).sendInvoiceEmail(user.getEmail(), user.getName(), 42L, pdfBytes);
         verify(cartItemRepository).deleteByUser_Id(user.getId());
+    }
+
+    @Test
+    void getInvoicePdfForCurrentUserLooksUpOrderByAuthenticatedUser() {
+        Order order = new Order();
+        order.setId(42L);
+        order.setUser(user);
+        byte[] pdfBytes = "invoice-pdf".getBytes();
+
+        given(userRepository.findByEmailIgnoreCase(user.getEmail())).willReturn(Optional.of(user));
+        given(orderRepository.findByIdAndUserId(42L, user.getId())).willReturn(Optional.of(order));
+        given(invoicePdfService.generateInvoicePdf(order)).willReturn(pdfBytes);
+
+        byte[] result = orderService.getInvoicePdfForCurrentUser(42L);
+
+        assertThat(result).isEqualTo(pdfBytes);
+        verify(orderRepository).findByIdAndUserId(42L, user.getId());
+        verify(orderRepository, never()).findById(anyLong());
     }
 }
