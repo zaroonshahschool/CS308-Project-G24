@@ -19,22 +19,24 @@ function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getChartPoints(points, key, width = 620, height = 240, padding = 24) {
-  if (!points || points.length === 0) {
-    return "";
-  }
-
+function computeChartCoords(points, key, width = 620, height = 240, padding = 24) {
+  if (!points || points.length === 0) return [];
   const values = points.map((point) => Number(point[key]));
   const minValue = Math.min(...values, 0);
   const maxValue = Math.max(...values, 1);
   const span = Math.max(maxValue - minValue, 1);
+  return points.map((point, index) => {
+    const x = points.length === 1
+      ? width / 2
+      : padding + (index * (width - padding * 2)) / (points.length - 1);
+    const y = height - padding - ((Number(point[key]) - minValue) / span) * (height - padding * 2);
+    return { x, y };
+  });
+}
 
-  return points
-    .map((point, index) => {
-      const x = padding + (index * (width - padding * 2)) / Math.max(points.length - 1, 1);
-      const y = height - padding - ((Number(point[key]) - minValue) / span) * (height - padding * 2);
-      return `${x},${y}`;
-    })
+function getChartPoints(points, key, width = 620, height = 240, padding = 24) {
+  return computeChartCoords(points, key, width, height, padding)
+    .map(({ x, y }) => `${x},${y}`)
     .join(" ");
 }
 
@@ -211,6 +213,26 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleDownloadInvoice(orderId) {
+    setInvoiceError("");
+    try {
+      const invoiceBlob = await fetchInvoicePdfForManager(orderId);
+      const invoiceUrl = window.URL.createObjectURL(invoiceBlob);
+      const link = document.createElement("a");
+      link.href = invoiceUrl;
+      link.download = `invoice-order-${orderId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(() => window.URL.revokeObjectURL(invoiceUrl), 10000);
+      toast.info("Invoice download started.", { title: "Downloading" });
+    } catch (downloadError) {
+      const message = downloadError.message || "Invoice could not be downloaded.";
+      setInvoiceError(message);
+      toast.error(message, { title: "Invoice error" });
+    }
+  }
+
   function toggleProductSelection(productId) {
     setSelectedProductIds((prev) =>
       prev.includes(productId)
@@ -315,9 +337,14 @@ export default function DashboardPage() {
                           {invoice.customerName} · {invoice.createdAt?.slice(0, 10)} · ${Number(invoice.totalPrice).toFixed(2)}
                         </p>
                       </div>
-                      <button className="wishlist-secondary-btn" onClick={() => handleOpenInvoice(invoice.orderId)}>
-                        Open PDF
-                      </button>
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button className="wishlist-secondary-btn" onClick={() => handleOpenInvoice(invoice.orderId)}>
+                          Open PDF
+                        </button>
+                        <button className="wishlist-secondary-btn" onClick={() => handleDownloadInvoice(invoice.orderId)}>
+                          Download PDF
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}
@@ -351,6 +378,15 @@ export default function DashboardPage() {
                     <polyline fill="none" stroke="#1d4ed8" strokeWidth="3" points={getChartPoints(analytics.points, "revenue")} />
                     <polyline fill="none" stroke="#dc2626" strokeWidth="3" points={getChartPoints(analytics.points, "cost")} />
                     <polyline fill="none" stroke="#15803d" strokeWidth="3" points={getChartPoints(analytics.points, "profit")} />
+                    {computeChartCoords(analytics.points, "revenue").map(({ x, y }, i) => (
+                      <circle key={`rev-${i}`} cx={x} cy={y} r="4" fill="#1d4ed8" />
+                    ))}
+                    {computeChartCoords(analytics.points, "cost").map(({ x, y }, i) => (
+                      <circle key={`cost-${i}`} cx={x} cy={y} r="4" fill="#dc2626" />
+                    ))}
+                    {computeChartCoords(analytics.points, "profit").map(({ x, y }, i) => (
+                      <circle key={`profit-${i}`} cx={x} cy={y} r="4" fill="#15803d" />
+                    ))}
                   </svg>
 
                   <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
