@@ -14,6 +14,7 @@ public class ReturnRequestResponse {
     private final LocalDateTime orderDate;
     private final String status;
     private final String reason;
+    private final String rejectionReason;
     private final LocalDateTime requestedAt;
     private final LocalDateTime resolvedAt;
     private final BigDecimal refundAmount;
@@ -28,6 +29,7 @@ public class ReturnRequestResponse {
             LocalDateTime orderDate,
             String status,
             String reason,
+            String rejectionReason,
             LocalDateTime requestedAt,
             LocalDateTime resolvedAt,
             BigDecimal refundAmount
@@ -41,6 +43,7 @@ public class ReturnRequestResponse {
         this.orderDate = orderDate;
         this.status = status;
         this.reason = reason;
+        this.rejectionReason = rejectionReason;
         this.requestedAt = requestedAt;
         this.resolvedAt = resolvedAt;
         this.refundAmount = refundAmount;
@@ -80,6 +83,10 @@ public class ReturnRequestResponse {
 
     public String getReason() {
         return reason;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
     }
 
     public LocalDateTime getRequestedAt() {

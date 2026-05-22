@@ -26,6 +26,11 @@ import java.util.List;
 @Service
 public class ReturnRequestService {
 
+    private static final List<ReturnRequestStatus> REQUEST_BLOCKING_STATUSES = List.of(
+            ReturnRequestStatus.PENDING,
+            ReturnRequestStatus.APPROVED
+    );
+
     private final ReturnRequestRepository returnRequestRepository;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
@@ -55,8 +60,8 @@ public class ReturnRequestService {
         validateReturnWindow(order);
 
         OrderItem orderItem = findReturnableOrderItem(order, request.getProductId());
-        if (returnRequestRepository.existsByOrderItem_Id(orderItem.getId())) {
-            throw new IllegalArgumentException("A return request has already been submitted for this item.");
+        if (returnRequestRepository.existsByOrderItem_IdAndStatusIn(orderItem.getId(), REQUEST_BLOCKING_STATUSES)) {
+            throw new IllegalArgumentException("A return request is already active for this item.");
         }
 
         ReturnRequest returnRequest = new ReturnRequest();
@@ -120,9 +125,15 @@ public class ReturnRequestService {
     }
 
     @Transactional
-    public ReturnRequestResponse rejectReturnRequest(Long id) {
+    public ReturnRequestResponse rejectReturnRequest(Long id, String rejectionReason) {
+        String trimmedReason = rejectionReason == null ? "" : rejectionReason.trim();
+        if (trimmedReason.isBlank()) {
+            throw new IllegalArgumentException("Rejection reason is required.");
+        }
+
         ReturnRequest returnRequest = getPendingReturnRequest(id);
         returnRequest.setStatus(ReturnRequestStatus.REJECTED);
+        returnRequest.setRejectionReason(trimmedReason);
         returnRequest.setResolvedAt(LocalDateTime.now());
 
         return toResponse(returnRequestRepository.save(returnRequest), refundService.calculateRefundTotal(returnRequest.getOrderItem()));
@@ -190,6 +201,7 @@ public class ReturnRequestService {
                 returnRequest.getOrder().getCreatedAt(),
                 returnRequest.getStatus().name(),
                 returnRequest.getReason(),
+                returnRequest.getRejectionReason(),
                 returnRequest.getRequestedAt(),
                 returnRequest.getResolvedAt(),
                 refundAmount
