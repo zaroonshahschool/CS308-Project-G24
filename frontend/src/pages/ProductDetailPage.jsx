@@ -241,7 +241,7 @@ export default function ProductDetailPage({
   const [myComment, setMyComment] = useState(null);
   const [adding, setAdding] = useState(false);
 
-  const isLoggedIn = !!window.localStorage.getItem("auth_token");
+  const isLoggedIn = window.localStorage.getItem("auth_role") === "CUSTOMER";
   const currentUserEmail = isLoggedIn ? window.localStorage.getItem("auth_email") : null;
 
   useEffect(() => {

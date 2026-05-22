@@ -25,11 +25,11 @@ export function removeLegacySensitiveProfile(storage) {
   getStorage(storage).removeItem(LEGACY_PROFILE_KEY);
 }
 
-export function persistAuthSession({ token, role, email }, storage) {
+export function persistAuthSession({ role, email }, storage) {
   const targetStorage = getStorage(storage);
-  targetStorage.setItem("auth_token", token);
   targetStorage.setItem("auth_role", role);
   targetStorage.setItem("auth_email", normalizeEmail(email));
+  targetStorage.removeItem("auth_token");
   removeLegacySensitiveProfile(targetStorage);
 }
 

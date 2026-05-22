@@ -57,12 +57,12 @@ test("sanitizeStoredProfile does not preserve empty optional fields", () => {
   );
 });
 
-test("persistAuthSession stores only token, role, and normalized email", () => {
-  const storage = createMemoryStorage();
+test("persistAuthSession stores only role and normalized email", () => {
+  const storage = createMemoryStorage({ auth_token: "legacy-token" });
 
-  persistAuthSession({ token: "jwt-token", role: "CUSTOMER", email: "  Jane@Example.COM " }, storage);
+  persistAuthSession({ role: "CUSTOMER", email: "  Jane@Example.COM " }, storage);
 
-  assert.equal(storage.getItem("auth_token"), "jwt-token");
+  assert.equal(storage.getItem("auth_token"), null);
   assert.equal(storage.getItem("auth_role"), "CUSTOMER");
   assert.equal(storage.getItem("auth_email"), "jane@example.com");
 });
@@ -72,7 +72,7 @@ test("persistAuthSession removes legacy customer profile data", () => {
     customer_profile: JSON.stringify({ email: "jane@example.com", password: "plain-secret" }),
   });
 
-  persistAuthSession({ token: "jwt-token", role: "CUSTOMER", email: "jane@example.com" }, storage);
+  persistAuthSession({ role: "CUSTOMER", email: "jane@example.com" }, storage);
 
   assert.equal(storage.getItem("customer_profile"), null);
 });

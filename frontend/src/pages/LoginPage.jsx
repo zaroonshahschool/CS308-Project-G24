@@ -30,7 +30,6 @@ export default function LoginPage() {
       });
 
       persistAuthSession({
-        token: data.token,
         role: data.role,
         email: data.email || form.email,
       });

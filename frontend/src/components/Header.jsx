@@ -36,9 +36,9 @@ export default function Header({ cartCount = 0, wishlistCount = 0, onCartOpen })
   }
 
   function handleAccountClick() {
-    const token = window.localStorage.getItem("auth_token");
+    const role = window.localStorage.getItem("auth_role");
 
-    if (token) {
+    if (role === "CUSTOMER") {
       navigate("/account");
       return;
     }

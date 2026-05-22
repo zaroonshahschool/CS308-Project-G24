@@ -49,9 +49,8 @@ function getStoredArray(key) {
 }
 
 function isCustomerCartSession() {
-  const token = window.localStorage.getItem("auth_token");
   const role = window.localStorage.getItem("auth_role");
-  return Boolean(token && role === "CUSTOMER");
+  return role === "CUSTOMER";
 }
 
 function getAvailableStock(item) {
@@ -131,23 +130,22 @@ async function refreshGuestCartItems(items) {
 }
 
 function ProtectedRoute({ children }) {
-  const token = window.localStorage.getItem("auth_token");
-  const location = useLocation();
-
-  if (token) {
-    return children;
-  }
-
-  const next = `${location.pathname}${location.search}`;
-  return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
-}
-
-function RoleProtectedRoute({ allowedRoles, children }) {
-  const token = window.localStorage.getItem("auth_token");
   const role = window.localStorage.getItem("auth_role");
   const location = useLocation();
 
-  if (!token) {
+  if (!role) {
+    const next = `${location.pathname}${location.search}`;
+    return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
+  }
+
+  return role === "CUSTOMER" ? children : <Navigate to="/" replace />;
+}
+
+function RoleProtectedRoute({ allowedRoles, children }) {
+  const role = window.localStorage.getItem("auth_role");
+  const location = useLocation();
+
+  if (!role) {
     const next = `${location.pathname}${location.search}`;
     return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
   }
@@ -251,10 +249,9 @@ export default function App() {
 
   useEffect(() => {
     let ignore = false;
-    const token = window.localStorage.getItem("auth_token");
     const role = window.localStorage.getItem("auth_role");
 
-    if (!token || role !== "CUSTOMER") {
+    if (role !== "CUSTOMER") {
       return undefined;
     }
 
@@ -279,10 +276,9 @@ export default function App() {
 
   useEffect(() => {
     let ignore = false;
-    const token = window.localStorage.getItem("auth_token");
     const role = window.localStorage.getItem("auth_role");
 
-    if (!token || role !== "CUSTOMER") {
+    if (role !== "CUSTOMER") {
       return undefined;
     }
 
@@ -355,12 +351,11 @@ export default function App() {
   }
 
   async function handleToggleWishlist(productId, productName = "Product") {
-    const token = window.localStorage.getItem("auth_token");
     const role = window.localStorage.getItem("auth_role");
     const isRemoving = wishlistProductIds.includes(productId);
 
     try {
-      if (!token || role !== "CUSTOMER") {
+      if (role !== "CUSTOMER") {
         persistWishlist(
           isRemoving
             ? wishlistProductIds.filter((id) => id !== productId)
@@ -504,12 +499,18 @@ export default function App() {
   }
 
   function handleCheckout() {
-    const token = window.localStorage.getItem("auth_token");
+    const role = window.localStorage.getItem("auth_role");
 
-    if (!token) {
+    if (!role) {
       navigate("/login?next=/checkout");
       setCartOpen(false);
       toast.info("Sign in to continue checkout.", { title: "Login required" });
+      return;
+    }
+
+    if (role !== "CUSTOMER") {
+      setCartOpen(false);
+      toast.error("Only customer accounts can place orders.", { title: "Checkout unavailable" });
       return;
     }
 

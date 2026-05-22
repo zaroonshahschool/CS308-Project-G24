@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { apiFetch } from "../lib/api";
 import { clearAuthSession } from "../lib/securityStorage";
 
 const NAV_LINKS = [
@@ -10,12 +11,13 @@ const NAV_LINKS = [
 
 export default function Nav() {
   const { pathname } = useLocation();
-  const token = window.localStorage.getItem("auth_token");
   const role = window.localStorage.getItem("auth_role");
+  const isSignedIn = Boolean(role);
   const isProductManager = role === "PRODUCT_MANAGER";
   const isSalesManager = role === "SALES_MANAGER";
 
   function handleLogout() {
+    apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
     clearAuthSession();
   }
 
@@ -56,7 +58,7 @@ export default function Nav() {
             Sales Dashboard
           </Link>
         ) : null}
-        {token ? (
+        {isSignedIn ? (
           <Link to="/" style={{ color: "var(--text-mid)" }} onClick={handleLogout}>Sign Out</Link>
         ) : (
           <Link to="/login" style={{ color: "var(--text-mid)" }}>Sign In</Link>
