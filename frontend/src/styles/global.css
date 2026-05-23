@@ -2487,3 +2487,38 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
 .delivery-stepper-line--active {
   background: #4f46e5;
 }
+/* Catalogue Pagination */
+.catalog-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.catalog-page-btn {
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.catalog-page-btn:hover:not(:disabled) {
+  background: var(--surface);
+}
+
+.catalog-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.catalog-page-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
