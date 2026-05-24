@@ -17,6 +17,7 @@ import {
   rejectComment,
   updateCollection,
   updateProduct,
+  uploadImage,
 } from "../services/adminApi";
 
 const emptyProductForm = {
@@ -84,6 +85,7 @@ export default function AdminPage() {
   const [actingCommentId, setActingCommentId] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [uploadingFor, setUploadingFor] = useState(null);
 
   const loadAdminData = useCallback(async function loadAdminData() {
     setLoading(true);
@@ -142,6 +144,24 @@ export default function AdminPage() {
     const completed = deliveries.filter((row) => row.completed).length;
     return { pending, completed, total: deliveries.length };
   }, [deliveries]);
+
+  async function handleImageUpload(file, formSetter, formKey) {
+    if (!file) return;
+    const localPreview = URL.createObjectURL(file);
+    formSetter((prev) => ({ ...prev, imageUrl: localPreview }));
+    setUploadingFor(formKey);
+    try {
+      const data = await uploadImage(file);
+      formSetter((prev) => ({ ...prev, imageUrl: data.url }));
+      URL.revokeObjectURL(localPreview);
+    } catch (err) {
+      formSetter((prev) => ({ ...prev, imageUrl: "" }));
+      URL.revokeObjectURL(localPreview);
+      toast.error(err.message || "Image upload failed.", { title: "Upload error" });
+    } finally {
+      setUploadingFor(null);
+    }
+  }
 
   function handleProductChange(event) {
     const { name, value, type, checked } = event.target;
@@ -495,10 +515,35 @@ export default function AdminPage() {
                   ))}
                 </select>
               </label>
-              <label className="review-field">
+              <div className="review-field">
                 <span>Image URL</span>
-                <input name="imageUrl" value={productForm.imageUrl} onChange={handleProductChange} />
-              </label>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <input name="imageUrl" value={productForm.imageUrl} onChange={handleProductChange} style={{ flex: 1 }} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="product-image-upload"
+                    style={{ display: "none" }}
+                    onChange={(e) => handleImageUpload(e.target.files[0], setProductForm, "product")}
+                  />
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    style={{ padding: "0.45rem 0.75rem", fontSize: "0.8rem", whiteSpace: "nowrap" }}
+                    disabled={uploadingFor === "product"}
+                    onClick={() => document.getElementById("product-image-upload").click()}
+                  >
+                    {uploadingFor === "product" ? "Uploading…" : "Upload"}
+                  </button>
+                </div>
+                {productForm.imageUrl && (
+                  <img
+                    src={productForm.imageUrl}
+                    alt="Preview"
+                    style={{ marginTop: "0.5rem", maxHeight: 90, maxWidth: "100%", borderRadius: 4, border: "1px solid #e5e7eb", objectFit: "contain", background: "#f9f9f9" }}
+                  />
+                )}
+              </div>
               <label className="review-field">
                 <span>Publisher</span>
                 <input name="publisher" value={productForm.publisher} onChange={handleProductChange} />
@@ -567,10 +612,35 @@ export default function AdminPage() {
               <span>Category Name</span>
               <input name="name" value={categoryForm.name} onChange={handleCategoryChange} required />
             </label>
-            <label className="review-field">
+            <div className="review-field">
               <span>Category Image URL</span>
-              <input name="imageUrl" value={categoryForm.imageUrl} onChange={handleCategoryChange} />
-            </label>
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <input name="imageUrl" value={categoryForm.imageUrl} onChange={handleCategoryChange} style={{ flex: 1 }} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  id="category-image-upload"
+                  style={{ display: "none" }}
+                  onChange={(e) => handleImageUpload(e.target.files[0], setCategoryForm, "category")}
+                />
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ padding: "0.45rem 0.75rem", fontSize: "0.8rem", whiteSpace: "nowrap" }}
+                  disabled={uploadingFor === "category"}
+                  onClick={() => document.getElementById("category-image-upload").click()}
+                >
+                  {uploadingFor === "category" ? "Uploading…" : "Upload"}
+                </button>
+              </div>
+              {categoryForm.imageUrl && (
+                <img
+                  src={categoryForm.imageUrl}
+                  alt="Preview"
+                  style={{ marginTop: "0.5rem", maxHeight: 90, maxWidth: "100%", borderRadius: 4, border: "1px solid #e5e7eb", objectFit: "contain", background: "#f9f9f9" }}
+                />
+              )}
+            </div>
             <label className="review-field">
               <span>Display Order</span>
               <input name="displayOrder" type="number" min="0" step="1" value={categoryForm.displayOrder} onChange={handleCategoryChange} />
@@ -610,10 +680,35 @@ export default function AdminPage() {
             <span>Description</span>
             <textarea name="description" rows="3" value={collectionForm.description} onChange={handleCollectionChange} />
           </label>
-          <label className="review-field">
+          <div className="review-field">
             <span>Cover Image URL</span>
-            <input name="imageUrl" value={collectionForm.imageUrl} onChange={handleCollectionChange} />
-          </label>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <input name="imageUrl" value={collectionForm.imageUrl} onChange={handleCollectionChange} style={{ flex: 1 }} />
+              <input
+                type="file"
+                accept="image/*"
+                id="collection-image-upload"
+                style={{ display: "none" }}
+                onChange={(e) => handleImageUpload(e.target.files[0], setCollectionForm, "collection")}
+              />
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ padding: "0.45rem 0.75rem", fontSize: "0.8rem", whiteSpace: "nowrap" }}
+                disabled={uploadingFor === "collection"}
+                onClick={() => document.getElementById("collection-image-upload").click()}
+              >
+                {uploadingFor === "collection" ? "Uploading…" : "Upload"}
+              </button>
+            </div>
+            {collectionForm.imageUrl && (
+              <img
+                src={collectionForm.imageUrl}
+                alt="Preview"
+                style={{ marginTop: "0.5rem", maxHeight: 90, maxWidth: "100%", borderRadius: 4, border: "1px solid #e5e7eb", objectFit: "contain", background: "#f9f9f9" }}
+              />
+            )}
+          </div>
 
           <p className="section-subtitle" style={{ margin: "1rem 0 0.5rem" }}>Assign Products</p>
           <div className="admin-product-list" style={{ maxHeight: 300, overflowY: "auto", gap: "0.5rem" }}>
