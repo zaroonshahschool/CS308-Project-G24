@@ -1,5 +1,20 @@
 import { apiFetch } from "../lib/api";
 
+export async function uploadImage(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch("/api/product-manager/upload-image", {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "Image upload failed");
+  }
+  return response.json();
+}
+
 async function sendJson(path, method, body) {
   return apiFetch(`/api${path}`, {
     method,
