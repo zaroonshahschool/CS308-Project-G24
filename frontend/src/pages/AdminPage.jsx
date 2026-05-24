@@ -11,6 +11,7 @@ import {
   deleteCollection,
   deleteProduct,
   fetchAdminCollections,
+  fetchAllInvoices,
   fetchDeliveries,
   fetchPendingComments,
   rejectComment,
@@ -81,6 +82,8 @@ export default function AdminPage() {
   const [editingCollectionId, setEditingCollectionId] = useState(null);
   const [pendingComments, setPendingComments] = useState([]);
   const [actingCommentId, setActingCommentId] = useState(null);
+  const [invoices, setInvoices] = useState([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
 
   const loadAdminData = useCallback(async function loadAdminData() {
     setLoading(true);
@@ -112,9 +115,22 @@ export default function AdminPage() {
     }
   }, [toast]);
 
+  const loadInvoices = useCallback(async function loadInvoices() {
+    setLoadingInvoices(true);
+    try {
+      const data = await fetchAllInvoices();
+      setInvoices(data);
+    } catch (err) {
+      toast.error(err.message || "Failed to load invoices.", { title: "Invoice error" });
+    } finally {
+      setLoadingInvoices(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
     loadAdminData();
-  }, [loadAdminData]);
+    loadInvoices();
+  }, [loadAdminData, loadInvoices]);
 
   const sortedProducts = useMemo(
     () => [...products].sort((a, b) => b.id - a.id),
@@ -786,6 +802,53 @@ export default function AdminPage() {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="account-card">
+          <div className="customer-page-head" style={{ borderBottom: "none", marginBottom: "0.5rem", paddingBottom: 0 }}>
+            <h2 className="account-card-title" style={{ marginBottom: 0 }}>Invoices</h2>
+            <p className="section-subtitle">All customer orders — order date, customer, and total.</p>
+          </div>
+
+          {loadingInvoices ? (
+            <p className="section-subtitle">Loading invoices...</p>
+          ) : invoices.length === 0 ? (
+            <div className="customer-empty">
+              <h3 className="customer-empty-title">No invoices yet</h3>
+              <p className="customer-empty-text">Invoices appear here once customers place orders.</p>
+            </div>
+          ) : (
+            <div className="admin-delivery-table-wrap">
+              <table className="admin-delivery-table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Order Date</th>
+                    <th>Customer</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map((invoice) => (
+                    <tr key={invoice.orderId}>
+                      <td>#{invoice.orderId}</td>
+                      <td>{invoice.createdAt?.slice(0, 10)}</td>
+                      <td>{invoice.customerName}</td>
+                      <td>{invoice.customerEmail}</td>
+                      <td>
+                        <span className={`order-status order-status--${(invoice.status || "processing").toLowerCase().replace(/_/g, "-")}`}>
+                          {(invoice.status || "processing").toLowerCase().replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td>${Number(invoice.totalPrice).toFixed(2)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

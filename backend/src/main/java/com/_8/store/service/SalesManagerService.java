@@ -4,6 +4,7 @@ import com._8.store.dto.AnalyticsPointResponse;
 import com._8.store.dto.DiscountedProductResponse;
 import com._8.store.dto.InvoiceSummaryResponse;
 import com._8.store.dto.SalesAnalyticsResponse;
+import com._8.store.dto.SetBasePriceResponse;
 import com._8.store.entity.Order;
 import com._8.store.entity.OrderItem;
 import com._8.store.entity.OrderStatus;
@@ -108,6 +109,50 @@ public class SalesManagerService {
 
         productRepository.saveAll(products);
         return responses;
+    }
+
+    @Transactional
+    public SetBasePriceResponse setBasePrice(Long productId, BigDecimal basePrice) {
+        if (basePrice == null || basePrice.signum() <= 0) {
+            throw new IllegalArgumentException("Base price must be greater than zero.");
+        }
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found."));
+
+        BigDecimal roundedBase = basePrice.setScale(2, RoundingMode.HALF_UP);
+        product.setOriginalPrice(roundedBase);
+
+        BigDecimal discountRate = product.getDiscountRate();
+        BigDecimal sellingPrice;
+        if (discountRate != null && discountRate.signum() > 0) {
+            sellingPrice = roundedBase
+                    .multiply(BigDecimal.ONE.subtract(discountRate.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP)))
+                    .setScale(2, RoundingMode.HALF_UP);
+        } else {
+            sellingPrice = roundedBase;
+            product.setDiscountRate(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+        }
+
+        product.setPrice(sellingPrice);
+        productRepository.save(product);
+
+        BigDecimal effectiveRate = (discountRate != null ? discountRate : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        return new SetBasePriceResponse(product.getId(), product.getName(), roundedBase, sellingPrice, effectiveRate);
+    }
+
+    @Transactional(readOnly = true)
+    public List<InvoiceSummaryResponse> getAllInvoices() {
+        return orderRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(order -> new InvoiceSummaryResponse(
+                        order.getId(),
+                        order.getUser().getName(),
+                        order.getUser().getEmail(),
+                        order.getCreatedAt(),
+                        (order.getStatus() != null ? order.getStatus() : OrderStatus.PROCESSING).name(),
+                        order.getTotalPrice()
+                ))
+                .toList();
     }
 
     @Transactional(readOnly = true)

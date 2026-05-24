@@ -9,6 +9,7 @@ import {
   fetchInvoicePdfForManager,
   fetchInvoices,
   fetchOrders,
+  setBasePrice,
 } from "../services/salesManagerApi";
 
 function normalizeOrderStatus(status) {
@@ -19,22 +20,24 @@ function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getChartPoints(points, key, width = 620, height = 240, padding = 24) {
-  if (!points || points.length === 0) {
-    return "";
-  }
-
+function computeChartCoords(points, key, width = 620, height = 240, padding = 24) {
+  if (!points || points.length === 0) return [];
   const values = points.map((point) => Number(point[key]));
   const minValue = Math.min(...values, 0);
   const maxValue = Math.max(...values, 1);
   const span = Math.max(maxValue - minValue, 1);
+  return points.map((point, index) => {
+    const x = points.length === 1
+      ? width / 2
+      : padding + (index * (width - padding * 2)) / (points.length - 1);
+    const y = height - padding - ((Number(point[key]) - minValue) / span) * (height - padding * 2);
+    return { x, y };
+  });
+}
 
-  return points
-    .map((point, index) => {
-      const x = padding + (index * (width - padding * 2)) / Math.max(points.length - 1, 1);
-      const y = height - padding - ((Number(point[key]) - minValue) / span) * (height - padding * 2);
-      return `${x},${y}`;
-    })
+function getChartPoints(points, key, width = 620, height = 240, padding = 24) {
+  return computeChartCoords(points, key, width, height, padding)
+    .map(({ x, y }) => `${x},${y}`)
     .join(" ");
 }
 
@@ -53,6 +56,8 @@ export default function DashboardPage() {
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [savingDiscount, setSavingDiscount] = useState(false);
+  const [basePriceInputs, setBasePriceInputs] = useState({});
+  const [savingPriceId, setSavingPriceId] = useState(null);
   const [error, setError] = useState("");
   const [orderError, setOrderError] = useState("");
   const [invoiceError, setInvoiceError] = useState("");
@@ -154,6 +159,28 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleSetBasePrice(productId, basePriceStr) {
+    const basePrice = Number(basePriceStr);
+    if (!basePrice || basePrice <= 0) return;
+    setSavingPriceId(productId);
+    try {
+      await setBasePrice(productId, basePrice);
+      const refreshedProducts = await fetchProducts();
+      setProducts(refreshedProducts);
+      setBasePriceInputs((prev) => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+      toast.success("Base price updated.", { title: "Price updated" });
+    } catch (priceError) {
+      const message = priceError.message || "Failed to update base price.";
+      toast.error(message, { title: "Price error" });
+    } finally {
+      setSavingPriceId(null);
+    }
+  }
+
   async function handleApplyDiscount(event) {
     event.preventDefault();
     setSavingDiscount(true);
@@ -211,6 +238,26 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleDownloadInvoice(orderId) {
+    setInvoiceError("");
+    try {
+      const invoiceBlob = await fetchInvoicePdfForManager(orderId);
+      const invoiceUrl = window.URL.createObjectURL(invoiceBlob);
+      const link = document.createElement("a");
+      link.href = invoiceUrl;
+      link.download = `invoice-order-${orderId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.setTimeout(() => window.URL.revokeObjectURL(invoiceUrl), 10000);
+      toast.info("Invoice download started.", { title: "Downloading" });
+    } catch (downloadError) {
+      const message = downloadError.message || "Invoice could not be downloaded.";
+      setInvoiceError(message);
+      toast.error(message, { title: "Invoice error" });
+    }
+  }
+
   function toggleProductSelection(productId) {
     setSelectedProductIds((prev) =>
       prev.includes(productId)
@@ -258,19 +305,48 @@ export default function DashboardPage() {
                   />
                 </label>
 
-                <div style={{ display: "grid", gap: "0.75rem", maxHeight: 280, overflow: "auto" }}>
+                <div style={{ display: "grid", gap: "0.75rem", maxHeight: 360, overflow: "auto" }}>
                   {products.map((product) => (
-                    <label key={product.id} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "center", padding: "0.75rem 0.9rem", borderRadius: 12, background: "rgba(0,0,0,0.03)" }}>
-                      <span>
-                        {product.name} · ${Number(product.price).toFixed(2)}
-                        {product.discountRate > 0 ? ` · ${product.discountRate}% off` : ""}
+                    <div key={product.id} style={{ display: "flex", gap: "0.75rem", alignItems: "center", padding: "0.75rem 0.9rem", borderRadius: 12, background: "rgba(0,0,0,0.03)", flexWrap: "wrap" }}>
+                      <span style={{ flex: 1, minWidth: 140 }}>
+                        <span style={{ fontWeight: 500 }}>{product.name}</span>
+                        <br />
+                        <small>
+                          ${Number(product.price).toFixed(2)}
+                          {product.discountRate > 0
+                            ? ` · ${Number(product.discountRate).toFixed(0)}% off (base $${Number(product.originalPrice || product.price).toFixed(2)})`
+                            : ""}
+                        </small>
                       </span>
-                      <input
-                        type="checkbox"
-                        checked={selectedProductIds.includes(product.id)}
-                        onChange={() => toggleProductSelection(product.id)}
-                      />
-                    </label>
+                      <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="Base price"
+                          value={basePriceInputs[product.id] ?? ""}
+                          onChange={(e) => setBasePriceInputs((prev) => ({ ...prev, [product.id]: e.target.value }))}
+                          style={{ width: 100, padding: "0.35rem 0.55rem", borderRadius: 8, border: "1px solid rgba(0,0,0,0.15)", fontSize: "0.85rem" }}
+                        />
+                        <button
+                          type="button"
+                          className="wishlist-secondary-btn"
+                          onClick={() => handleSetBasePrice(product.id, basePriceInputs[product.id])}
+                          disabled={!basePriceInputs[product.id] || savingPriceId === product.id}
+                          style={{ padding: "0.35rem 0.7rem", fontSize: "0.8rem" }}
+                        >
+                          {savingPriceId === product.id ? "..." : "Set Price"}
+                        </button>
+                      </div>
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.includes(product.id)}
+                          onChange={() => toggleProductSelection(product.id)}
+                        />
+                        <span style={{ fontSize: "0.8rem" }}>Discount</span>
+                      </label>
+                    </div>
                   ))}
                 </div>
 
@@ -315,9 +391,14 @@ export default function DashboardPage() {
                           {invoice.customerName} · {invoice.createdAt?.slice(0, 10)} · ${Number(invoice.totalPrice).toFixed(2)}
                         </p>
                       </div>
-                      <button className="wishlist-secondary-btn" onClick={() => handleOpenInvoice(invoice.orderId)}>
-                        Open PDF
-                      </button>
+                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <button className="wishlist-secondary-btn" onClick={() => handleOpenInvoice(invoice.orderId)}>
+                          Open PDF
+                        </button>
+                        <button className="wishlist-secondary-btn" onClick={() => handleDownloadInvoice(invoice.orderId)}>
+                          Download PDF
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}
@@ -351,6 +432,15 @@ export default function DashboardPage() {
                     <polyline fill="none" stroke="#1d4ed8" strokeWidth="3" points={getChartPoints(analytics.points, "revenue")} />
                     <polyline fill="none" stroke="#dc2626" strokeWidth="3" points={getChartPoints(analytics.points, "cost")} />
                     <polyline fill="none" stroke="#15803d" strokeWidth="3" points={getChartPoints(analytics.points, "profit")} />
+                    {computeChartCoords(analytics.points, "revenue").map(({ x, y }, i) => (
+                      <circle key={`rev-${i}`} cx={x} cy={y} r="4" fill="#1d4ed8" />
+                    ))}
+                    {computeChartCoords(analytics.points, "cost").map(({ x, y }, i) => (
+                      <circle key={`cost-${i}`} cx={x} cy={y} r="4" fill="#dc2626" />
+                    ))}
+                    {computeChartCoords(analytics.points, "profit").map(({ x, y }, i) => (
+                      <circle key={`profit-${i}`} cx={x} cy={y} r="4" fill="#15803d" />
+                    ))}
                   </svg>
 
                   <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>

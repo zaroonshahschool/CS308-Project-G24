@@ -57,6 +57,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/returns").hasRole("SALES_MANAGER")
                         .requestMatchers(HttpMethod.GET, "/api/returns/pending").hasRole("SALES_MANAGER")
                         .requestMatchers(HttpMethod.PATCH, "/api/returns/*/approve", "/api/returns/*/reject").hasRole("SALES_MANAGER")
+                        .requestMatchers(HttpMethod.GET, "/api/deliveries").hasRole("PRODUCT_MANAGER")
                         .requestMatchers("/api/admin/**").hasRole("PRODUCT_MANAGER")
                         .requestMatchers("/api/product-manager/**").hasRole("PRODUCT_MANAGER")
                         .requestMatchers("/api/sales-manager/**").hasRole("SALES_MANAGER")

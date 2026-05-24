@@ -1,7 +1,9 @@
 package com._8.store.controller;
 
 import com._8.store.dto.CommentResponse;
+import com._8.store.dto.InvoiceSummaryResponse;
 import com._8.store.service.CommentService;
+import com._8.store.service.SalesManagerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,14 +19,21 @@ import java.util.Map;
 public class ProductManagerController {
 
     private final CommentService commentService;
+    private final SalesManagerService salesManagerService;
 
-    public ProductManagerController(CommentService commentService) {
+    public ProductManagerController(CommentService commentService, SalesManagerService salesManagerService) {
         this.commentService = commentService;
+        this.salesManagerService = salesManagerService;
     }
 
     @GetMapping("/products")
     public Map<String, String> products() {
         return Map.of("message", "Product manager placeholder endpoint.");
+    }
+
+    @GetMapping("/invoices")
+    public ResponseEntity<List<InvoiceSummaryResponse>> getAllInvoices() {
+        return ResponseEntity.ok(salesManagerService.getAllInvoices());
     }
 
     @GetMapping("/comments")

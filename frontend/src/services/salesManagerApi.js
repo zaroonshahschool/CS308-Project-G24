@@ -8,6 +8,13 @@ export async function advanceOrderStatus(orderId) {
   return apiFetch(`/api/sales-manager/orders/${orderId}/advance-status`, { method: "PUT" });
 }
 
+export async function setBasePrice(productId, basePrice) {
+  return apiFetch(`/api/sales-manager/products/${productId}/price`, {
+    method: "PUT",
+    body: JSON.stringify({ basePrice }),
+  });
+}
+
 export async function applyDiscount(discountRate, productIds) {
   return apiFetch("/api/sales-manager/discounts", {
     method: "POST",
