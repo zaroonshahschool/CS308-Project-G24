@@ -9,6 +9,7 @@ import {
   fetchInvoicePdfForManager,
   fetchInvoices,
   fetchOrders,
+  removeDiscount,
   setBasePrice,
 } from "../services/salesManagerApi";
 
@@ -58,6 +59,7 @@ export default function DashboardPage() {
   const [savingDiscount, setSavingDiscount] = useState(false);
   const [basePriceInputs, setBasePriceInputs] = useState({});
   const [savingPriceId, setSavingPriceId] = useState(null);
+  const [removingDiscountId, setRemovingDiscountId] = useState(null);
   const [error, setError] = useState("");
   const [orderError, setOrderError] = useState("");
   const [invoiceError, setInvoiceError] = useState("");
@@ -207,6 +209,25 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleRemoveDiscount(productId) {
+    setRemovingDiscountId(productId);
+    setError("");
+
+    try {
+      await removeDiscount(productId);
+      const refreshedProducts = await fetchProducts();
+      setProducts(refreshedProducts);
+      setSelectedProductIds((prev) => prev.filter((id) => id !== productId));
+      toast.success("Discount removed.", { title: "Discount updated" });
+    } catch (discountError) {
+      const message = discountError.message || "Failed to remove discount.";
+      setError(message);
+      toast.error(message, { title: "Discount error" });
+    } finally {
+      setRemovingDiscountId(null);
+    }
+  }
+
   async function handleRangeSubmit(event) {
     event.preventDefault();
     await Promise.all([
@@ -337,6 +358,17 @@ export default function DashboardPage() {
                         >
                           {savingPriceId === product.id ? "..." : "Set Price"}
                         </button>
+                        {product.discountRate > 0 ? (
+                          <button
+                            type="button"
+                            className="wishlist-secondary-btn"
+                            onClick={() => handleRemoveDiscount(product.id)}
+                            disabled={removingDiscountId === product.id}
+                            style={{ padding: "0.35rem 0.7rem", fontSize: "0.8rem" }}
+                          >
+                            {removingDiscountId === product.id ? "..." : "Remove Discount"}
+                          </button>
+                        ) : null}
                       </div>
                       <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }}>
                         <input

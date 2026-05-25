@@ -83,6 +83,11 @@ public class SalesManagerController {
         return ResponseEntity.ok(salesManagerService.applyDiscount(request.discountRate(), request.productIds()));
     }
 
+    @DeleteMapping("/products/{productId}/discount")
+    public ResponseEntity<SetBasePriceResponse> removeDiscount(@PathVariable Long productId) {
+        return ResponseEntity.ok(salesManagerService.removeDiscount(productId));
+    }
+
     @GetMapping("/invoices")
     public ResponseEntity<List<InvoiceSummaryResponse>> getInvoices(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,

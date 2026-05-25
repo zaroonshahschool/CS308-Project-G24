@@ -22,6 +22,10 @@ export async function applyDiscount(discountRate, productIds) {
   });
 }
 
+export async function removeDiscount(productId) {
+  return apiFetch(`/api/sales-manager/products/${productId}/discount`, { method: "DELETE" });
+}
+
 export async function fetchInvoices(from, to) {
   const query = new URLSearchParams({ from, to });
   return apiFetch(`/api/sales-manager/invoices?${query.toString()}`);
