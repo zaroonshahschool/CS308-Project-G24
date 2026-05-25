@@ -1,43 +1,46 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { fetchProducts } from "../services/catalogApi";
 import {
-  advanceOrderStatus,
   applyDiscount,
   fetchAnalytics,
   fetchInvoicePdfForManager,
   fetchInvoices,
-  fetchOrders,
   removeDiscount,
   setBasePrice,
 } from "../services/salesManagerApi";
-
-function normalizeOrderStatus(status) {
-  return (status || "PROCESSING").toLowerCase().replace(/_/g, "-");
-}
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function computeChartCoords(points, key, width = 620, height = 240, padding = 24) {
+function toCumulative(points) {
+  let sumRevenue = 0, sumCost = 0, sumProfit = 0;
+  return points.map((p) => {
+    sumRevenue += Number(p.revenue);
+    sumCost += Number(p.cost);
+    sumProfit += Number(p.profit);
+    return { ...p, revenue: sumRevenue, cost: sumCost, profit: sumProfit };
+  });
+}
+
+function computeChartCoords(points, key, globalMin, globalMax, { width = 620, height = 240, padLeft = 24, padRight = 24, padTop = 24, padBottom = 24 } = {}) {
   if (!points || points.length === 0) return [];
-  const values = points.map((point) => Number(point[key]));
-  const minValue = Math.min(...values, 0);
-  const maxValue = Math.max(...values, 1);
-  const span = Math.max(maxValue - minValue, 1);
+  const span = Math.max(globalMax - globalMin, 1);
+  const plotW = width - padLeft - padRight;
+  const plotH = height - padTop - padBottom;
   return points.map((point, index) => {
     const x = points.length === 1
-      ? width / 2
-      : padding + (index * (width - padding * 2)) / (points.length - 1);
-    const y = height - padding - ((Number(point[key]) - minValue) / span) * (height - padding * 2);
+      ? padLeft + plotW / 2
+      : padLeft + (index * plotW) / (points.length - 1);
+    const y = padTop + plotH - ((Number(point[key]) - globalMin) / span) * plotH;
     return { x, y };
   });
 }
 
-function getChartPoints(points, key, width = 620, height = 240, padding = 24) {
-  return computeChartCoords(points, key, width, height, padding)
+function getChartPoints(points, key, globalMin, globalMax, layout = {}) {
+  return computeChartCoords(points, key, globalMin, globalMax, layout)
     .map(({ x, y }) => `${x},${y}`)
     .join(" ");
 }
@@ -45,15 +48,14 @@ function getChartPoints(points, key, width = 620, height = 240, padding = 24) {
 export default function DashboardPage() {
   const toast = useToast();
   const [today] = useState(getToday);
-  const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [discountRate, setDiscountRate] = useState("");
   const [discountMessage, setDiscountMessage] = useState("");
   const [invoiceRange, setInvoiceRange] = useState({ from: today, to: today });
+  const [analyticsRange, setAnalyticsRange] = useState({ from: today, to: today });
   const [invoices, setInvoices] = useState([]);
   const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [savingDiscount, setSavingDiscount] = useState(false);
@@ -61,9 +63,9 @@ export default function DashboardPage() {
   const [savingPriceId, setSavingPriceId] = useState(null);
   const [removingDiscountId, setRemovingDiscountId] = useState(null);
   const [error, setError] = useState("");
-  const [orderError, setOrderError] = useState("");
   const [invoiceError, setInvoiceError] = useState("");
-  const [actingOrderId, setActingOrderId] = useState(null);
+  const [invoicesPage, setInvoicesPage] = useState(0);
+  const [cumulativeChart, setCumulativeChart] = useState(false);
 
   const role = window.localStorage.getItem("auth_role");
   const isSalesManager = role === "SALES_MANAGER";
@@ -99,36 +101,15 @@ export default function DashboardPage() {
   }, [toast]);
 
   useEffect(() => {
-    if (!isSalesManager) {
-      setLoading(false);
-      return;
-    }
+    if (!isSalesManager) return;
 
-    const sections = [
-      { key: "orders", loader: fetchOrders, apply: setOrders, fallback: [] },
-      { key: "products", loader: fetchProducts, apply: setProducts, fallback: [] },
-    ];
-
-    Promise.allSettled(sections.map((section) => section.loader()))
-      .then((results) => {
-        const failures = [];
-        results.forEach((result, index) => {
-          const section = sections[index];
-          if (result.status === "fulfilled") {
-            section.apply(result.value);
-          } else {
-            section.apply(section.fallback);
-            failures.push(`${section.key} (${result.reason?.message || "unknown error"})`);
-          }
-        });
-
-        if (failures.length > 0) {
-          const message = `Could not load: ${failures.join(", ")}`;
-          setError(message);
-          toast.error(message, { title: "Dashboard load error" });
-        }
-      })
-      .finally(() => setLoading(false));
+    fetchProducts()
+      .then(setProducts)
+      .catch((err) => {
+        const message = err.message || "Could not load products.";
+        setError(message);
+        toast.error(message, { title: "Dashboard load error" });
+      });
   }, [isSalesManager, toast]);
 
   useEffect(() => {
@@ -140,26 +121,16 @@ export default function DashboardPage() {
     loadAnalytics(today, today);
   }, [isSalesManager, loadAnalytics, loadInvoices, today]);
 
-  async function handleAdvanceOrder(orderId) {
-    setOrderError("");
-    setActingOrderId(orderId);
+  const ITEMS_PER_PAGE = 5;
 
-    try {
-      const updatedOrder = await advanceOrderStatus(orderId);
-      setOrders((prev) =>
-        prev.map((order) => (order.orderId === updatedOrder.orderId ? updatedOrder : order))
-      );
-      toast.success(`Order #${orderId} moved to ${normalizeOrderStatus(updatedOrder.status)}.`, {
-        title: "Order updated",
-      });
-    } catch (advanceError) {
-      const message = advanceError.message || "Failed to advance order status.";
-      setOrderError(message);
-      toast.error(message, { title: "Order error" });
-    } finally {
-      setActingOrderId(null);
-    }
-  }
+  const pagedInvoices = useMemo(() => {
+    const start = invoicesPage * ITEMS_PER_PAGE;
+    return invoices.slice(start, start + ITEMS_PER_PAGE);
+  }, [invoices, invoicesPage]);
+
+  const invoicesTotalPages = Math.max(1, Math.ceil(invoices.length / ITEMS_PER_PAGE));
+
+  useEffect(() => { setInvoicesPage(0); }, [invoices]);
 
   async function handleSetBasePrice(productId, basePriceStr) {
     const basePrice = Number(basePriceStr);
@@ -230,10 +201,12 @@ export default function DashboardPage() {
 
   async function handleRangeSubmit(event) {
     event.preventDefault();
-    await Promise.all([
-      loadInvoices(invoiceRange.from, invoiceRange.to),
-      loadAnalytics(invoiceRange.from, invoiceRange.to),
-    ]);
+    await loadInvoices(invoiceRange.from, invoiceRange.to);
+  }
+
+  async function handleAnalyticsRangeSubmit(event) {
+    event.preventDefault();
+    await loadAnalytics(analyticsRange.from, analyticsRange.to);
   }
 
   async function handleOpenInvoice(orderId) {
@@ -414,7 +387,7 @@ export default function DashboardPage() {
               {!loadingInvoices && invoices.length === 0 ? <p className="section-subtitle">No invoices found in this range.</p> : null}
 
               <div style={{ display: "grid", gap: "0.75rem" }}>
-                {invoices.map((invoice) => (
+                {pagedInvoices.map((invoice) => (
                   <article key={invoice.orderId} className="order-card">
                     <div className="order-card-head">
                       <div>
@@ -435,11 +408,48 @@ export default function DashboardPage() {
                   </article>
                 ))}
               </div>
+              {invoicesTotalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    className="pagination-btn"
+                    disabled={invoicesPage === 0}
+                    onClick={() => setInvoicesPage((p) => p - 1)}
+                  >
+                    ← Prev
+                  </button>
+                  <span className="pagination-info">
+                    Page {invoicesPage + 1} of {invoicesTotalPages}
+                  </span>
+                  <button
+                    className="pagination-btn"
+                    disabled={invoicesPage >= invoicesTotalPages - 1}
+                    onClick={() => setInvoicesPage((p) => p + 1)}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="account-card">
               <h2 className="account-card-title">Revenue and Profit</h2>
               <p className="section-subtitle">Revenue, cost, and profit are calculated over the selected date range.</p>
+
+              <form onSubmit={handleAnalyticsRangeSubmit} style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem" }}>
+                <input
+                  type="date"
+                  value={analyticsRange.from}
+                  onChange={(e) => setAnalyticsRange((prev) => ({ ...prev, from: e.target.value }))}
+                />
+                <input
+                  type="date"
+                  value={analyticsRange.to}
+                  onChange={(e) => setAnalyticsRange((prev) => ({ ...prev, to: e.target.value }))}
+                />
+                <button className="btn-primary" type="submit" disabled={loadingAnalytics}>
+                  {loadingAnalytics ? "Loading..." : "Load Range"}
+                </button>
+              </form>
 
               {loadingAnalytics ? <p className="section-subtitle">Loading analytics...</p> : null}
 
@@ -460,87 +470,104 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <svg viewBox="0 0 620 240" style={{ width: "100%", height: "auto", borderRadius: 16, background: "linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.01))" }}>
-                    <polyline fill="none" stroke="#1d4ed8" strokeWidth="3" points={getChartPoints(analytics.points, "revenue")} />
-                    <polyline fill="none" stroke="#dc2626" strokeWidth="3" points={getChartPoints(analytics.points, "cost")} />
-                    <polyline fill="none" stroke="#15803d" strokeWidth="3" points={getChartPoints(analytics.points, "profit")} />
-                    {computeChartCoords(analytics.points, "revenue").map(({ x, y }, i) => (
-                      <circle key={`rev-${i}`} cx={x} cy={y} r="4" fill="#1d4ed8" />
-                    ))}
-                    {computeChartCoords(analytics.points, "cost").map(({ x, y }, i) => (
-                      <circle key={`cost-${i}`} cx={x} cy={y} r="4" fill="#dc2626" />
-                    ))}
-                    {computeChartCoords(analytics.points, "profit").map(({ x, y }, i) => (
-                      <circle key={`profit-${i}`} cx={x} cy={y} r="4" fill="#15803d" />
-                    ))}
-                  </svg>
+                  {(() => {
+                    const chartPoints = cumulativeChart ? toCumulative(analytics.points) : analytics.points;
+                    const allValues = chartPoints.flatMap((p) => [Number(p.revenue), Number(p.cost), Number(p.profit)]);
+                    const globalMin = Math.min(0, ...allValues);
+                    const globalMax = Math.max(1, ...allValues);
 
-                  <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+                    const W = 620, H = 260;
+                    const padLeft = 62, padRight = 16, padTop = 16, padBottom = 44;
+                    const plotW = W - padLeft - padRight;
+                    const plotH = H - padTop - padBottom;
+                    const layout = { width: W, height: H, padLeft, padRight, padTop, padBottom };
+                    const span = Math.max(globalMax - globalMin, 1);
+
+                    const Y_TICKS = 5;
+                    const yTicks = Array.from({ length: Y_TICKS }, (_, i) => {
+                      const val = globalMin + (i / (Y_TICKS - 1)) * span;
+                      const y = padTop + plotH - ((val - globalMin) / span) * plotH;
+                      return { val, y };
+                    });
+
+                    const formatMoney = (val) => {
+                      const abs = Math.abs(val);
+                      const sign = val < 0 ? "-" : "";
+                      if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(1)}k`;
+                      return `${sign}$${Math.round(abs)}`;
+                    };
+
+                    const formatAxisDate = (dateStr) => {
+                      if (!dateStr) return "";
+                      const parts = String(dateStr).split("-");
+                      return `${parts[1]}/${parts[2]}`;
+                    };
+
+                    const maxXLabels = 7;
+                    const xStep = Math.max(1, Math.ceil(chartPoints.length / maxXLabels));
+
+                    return (
+                      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", borderRadius: 16, background: "linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.01))" }}>
+                        {/* Horizontal grid lines + Y labels */}
+                        {yTicks.map(({ val, y }) => (
+                          <g key={val}>
+                            <line x1={padLeft} y1={y} x2={padLeft + plotW} y2={y} stroke="#e5e7eb" strokeWidth="1" />
+                            <text x={padLeft - 6} y={y} textAnchor="end" dominantBaseline="middle" fontSize="10" fill="#9ca3af">
+                              {formatMoney(val)}
+                            </text>
+                          </g>
+                        ))}
+
+                        {/* X axis baseline */}
+                        <line x1={padLeft} y1={padTop + plotH} x2={padLeft + plotW} y2={padTop + plotH} stroke="#d1d5db" strokeWidth="1" />
+
+                        {/* X axis date labels */}
+                        {chartPoints.map((p, i) => {
+                          if (i % xStep !== 0 && i !== chartPoints.length - 1) return null;
+                          const x = chartPoints.length === 1
+                            ? padLeft + plotW / 2
+                            : padLeft + (i * plotW) / (chartPoints.length - 1);
+                          return (
+                            <text key={i} x={x} y={padTop + plotH + 14} textAnchor="middle" fontSize="10" fill="#9ca3af">
+                              {formatAxisDate(p.date)}
+                            </text>
+                          );
+                        })}
+
+                        {/* Data lines */}
+                        <polyline fill="none" stroke="#1d4ed8" strokeWidth="2.5" points={getChartPoints(chartPoints, "revenue", globalMin, globalMax, layout)} />
+                        <polyline fill="none" stroke="#dc2626" strokeWidth="2.5" points={getChartPoints(chartPoints, "cost", globalMin, globalMax, layout)} />
+                        <polyline fill="none" stroke="#15803d" strokeWidth="2.5" points={getChartPoints(chartPoints, "profit", globalMin, globalMax, layout)} />
+
+                        {/* Data point circles */}
+                        {computeChartCoords(chartPoints, "revenue", globalMin, globalMax, layout).map(({ x, y }, i) => (
+                          <circle key={`rev-${i}`} cx={x} cy={y} r="3.5" fill="#1d4ed8" />
+                        ))}
+                        {computeChartCoords(chartPoints, "cost", globalMin, globalMax, layout).map(({ x, y }, i) => (
+                          <circle key={`cost-${i}`} cx={x} cy={y} r="3.5" fill="#dc2626" />
+                        ))}
+                        {computeChartCoords(chartPoints, "profit", globalMin, globalMax, layout).map(({ x, y }, i) => (
+                          <circle key={`profit-${i}`} cx={x} cy={y} r="3.5" fill="#15803d" />
+                        ))}
+                      </svg>
+                    );
+                  })()}
+
+                  <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
                     <span className="order-meta">Blue: Revenue</span>
                     <span className="order-meta">Red: Cost</span>
                     <span className="order-meta">Green: Profit/Loss</span>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }} className="order-meta">
+                      <input
+                        type="checkbox"
+                        checked={cumulativeChart}
+                        onChange={(e) => setCumulativeChart(e.target.checked)}
+                      />
+                      Cumulative
+                    </label>
                   </div>
                 </div>
               ) : null}
-            </div>
-
-            <div className="account-card">
-              <h2 className="account-card-title">Order Progression</h2>
-
-              {orderError && <p style={{ color: "red", marginBottom: "1rem" }}>{orderError}</p>}
-              {loading && <p className="section-subtitle">Loading...</p>}
-              {!loading && orders.length === 0 && <p className="section-subtitle">No orders found.</p>}
-
-              {orders.map((order) => {
-                const status = normalizeOrderStatus(order.status);
-                const canAdvance = status === "processing" || status === "in-transit";
-                const nextLabel = status === "processing"
-                  ? "Move to In-Transit"
-                  : status === "in-transit"
-                    ? "Mark as Delivered"
-                    : null;
-
-                return (
-                  <article key={order.orderId} className="order-card" style={{ marginBottom: "1rem" }}>
-                    <div className="order-card-head">
-                      <div>
-                        <p className="order-item-name">Order #{order.orderId}</p>
-                        <p className="order-meta">
-                          {order.userName} · {order.createdAt?.slice(0, 10)} · ${Number(order.totalPrice).toFixed(2)}
-                        </p>
-                      </div>
-                      <div className={`order-status order-status--${status}`}>
-                        {status}
-                      </div>
-                    </div>
-
-                    <div className="order-items">
-                      {order.items.map((item) => (
-                        <div key={`${order.orderId}-${item.productId}`} className="order-item-row">
-                          <div>
-                            <p className="order-item-name">{item.productName}</p>
-                            <p className="order-item-meta">Qty {item.quantity}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {canAdvance ? (
-                      <div className="order-card-footer">
-                        <div className="order-card-actions">
-                          <button
-                            className="btn-primary"
-                            onClick={() => handleAdvanceOrder(order.orderId)}
-                            disabled={actingOrderId === order.orderId}
-                          >
-                            {actingOrderId === order.orderId ? "Updating..." : nextLabel}
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
             </div>
 
             <div className="account-card">

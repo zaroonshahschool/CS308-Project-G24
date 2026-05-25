@@ -43,11 +43,6 @@ public class SalesManagerController {
         return ResponseEntity.ok(orderService.getAllOrders());
     }
 
-    @PutMapping("/orders/{orderId}/advance-status")
-    public ResponseEntity<OrderResponse> advanceOrderStatus(@PathVariable Long orderId) {
-        return ResponseEntity.ok(orderService.advanceOrderStatus(orderId));
-    }
-
     @PutMapping("/products/{productId}/price")
     public ResponseEntity<SetBasePriceResponse> setBasePrice(
             @PathVariable Long productId,

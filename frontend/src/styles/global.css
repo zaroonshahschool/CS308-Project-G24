@@ -259,6 +259,58 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   font-family: var(--sans);
 }
 
+/* ── NOTIFICATION DROPDOWN ── */
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+  z-index: 400;
+}
+.notif-dropdown-title {
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  margin: 0;
+}
+.notif-empty {
+  font-size: 13px;
+  color: var(--text-mid);
+  padding: 16px;
+  margin: 0;
+}
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.notif-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-item--unread { background: #faf9f5; }
+.notif-message {
+  font-size: 13px;
+  color: var(--dark);
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+.notif-date {
+  font-size: 11px;
+  color: var(--text-mid);
+  margin: 0;
+}
+
 /* ── NAV ── */
 .nav {
   background: #fff;
@@ -2362,6 +2414,37 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   background: #dde9df;
   color: #315a39;
 }
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0 0.25rem;
+}
+.pagination-btn {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-mid);
+  padding: 6px 14px;
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.pagination-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.pagination-btn:not(:disabled):hover {
+  background: var(--cream);
+}
+.pagination-info {
+  font-size: 12px;
+  color: var(--text-mid);
+  min-width: 90px;
+  text-align: center;
+}
 .admin-product-list {
   display: grid;
   gap: 14px;
@@ -2564,7 +2647,7 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   padding: 0.5rem 1.25rem;
   border: 1px solid var(--border);
   background: transparent;
-  color: var(--text);
+  color: var(--dark);
   font-size: 0.85rem;
   cursor: pointer;
   border-radius: 4px;
@@ -2572,7 +2655,7 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
 }
 
 .catalog-page-btn:hover:not(:disabled) {
-  background: var(--surface);
+  background: var(--cream);
 }
 
 .catalog-page-btn:disabled {

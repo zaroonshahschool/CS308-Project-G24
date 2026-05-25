@@ -38,19 +38,22 @@ public class SalesManagerService {
     private final OrderRepository orderRepository;
     private final InvoicePdfService invoicePdfService;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     public SalesManagerService(
             ProductRepository productRepository,
             UserRepository userRepository,
             OrderRepository orderRepository,
             InvoicePdfService invoicePdfService,
-            EmailService emailService
+            EmailService emailService,
+            NotificationService notificationService
     ) {
         this.productRepository = productRepository;
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
         this.invoicePdfService = invoicePdfService;
         this.emailService = emailService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -83,13 +86,19 @@ public class SalesManagerService {
             int notifiedUsers = 0;
 
             for (User user : usersToNotify) {
+                String discountPct = discountRate.setScale(0, RoundingMode.HALF_UP).toPlainString();
+                String formattedPrice = newPrice.setScale(2, RoundingMode.HALF_UP).toPlainString();
+                notificationService.createNotification(
+                        user,
+                        product.getName() + " in your wishlist is now " + discountPct + "% off - new price: $" + formattedPrice
+                );
                 try {
                     emailService.sendDiscountEmail(
                             user.getEmail(),
                             user.getName(),
                             product.getName(),
                             discountRate.setScale(2, RoundingMode.HALF_UP).toPlainString(),
-                            newPrice.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                            formattedPrice
                     );
                     notifiedUsers++;
                 } catch (RuntimeException exception) {

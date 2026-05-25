@@ -86,6 +86,8 @@ export default function AdminPage() {
   const [invoices, setInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [uploadingFor, setUploadingFor] = useState(null);
+  const [deliveriesPage, setDeliveriesPage] = useState(0);
+  const [invoicesPage, setInvoicesPage] = useState(0);
 
   const loadAdminData = useCallback(async function loadAdminData() {
     setLoading(true);
@@ -144,6 +146,22 @@ export default function AdminPage() {
     const completed = deliveries.filter((row) => row.completed).length;
     return { pending, completed, total: deliveries.length };
   }, [deliveries]);
+
+  const ITEMS_PER_PAGE = 5;
+
+  const pagedDeliveries = useMemo(() => {
+    const start = deliveriesPage * ITEMS_PER_PAGE;
+    return deliveries.slice(start, start + ITEMS_PER_PAGE);
+  }, [deliveries, deliveriesPage]);
+
+  const deliveriesTotalPages = Math.max(1, Math.ceil(deliveries.length / ITEMS_PER_PAGE));
+
+  const pagedInvoices = useMemo(() => {
+    const start = invoicesPage * ITEMS_PER_PAGE;
+    return invoices.slice(start, start + ITEMS_PER_PAGE);
+  }, [invoices, invoicesPage]);
+
+  const invoicesTotalPages = Math.max(1, Math.ceil(invoices.length / ITEMS_PER_PAGE));
 
   async function handleImageUpload(file, formSetter, formKey) {
     if (!file) return;
@@ -864,7 +882,7 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {deliveries.map((row) => {
+                  {pagedDeliveries.map((row) => {
                     const status = normalizeOrderStatus(row.orderStatus);
                     const nextLabel = status === "processing"
                       ? "Mark In-Transit"
@@ -910,6 +928,27 @@ export default function AdminPage() {
                   })}
                 </tbody>
               </table>
+              {deliveriesTotalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    className="pagination-btn"
+                    disabled={deliveriesPage === 0}
+                    onClick={() => setDeliveriesPage((p) => p - 1)}
+                  >
+                    ← Prev
+                  </button>
+                  <span className="pagination-info">
+                    Page {deliveriesPage + 1} of {deliveriesTotalPages}
+                  </span>
+                  <button
+                    className="pagination-btn"
+                    disabled={deliveriesPage >= deliveriesTotalPages - 1}
+                    onClick={() => setDeliveriesPage((p) => p + 1)}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -941,7 +980,7 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {invoices.map((invoice) => (
+                  {pagedInvoices.map((invoice) => (
                     <tr key={invoice.orderId}>
                       <td>#{invoice.orderId}</td>
                       <td>{invoice.createdAt?.slice(0, 10)}</td>
@@ -957,6 +996,27 @@ export default function AdminPage() {
                   ))}
                 </tbody>
               </table>
+              {invoicesTotalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    className="pagination-btn"
+                    disabled={invoicesPage === 0}
+                    onClick={() => setInvoicesPage((p) => p - 1)}
+                  >
+                    ← Prev
+                  </button>
+                  <span className="pagination-info">
+                    Page {invoicesPage + 1} of {invoicesTotalPages}
+                  </span>
+                  <button
+                    className="pagination-btn"
+                    disabled={invoicesPage >= invoicesTotalPages - 1}
+                    onClick={() => setInvoicesPage((p) => p + 1)}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
