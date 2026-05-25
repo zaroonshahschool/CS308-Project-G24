@@ -29,8 +29,10 @@ import {
   cancelOrder,
   createReturnRequest,
   fetchInvoicePdf,
+  fetchNotifications,
   fetchOrders,
   fetchReturnRequests as fetchCustomerReturnRequests,
+  markAllNotificationsRead,
   placeOrder,
 } from "./services/customerApi";
 import { addWishlistProduct, fetchWishlistProductIds, removeWishlistProduct } from "./services/wishlistApi";
@@ -157,10 +159,16 @@ function RoleProtectedRoute({ allowedRoles, children }) {
   return children;
 }
 
-function StoreLayout({ children, cartCount, wishlistCount, onCartOpen }) {
+function StoreLayout({ children, cartCount, wishlistCount, onCartOpen, notifications, onNotificationsRead }) {
   return (
     <>
-      <Header cartCount={cartCount} wishlistCount={wishlistCount} onCartOpen={onCartOpen} />
+      <Header
+        cartCount={cartCount}
+        wishlistCount={wishlistCount}
+        onCartOpen={onCartOpen}
+        notifications={notifications}
+        onNotificationsRead={onNotificationsRead}
+      />
       <Nav />
       {children}
       <Footer />
@@ -179,6 +187,7 @@ export default function App() {
   const [reviewsByProduct, setReviewsByProduct] = useState(initialReviewsByProduct);
   const [orders, setOrders] = useState([]);
   const [returnRequests, setReturnRequests] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [stockByProduct, setStockByProduct] = useState({});
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
@@ -255,15 +264,17 @@ export default function App() {
       return undefined;
     }
 
-    Promise.allSettled([fetchOrders(), fetchCustomerReturnRequests()])
-      .then(([ordersResult, returnRequestsResult]) => {
+    Promise.allSettled([fetchOrders(), fetchCustomerReturnRequests(), fetchNotifications()])
+      .then(([ordersResult, returnRequestsResult, notificationsResult]) => {
         if (!ignore) {
           if (ordersResult.status === "fulfilled") {
             setOrders(ordersResult.value);
           }
-
           if (returnRequestsResult.status === "fulfilled") {
             setReturnRequests(returnRequestsResult.value);
+          }
+          if (notificationsResult.status === "fulfilled") {
+            setNotifications(notificationsResult.value);
           }
         }
       })
@@ -544,6 +555,11 @@ export default function App() {
     toast.success("Your order was placed successfully. Your invoice has been emailed to you.", { title: "Order confirmed" });
   }
 
+  async function handleNotificationsRead() {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    await markAllNotificationsRead().catch(() => {});
+  }
+
   async function handleViewInvoice(orderId) {
     const invoiceBlob = await fetchInvoicePdf(orderId);
     const invoiceUrl = window.URL.createObjectURL(invoiceBlob);
@@ -564,7 +580,7 @@ export default function App() {
         <Route
           path="/"
           element={
-            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)} notifications={notifications} onNotificationsRead={handleNotificationsRead}>
               <HomePage />
             </StoreLayout>
           }
@@ -572,7 +588,7 @@ export default function App() {
         <Route
           path="/catalogue"
           element={
-            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)} notifications={notifications} onNotificationsRead={handleNotificationsRead}>
               <CataloguePage
                 onAddToCart={handleAddToCart}
                 onToggleWishlist={handleToggleWishlist}
@@ -586,7 +602,7 @@ export default function App() {
         <Route
           path="/catalogue/:productId"
           element={
-            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)} notifications={notifications} onNotificationsRead={handleNotificationsRead}>
               <ProductDetailPage
                 onAddToCart={handleAddToCart}
                 onSubmitReview={handleSubmitReview}
@@ -601,7 +617,7 @@ export default function App() {
         <Route
           path="/collections"
           element={
-            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)} notifications={notifications} onNotificationsRead={handleNotificationsRead}>
               <CollectionsPage />
             </StoreLayout>
           }
@@ -609,7 +625,7 @@ export default function App() {
         <Route
           path="/collections/:id"
           element={
-            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)} notifications={notifications} onNotificationsRead={handleNotificationsRead}>
               <CollectionDetailPage
                 onAddToCart={handleAddToCart}
                 onToggleWishlist={handleToggleWishlist}
@@ -622,7 +638,7 @@ export default function App() {
         <Route
           path="/limited-editions"
           element={
-            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)} notifications={notifications} onNotificationsRead={handleNotificationsRead}>
               <LimitedEditionsPage
                 onAddToCart={handleAddToCart}
                 onToggleWishlist={handleToggleWishlist}
@@ -635,7 +651,7 @@ export default function App() {
         <Route
           path="/wishlist"
           element={
-            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+            <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)} notifications={notifications} onNotificationsRead={handleNotificationsRead}>
               <WishlistPage
                 onAddToCart={handleAddToCart}
                 onToggleWishlist={handleToggleWishlist}
@@ -660,7 +676,7 @@ export default function App() {
           path="/account"
           element={
             <ProtectedRoute>
-              <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)} notifications={notifications} onNotificationsRead={handleNotificationsRead}>
                 <AccountPage
                   orders={orders}
                   returnRequests={returnRequests}
@@ -676,7 +692,7 @@ export default function App() {
           path="/checkout"
           element={
             <ProtectedRoute>
-              <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)}>
+              <StoreLayout cartCount={cartCount} wishlistCount={wishlistProductIds.length} onCartOpen={() => setCartOpen(true)} notifications={notifications} onNotificationsRead={handleNotificationsRead}>
                 <CheckoutPage cartItems={cartItems} onCheckoutSubmit={handleCheckoutSubmit} />
               </StoreLayout>
             </ProtectedRoute>

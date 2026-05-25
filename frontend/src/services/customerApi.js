@@ -74,3 +74,11 @@ export async function createReturnRequest(orderId, productId, reason) {
 export async function fetchReturnRequests() {
   return apiFetch("/api/returns/my");
 }
+
+export async function fetchNotifications() {
+  return apiFetch("/api/customer/notifications");
+}
+
+export async function markAllNotificationsRead() {
+  return apiFetch("/api/customer/notifications/read-all", { method: "PATCH" });
+}

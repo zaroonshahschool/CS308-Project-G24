@@ -2,18 +2,39 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "./useToast";
 
-export default function Header({ cartCount = 0, wishlistCount = 0, onCartOpen }) {
+export default function Header({ cartCount = 0, wishlistCount = 0, onCartOpen, notifications = [], onNotificationsRead }) {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
   const inputRef = useRef(null);
+  const bellRef = useRef(null);
+  const dropdownRef = useRef(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const role = window.localStorage.getItem("auth_role");
+  const isCustomer = role === "CUSTOMER";
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   useEffect(() => {
     if (!searchOpen) return;
     inputRef.current?.focus();
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    function handleClickOutside(e) {
+      if (
+        bellRef.current && !bellRef.current.contains(e.target) &&
+        dropdownRef.current && !dropdownRef.current.contains(e.target)
+      ) {
+        setNotifOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [notifOpen]);
 
   function toggleSearch() {
     const currentSearch = new URLSearchParams(location.search).get("search") ?? "";
@@ -36,8 +57,6 @@ export default function Header({ cartCount = 0, wishlistCount = 0, onCartOpen })
   }
 
   function handleAccountClick() {
-    const role = window.localStorage.getItem("auth_role");
-
     if (role === "CUSTOMER") {
       navigate("/account");
       return;
@@ -45,6 +64,19 @@ export default function Header({ cartCount = 0, wishlistCount = 0, onCartOpen })
 
     navigate("/login?next=/account");
     toast.info("Sign in to view your account.", { title: "Login required" });
+  }
+
+  function handleBellClick() {
+    const opening = !notifOpen;
+    setNotifOpen(opening);
+    if (opening && unreadCount > 0) {
+      onNotificationsRead?.();
+    }
+  }
+
+  function formatNotifDate(dateStr) {
+    if (!dateStr) return "";
+    return String(dateStr).slice(0, 10);
   }
 
   return (
@@ -88,6 +120,39 @@ export default function Header({ cartCount = 0, wishlistCount = 0, onCartOpen })
               <span className="cart-badge">{wishlistCount}</span>
             )}
           </button>
+
+          {isCustomer && (
+            <div style={{ position: "relative" }}>
+              <button ref={bellRef} className="icon-btn" title="Notifications" onClick={handleBellClick}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="cart-badge">{unreadCount}</span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div ref={dropdownRef} className="notif-dropdown">
+                  <p className="notif-dropdown-title">Notifications</p>
+                  {notifications.length === 0 ? (
+                    <p className="notif-empty">No notifications yet.</p>
+                  ) : (
+                    <ul className="notif-list">
+                      {notifications.map((n) => (
+                        <li key={n.id} className={`notif-item${n.read ? "" : " notif-item--unread"}`}>
+                          <p className="notif-message">{n.message}</p>
+                          <p className="notif-date">{formatNotifDate(n.createdAt)}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <button
             className="icon-btn"
             title="Cart"
