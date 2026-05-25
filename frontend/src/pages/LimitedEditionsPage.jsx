@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import CatalogPrice from "../components/CatalogPrice";
 import { useToast } from "../components/useToast";
 import { fetchLimitedEditionProducts } from "../services/catalogApi";
 
@@ -85,7 +86,7 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, wishlistProductId
         </div>
 
         <div className="catalog-card-meta">
-          <span className="catalog-card-price">${product.price.toFixed(2)}</span>
+          <CatalogPrice product={product} />
           {!outOfStock && (
             <span className="catalog-card-stock">{product.stock} in stock</span>
           )}
