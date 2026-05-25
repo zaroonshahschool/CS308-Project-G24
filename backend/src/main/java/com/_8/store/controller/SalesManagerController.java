@@ -4,11 +4,9 @@ import com._8.store.dto.ApplyDiscountRequest;
 import com._8.store.dto.DiscountedProductResponse;
 import com._8.store.dto.InvoiceSummaryResponse;
 import com._8.store.dto.OrderResponse;
-import com._8.store.dto.RatingResponse;
 import com._8.store.dto.SalesAnalyticsResponse;
 import com._8.store.dto.SetBasePriceRequest;
 import com._8.store.dto.SetBasePriceResponse;
-import com._8.store.repository.RatingRepository;
 import com._8.store.service.OrderService;
 import com._8.store.service.SalesManagerService;
 import jakarta.validation.Valid;
@@ -29,36 +27,15 @@ public class SalesManagerController {
 
     private final OrderService orderService;
     private final SalesManagerService salesManagerService;
-    private final RatingRepository ratingRepository;
 
-    public SalesManagerController(OrderService orderService,
-                                   SalesManagerService salesManagerService, RatingRepository ratingRepository) {
+    public SalesManagerController(OrderService orderService, SalesManagerService salesManagerService) {
         this.orderService = orderService;
         this.salesManagerService = salesManagerService;
-        this.ratingRepository = ratingRepository;
     }
 
     @GetMapping("/sales")
     public Map<String, String> sales() {
         return Map.of("message", "Sales manager placeholder endpoint.");
-    }
-
-    @GetMapping("/ratings")
-    public ResponseEntity<List<RatingResponse>> getAllRatings() {
-        List<RatingResponse> ratings = ratingRepository.findAllWithDetails()
-                .stream()
-                .map(RatingResponse::new)
-                .toList();
-        return ResponseEntity.ok(ratings);
-    }
-
-    @DeleteMapping("/ratings/{ratingId}")
-    public ResponseEntity<?> deleteRating(@PathVariable Long ratingId) {
-        if (!ratingRepository.existsById(ratingId)) {
-            throw new IllegalArgumentException("Rating not found.");
-        }
-        ratingRepository.deleteById(ratingId);
-        return ResponseEntity.ok(Map.of("message", "Rating deleted."));
     }
 
     @GetMapping("/orders")
@@ -81,6 +58,11 @@ public class SalesManagerController {
     @PostMapping("/discounts")
     public ResponseEntity<List<DiscountedProductResponse>> applyDiscount(@Valid @RequestBody ApplyDiscountRequest request) {
         return ResponseEntity.ok(salesManagerService.applyDiscount(request.discountRate(), request.productIds()));
+    }
+
+    @DeleteMapping("/products/{productId}/discount")
+    public ResponseEntity<SetBasePriceResponse> removeDiscount(@PathVariable Long productId) {
+        return ResponseEntity.ok(salesManagerService.removeDiscount(productId));
     }
 
     @GetMapping("/invoices")

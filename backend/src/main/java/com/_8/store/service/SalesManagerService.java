@@ -141,6 +141,30 @@ public class SalesManagerService {
         return new SetBasePriceResponse(product.getId(), product.getName(), roundedBase, sellingPrice, effectiveRate);
     }
 
+    @Transactional
+    public SetBasePriceResponse removeDiscount(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found."));
+
+        BigDecimal discountRate = product.getDiscountRate();
+        if (discountRate == null || discountRate.signum() <= 0) {
+            throw new IllegalArgumentException("Product has no active discount.");
+        }
+
+        BigDecimal basePrice = product.getOriginalPrice() != null && product.getOriginalPrice().signum() > 0
+                ? product.getOriginalPrice()
+                : product.getPrice();
+        BigDecimal roundedBase = basePrice.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal zeroRate = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+
+        product.setOriginalPrice(roundedBase);
+        product.setPrice(roundedBase);
+        product.setDiscountRate(zeroRate);
+        productRepository.save(product);
+
+        return new SetBasePriceResponse(product.getId(), product.getName(), roundedBase, roundedBase, zeroRate);
+    }
+
     @Transactional(readOnly = true)
     public List<InvoiceSummaryResponse> getAllInvoices() {
         return orderRepository.findAllByOrderByCreatedAtDesc().stream()

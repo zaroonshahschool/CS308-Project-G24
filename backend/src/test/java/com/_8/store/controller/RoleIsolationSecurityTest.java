@@ -119,9 +119,25 @@ class RoleIsolationSecurityTest {
     }
 
     @Test
+    @WithMockUser(roles = "SALES_MANAGER")
+    void salesManagerCannotAccessRatingModeration() throws Exception {
+        mockMvc.perform(get("/api/product-manager/ratings"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(roles = "PRODUCT_MANAGER")
     void productManagerCanAccessProductManagerEndpoints() throws Exception {
         mockMvc.perform(get("/api/product-manager/products"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "PRODUCT_MANAGER")
+    void productManagerCanAccessRatingModeration() throws Exception {
+        given(ratingRepository.findAllWithDetails()).willReturn(List.of());
+
+        mockMvc.perform(get("/api/product-manager/ratings"))
                 .andExpect(status().isOk());
     }
 

@@ -820,6 +820,17 @@ export default function AdminPage() {
 
         <div className="account-card">
           <div className="customer-page-head" style={{ borderBottom: "none", marginBottom: "0.5rem", paddingBottom: 0 }}>
+            <h2 className="account-card-title" style={{ marginBottom: 0 }}>Rating Moderation</h2>
+            <p className="section-subtitle">Review customer-submitted star ratings and remove any that violate store policy.</p>
+          </div>
+
+          <Link to="/product-manager/ratings" className="wishlist-secondary-btn" style={{ display: "inline-block", marginTop: "1rem" }}>
+            View all ratings
+          </Link>
+        </div>
+
+        <div className="account-card">
+          <div className="customer-page-head" style={{ borderBottom: "none", marginBottom: "0.5rem", paddingBottom: 0 }}>
             <h2 className="account-card-title" style={{ marginBottom: 0 }}>Deliveries</h2>
             <p className="section-subtitle">
               {deliveryStats.total === 0

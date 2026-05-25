@@ -1004,9 +1004,21 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
 }
 .catalog-card-meta {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 14px;
+}
+.catalog-card-pricing {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.catalog-card-price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .catalog-card-price {
   font-family: var(--sans);
@@ -1015,11 +1027,34 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   color: var(--dark);
   letter-spacing: 0.02em;
 }
+.catalog-card-discount-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 7px;
+  border: 1px solid #d8c7a7;
+  background: #efe6d4;
+  color: #8b6a1e;
+  font-family: var(--sans);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+.catalog-card-original-price {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
 .catalog-card-stock {
   font-family: var(--sans);
   font-size: 10.5px;
   color: var(--text-muted);
   letter-spacing: 0.04em;
+  padding-top: 3px;
+  white-space: nowrap;
 }
 .catalog-add-btn {
   width: 100%;
@@ -1432,6 +1467,33 @@ body { font-family: var(--sans); background: var(--cream); color: var(--dark); }
   font-family: var(--serif);
   font-size: 34px;
   line-height: 1;
+  margin-bottom: 4px;
+}
+.product-detail-price-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.product-detail-discount-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 9px;
+  border: 1px solid #d8c7a7;
+  background: #efe6d4;
+  color: #8b6a1e;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.product-detail-original-price {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: line-through;
   margin-bottom: 4px;
 }
 .product-detail-purchase .btn-dark:disabled,

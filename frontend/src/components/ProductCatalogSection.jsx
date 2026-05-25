@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { useToast } from "./useToast";
+import CatalogPrice from "./CatalogPrice";
 import { fetchCategories, fetchProducts } from "../services/catalogApi";
 
 const HASH_TO_CATEGORY = {
@@ -114,7 +115,7 @@ function ProductCard({ product, onAddToCart, onToggleWishlist, wishlistProductId
           </div>
 
           <div className="catalog-card-meta">
-            <span className="catalog-card-price">${product.price.toFixed(2)}</span>
+            <CatalogPrice product={product} />
             {!outOfStock && (
                 <span className="catalog-card-stock">{product.stock} in stock</span>
             )}

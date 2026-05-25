@@ -365,6 +365,7 @@ export default function ProductDetailPage({
   }
 
   const inWishlist = wishlistProductIds.includes(product.id);
+  const hasActiveDiscount = Number(product.discountRate) > 0 && Number(product.originalPrice) > Number(product.price);
 
   return (
     <main className="product-detail-page">
@@ -403,7 +404,19 @@ export default function ProductDetailPage({
 
           <div className="product-detail-purchase">
             <div>
-              <p className="product-detail-price">${product.price.toFixed(2)}</p>
+              <div className="product-detail-price-row">
+                <p className="product-detail-price">${product.price.toFixed(2)}</p>
+                {hasActiveDiscount ? (
+                  <span className="product-detail-discount-badge">
+                    {Number(product.discountRate).toFixed(0)}% off
+                  </span>
+                ) : null}
+              </div>
+              {hasActiveDiscount ? (
+                <p className="product-detail-original-price">
+                  Was ${Number(product.originalPrice).toFixed(2)}
+                </p>
+              ) : null}
               <p className="product-detail-stock">
                 {product.stock > 0 ? `${product.stock} copies currently in stock` : "Currently out of stock"}
               </p>

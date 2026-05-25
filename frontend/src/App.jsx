@@ -699,9 +699,9 @@ export default function App() {
           }
         />
         <Route
-          path="/dashboard/ratings"
+          path="/product-manager/ratings"
           element={
-            <RoleProtectedRoute allowedRoles={["SALES_MANAGER"]}>
+            <RoleProtectedRoute allowedRoles={["PRODUCT_MANAGER"]}>
               <RatingModerationPage />
             </RoleProtectedRoute>
           }

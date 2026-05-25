@@ -9,6 +9,7 @@ import {
   fetchInvoicePdfForManager,
   fetchInvoices,
   fetchOrders,
+  removeDiscount,
   setBasePrice,
 } from "../services/salesManagerApi";
 
@@ -58,6 +59,7 @@ export default function DashboardPage() {
   const [savingDiscount, setSavingDiscount] = useState(false);
   const [basePriceInputs, setBasePriceInputs] = useState({});
   const [savingPriceId, setSavingPriceId] = useState(null);
+  const [removingDiscountId, setRemovingDiscountId] = useState(null);
   const [error, setError] = useState("");
   const [orderError, setOrderError] = useState("");
   const [invoiceError, setInvoiceError] = useState("");
@@ -207,6 +209,25 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleRemoveDiscount(productId) {
+    setRemovingDiscountId(productId);
+    setError("");
+
+    try {
+      await removeDiscount(productId);
+      const refreshedProducts = await fetchProducts();
+      setProducts(refreshedProducts);
+      setSelectedProductIds((prev) => prev.filter((id) => id !== productId));
+      toast.success("Discount removed.", { title: "Discount updated" });
+    } catch (discountError) {
+      const message = discountError.message || "Failed to remove discount.";
+      setError(message);
+      toast.error(message, { title: "Discount error" });
+    } finally {
+      setRemovingDiscountId(null);
+    }
+  }
+
   async function handleRangeSubmit(event) {
     event.preventDefault();
     await Promise.all([
@@ -337,6 +358,17 @@ export default function DashboardPage() {
                         >
                           {savingPriceId === product.id ? "..." : "Set Price"}
                         </button>
+                        {product.discountRate > 0 ? (
+                          <button
+                            type="button"
+                            className="wishlist-secondary-btn"
+                            onClick={() => handleRemoveDiscount(product.id)}
+                            disabled={removingDiscountId === product.id}
+                            style={{ padding: "0.35rem 0.7rem", fontSize: "0.8rem" }}
+                          >
+                            {removingDiscountId === product.id ? "..." : "Remove Discount"}
+                          </button>
+                        ) : null}
                       </div>
                       <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }}>
                         <input
@@ -509,23 +541,6 @@ export default function DashboardPage() {
                   </article>
                 );
               })}
-            </div>
-
-            <div className="account-card">
-              <h2 className="account-card-title">Rating Moderation</h2>
-              <p className="section-subtitle">Review customer-submitted ratings from a dedicated moderation panel.</p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginTop: "1rem" }}>
-                <Link
-                  to="/dashboard/ratings"
-                  style={{ display: "block", padding: "1.25rem", borderRadius: 16, background: "rgba(0,0,0,0.03)", textDecoration: "none", color: "inherit" }}
-                >
-                  <p className="order-item-name" style={{ marginBottom: "0.35rem" }}>Rating Moderation</p>
-                  <p className="order-meta">View all submitted star ratings and remove any that violate store policy.</p>
-                  <p className="btn-primary" style={{ display: "inline-block", marginTop: "0.75rem", padding: "0.45rem 1rem", fontSize: "0.85rem" }}>
-                    Open →
-                  </p>
-                </Link>
-              </div>
             </div>
 
             <div className="account-card">

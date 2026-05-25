@@ -22,6 +22,10 @@ export async function applyDiscount(discountRate, productIds) {
   });
 }
 
+export async function removeDiscount(productId) {
+  return apiFetch(`/api/sales-manager/products/${productId}/discount`, { method: "DELETE" });
+}
+
 export async function fetchInvoices(from, to) {
   const query = new URLSearchParams({ from, to });
   return apiFetch(`/api/sales-manager/invoices?${query.toString()}`);
@@ -34,14 +38,6 @@ export async function fetchInvoicePdfForManager(orderId) {
 export async function fetchAnalytics(from, to) {
   const query = new URLSearchParams({ from, to });
   return apiFetch(`/api/sales-manager/analytics?${query.toString()}`);
-}
-
-export async function fetchAllRatings() {
-  return apiFetch("/api/sales-manager/ratings");
-}
-
-export async function deleteRating(ratingId) {
-  return apiFetch(`/api/sales-manager/ratings/${ratingId}`, { method: "DELETE" });
 }
 
 export async function fetchReturnRequests() {

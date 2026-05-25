@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "../components/useToast";
-import { deleteRating, fetchAllRatings } from "../services/salesManagerApi";
+import { deleteRating, fetchAllRatings } from "../services/adminApi";
 
 function StarBadge({ score }) {
   return (
@@ -51,7 +51,7 @@ export default function RatingModerationPage() {
   return (
     <main className="customer-page">
       <div className="catalogue-breadcrumb">
-        <Link to="/dashboard" className="breadcrumb-link">← Back to Dashboard</Link>
+        <Link to="/product-manager" className="breadcrumb-link">← Back to Product Manager</Link>
       </div>
 
       <section className="customer-shell">
