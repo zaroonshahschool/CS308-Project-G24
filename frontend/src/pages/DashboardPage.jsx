@@ -3,12 +3,10 @@ import { Link } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { fetchProducts } from "../services/catalogApi";
 import {
-  advanceOrderStatus,
   applyDiscount,
   fetchAnalytics,
   fetchInvoicePdfForManager,
   fetchInvoices,
-  fetchOrders,
   removeDiscount,
   setBasePrice,
 } from "../services/salesManagerApi";
@@ -54,7 +52,6 @@ function getChartPoints(points, key, globalMin, globalMax, layout = {}) {
 export default function DashboardPage() {
   const toast = useToast();
   const [today] = useState(getToday);
-  const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [discountRate, setDiscountRate] = useState("");
@@ -63,7 +60,6 @@ export default function DashboardPage() {
   const [analyticsRange, setAnalyticsRange] = useState({ from: today, to: today });
   const [invoices, setInvoices] = useState([]);
   const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [savingDiscount, setSavingDiscount] = useState(false);
@@ -71,11 +67,8 @@ export default function DashboardPage() {
   const [savingPriceId, setSavingPriceId] = useState(null);
   const [removingDiscountId, setRemovingDiscountId] = useState(null);
   const [error, setError] = useState("");
-  const [orderError, setOrderError] = useState("");
   const [invoiceError, setInvoiceError] = useState("");
-  const [actingOrderId, setActingOrderId] = useState(null);
   const [invoicesPage, setInvoicesPage] = useState(0);
-  const [ordersPage, setOrdersPage] = useState(0);
   const [cumulativeChart, setCumulativeChart] = useState(false);
 
   const role = window.localStorage.getItem("auth_role");
@@ -112,36 +105,15 @@ export default function DashboardPage() {
   }, [toast]);
 
   useEffect(() => {
-    if (!isSalesManager) {
-      setLoading(false);
-      return;
-    }
+    if (!isSalesManager) return;
 
-    const sections = [
-      { key: "orders", loader: fetchOrders, apply: setOrders, fallback: [] },
-      { key: "products", loader: fetchProducts, apply: setProducts, fallback: [] },
-    ];
-
-    Promise.allSettled(sections.map((section) => section.loader()))
-      .then((results) => {
-        const failures = [];
-        results.forEach((result, index) => {
-          const section = sections[index];
-          if (result.status === "fulfilled") {
-            section.apply(result.value);
-          } else {
-            section.apply(section.fallback);
-            failures.push(`${section.key} (${result.reason?.message || "unknown error"})`);
-          }
-        });
-
-        if (failures.length > 0) {
-          const message = `Could not load: ${failures.join(", ")}`;
-          setError(message);
-          toast.error(message, { title: "Dashboard load error" });
-        }
-      })
-      .finally(() => setLoading(false));
+    fetchProducts()
+      .then(setProducts)
+      .catch((err) => {
+        const message = err.message || "Could not load products.";
+        setError(message);
+        toast.error(message, { title: "Dashboard load error" });
+      });
   }, [isSalesManager, toast]);
 
   useEffect(() => {
@@ -162,35 +134,7 @@ export default function DashboardPage() {
 
   const invoicesTotalPages = Math.max(1, Math.ceil(invoices.length / ITEMS_PER_PAGE));
 
-  const pagedOrders = useMemo(() => {
-    const start = ordersPage * ITEMS_PER_PAGE;
-    return orders.slice(start, start + ITEMS_PER_PAGE);
-  }, [orders, ordersPage]);
-
-  const ordersTotalPages = Math.max(1, Math.ceil(orders.length / ITEMS_PER_PAGE));
-
   useEffect(() => { setInvoicesPage(0); }, [invoices]);
-
-  async function handleAdvanceOrder(orderId) {
-    setOrderError("");
-    setActingOrderId(orderId);
-
-    try {
-      const updatedOrder = await advanceOrderStatus(orderId);
-      setOrders((prev) =>
-        prev.map((order) => (order.orderId === updatedOrder.orderId ? updatedOrder : order))
-      );
-      toast.success(`Order #${orderId} moved to ${normalizeOrderStatus(updatedOrder.status)}.`, {
-        title: "Order updated",
-      });
-    } catch (advanceError) {
-      const message = advanceError.message || "Failed to advance order status.";
-      setOrderError(message);
-      toast.error(message, { title: "Order error" });
-    } finally {
-      setActingOrderId(null);
-    }
-  }
 
   async function handleSetBasePrice(productId, basePriceStr) {
     const basePrice = Number(basePriceStr);
@@ -628,86 +572,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : null}
-            </div>
-
-            <div className="account-card">
-              <h2 className="account-card-title">Order Progression</h2>
-
-              {orderError && <p style={{ color: "red", marginBottom: "1rem" }}>{orderError}</p>}
-              {loading && <p className="section-subtitle">Loading...</p>}
-              {!loading && orders.length === 0 && <p className="section-subtitle">No orders found.</p>}
-
-              {pagedOrders.map((order) => {
-                const status = normalizeOrderStatus(order.status);
-                const canAdvance = status === "processing" || status === "in-transit";
-                const nextLabel = status === "processing"
-                  ? "Move to In-Transit"
-                  : status === "in-transit"
-                    ? "Mark as Delivered"
-                    : null;
-
-                return (
-                  <article key={order.orderId} className="order-card" style={{ marginBottom: "1rem" }}>
-                    <div className="order-card-head">
-                      <div>
-                        <p className="order-item-name">Order #{order.orderId}</p>
-                        <p className="order-meta">
-                          {order.userName} · {order.createdAt?.slice(0, 10)} · ${Number(order.totalPrice).toFixed(2)}
-                        </p>
-                      </div>
-                      <div className={`order-status order-status--${status}`}>
-                        {status}
-                      </div>
-                    </div>
-
-                    <div className="order-items">
-                      {order.items.map((item) => (
-                        <div key={`${order.orderId}-${item.productId}`} className="order-item-row">
-                          <div>
-                            <p className="order-item-name">{item.productName}</p>
-                            <p className="order-item-meta">Qty {item.quantity}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {canAdvance ? (
-                      <div className="order-card-footer">
-                        <div className="order-card-actions">
-                          <button
-                            className="btn-primary"
-                            onClick={() => handleAdvanceOrder(order.orderId)}
-                            disabled={actingOrderId === order.orderId}
-                          >
-                            {actingOrderId === order.orderId ? "Updating..." : nextLabel}
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
-              {ordersTotalPages > 1 && (
-                <div className="pagination">
-                  <button
-                    className="pagination-btn"
-                    disabled={ordersPage === 0}
-                    onClick={() => setOrdersPage((p) => p - 1)}
-                  >
-                    ← Prev
-                  </button>
-                  <span className="pagination-info">
-                    Page {ordersPage + 1} of {ordersTotalPages}
-                  </span>
-                  <button
-                    className="pagination-btn"
-                    disabled={ordersPage >= ordersTotalPages - 1}
-                    onClick={() => setOrdersPage((p) => p + 1)}
-                  >
-                    Next →
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="account-card">
