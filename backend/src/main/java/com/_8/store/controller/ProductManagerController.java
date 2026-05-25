@@ -2,8 +2,11 @@ package com._8.store.controller;
 
 import com._8.store.dto.CommentResponse;
 import com._8.store.dto.InvoiceSummaryResponse;
+import com._8.store.dto.RatingResponse;
+import com._8.store.repository.RatingRepository;
 import com._8.store.service.CommentService;
 import com._8.store.service.SalesManagerService;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,10 +23,16 @@ public class ProductManagerController {
 
     private final CommentService commentService;
     private final SalesManagerService salesManagerService;
+    private final RatingRepository ratingRepository;
 
-    public ProductManagerController(CommentService commentService, SalesManagerService salesManagerService) {
+    public ProductManagerController(
+            CommentService commentService,
+            SalesManagerService salesManagerService,
+            RatingRepository ratingRepository
+    ) {
         this.commentService = commentService;
         this.salesManagerService = salesManagerService;
+        this.ratingRepository = ratingRepository;
     }
 
     @GetMapping("/products")
@@ -44,6 +53,24 @@ public class ProductManagerController {
     @GetMapping("/comments/pending")
     public ResponseEntity<List<CommentResponse>> getPendingComments() {
         return ResponseEntity.ok(commentService.getPendingComments());
+    }
+
+    @GetMapping("/ratings")
+    public ResponseEntity<List<RatingResponse>> getAllRatings() {
+        List<RatingResponse> ratings = ratingRepository.findAllWithDetails()
+                .stream()
+                .map(RatingResponse::new)
+                .toList();
+        return ResponseEntity.ok(ratings);
+    }
+
+    @DeleteMapping("/ratings/{ratingId}")
+    public ResponseEntity<?> deleteRating(@PathVariable Long ratingId) {
+        if (!ratingRepository.existsById(ratingId)) {
+            throw new IllegalArgumentException("Rating not found.");
+        }
+        ratingRepository.deleteById(ratingId);
+        return ResponseEntity.ok(Map.of("message", "Rating deleted."));
     }
 
     @PutMapping("/comments/{commentId}/approve")

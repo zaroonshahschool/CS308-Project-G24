@@ -40,14 +40,6 @@ export async function fetchAnalytics(from, to) {
   return apiFetch(`/api/sales-manager/analytics?${query.toString()}`);
 }
 
-export async function fetchAllRatings() {
-  return apiFetch("/api/sales-manager/ratings");
-}
-
-export async function deleteRating(ratingId) {
-  return apiFetch(`/api/sales-manager/ratings/${ratingId}`, { method: "DELETE" });
-}
-
 export async function fetchReturnRequests() {
   return apiFetch("/api/returns");
 }

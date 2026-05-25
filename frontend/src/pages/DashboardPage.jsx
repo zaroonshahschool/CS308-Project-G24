@@ -544,23 +544,6 @@ export default function DashboardPage() {
             </div>
 
             <div className="account-card">
-              <h2 className="account-card-title">Rating Moderation</h2>
-              <p className="section-subtitle">Review customer-submitted ratings from a dedicated moderation panel.</p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginTop: "1rem" }}>
-                <Link
-                  to="/dashboard/ratings"
-                  style={{ display: "block", padding: "1.25rem", borderRadius: 16, background: "rgba(0,0,0,0.03)", textDecoration: "none", color: "inherit" }}
-                >
-                  <p className="order-item-name" style={{ marginBottom: "0.35rem" }}>Rating Moderation</p>
-                  <p className="order-meta">View all submitted star ratings and remove any that violate store policy.</p>
-                  <p className="btn-primary" style={{ display: "inline-block", marginTop: "0.75rem", padding: "0.45rem 1rem", fontSize: "0.85rem" }}>
-                    Open →
-                  </p>
-                </Link>
-              </div>
-            </div>
-
-            <div className="account-card">
               <h2 className="account-card-title">Return Requests</h2>
               <p className="section-subtitle">Review return request history and approve or reject pending refunds from a dedicated page.</p>
               <Link

@@ -70,6 +70,14 @@ export function fetchPendingComments() {
   return sendJson("/product-manager/comments/pending", "GET");
 }
 
+export function fetchAllRatings() {
+  return sendJson("/product-manager/ratings", "GET");
+}
+
+export function deleteRating(ratingId) {
+  return sendJson(`/product-manager/ratings/${ratingId}`, "DELETE");
+}
+
 export function fetchAllInvoices() {
   return sendJson("/product-manager/invoices", "GET");
 }

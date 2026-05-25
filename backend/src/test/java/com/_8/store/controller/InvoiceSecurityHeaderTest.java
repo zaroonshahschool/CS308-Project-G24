@@ -2,7 +2,6 @@ package com._8.store.controller;
 
 import com._8.store.service.OrderService;
 import com._8.store.service.SalesManagerService;
-import com._8.store.repository.RatingRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -20,8 +19,6 @@ class InvoiceSecurityHeaderTest {
     private OrderService orderService;
     @Mock
     private SalesManagerService salesManagerService;
-    @Mock
-    private RatingRepository ratingRepository;
 
     @Test
     void customerInvoicePdfResponseDisablesBrowserAndProxyCaching() {
@@ -40,8 +37,7 @@ class InvoiceSecurityHeaderTest {
         given(salesManagerService.getInvoicePdf(42L)).willReturn("pdf".getBytes());
         SalesManagerController controller = new SalesManagerController(
                 orderService,
-                salesManagerService,
-                ratingRepository
+                salesManagerService
         );
 
         ResponseEntity<byte[]> response = controller.getInvoicePdf(42L);

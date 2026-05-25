@@ -1,8 +1,10 @@
 package com._8.store.controller;
 
+import com._8.store.repository.RatingRepository;
 import com._8.store.security.CustomUserDetailsService;
 import com._8.store.security.JwtService;
 import com._8.store.service.CommentService;
+import com._8.store.service.SalesManagerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -29,6 +31,12 @@ class ProductManagerCommentTest {
 
     @MockitoBean
     private CommentService commentService;
+
+    @MockitoBean
+    private SalesManagerService salesManagerService;
+
+    @MockitoBean
+    private RatingRepository ratingRepository;
 
     @MockitoBean
     private JwtService jwtService;
