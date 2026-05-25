@@ -60,6 +60,7 @@ export default function DashboardPage() {
   const [discountRate, setDiscountRate] = useState("");
   const [discountMessage, setDiscountMessage] = useState("");
   const [invoiceRange, setInvoiceRange] = useState({ from: today, to: today });
+  const [analyticsRange, setAnalyticsRange] = useState({ from: today, to: today });
   const [invoices, setInvoices] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -260,10 +261,12 @@ export default function DashboardPage() {
 
   async function handleRangeSubmit(event) {
     event.preventDefault();
-    await Promise.all([
-      loadInvoices(invoiceRange.from, invoiceRange.to),
-      loadAnalytics(invoiceRange.from, invoiceRange.to),
-    ]);
+    await loadInvoices(invoiceRange.from, invoiceRange.to);
+  }
+
+  async function handleAnalyticsRangeSubmit(event) {
+    event.preventDefault();
+    await loadAnalytics(analyticsRange.from, analyticsRange.to);
   }
 
   async function handleOpenInvoice(orderId) {
@@ -491,6 +494,22 @@ export default function DashboardPage() {
             <div className="account-card">
               <h2 className="account-card-title">Revenue and Profit</h2>
               <p className="section-subtitle">Revenue, cost, and profit are calculated over the selected date range.</p>
+
+              <form onSubmit={handleAnalyticsRangeSubmit} style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem" }}>
+                <input
+                  type="date"
+                  value={analyticsRange.from}
+                  onChange={(e) => setAnalyticsRange((prev) => ({ ...prev, from: e.target.value }))}
+                />
+                <input
+                  type="date"
+                  value={analyticsRange.to}
+                  onChange={(e) => setAnalyticsRange((prev) => ({ ...prev, to: e.target.value }))}
+                />
+                <button className="btn-primary" type="submit" disabled={loadingAnalytics}>
+                  {loadingAnalytics ? "Loading..." : "Load Range"}
+                </button>
+              </form>
 
               {loadingAnalytics ? <p className="section-subtitle">Loading analytics...</p> : null}
 
