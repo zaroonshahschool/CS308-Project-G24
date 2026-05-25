@@ -11,10 +11,6 @@ import {
   setBasePrice,
 } from "../services/salesManagerApi";
 
-function normalizeOrderStatus(status) {
-  return (status || "PROCESSING").toLowerCase().replace(/_/g, "-");
-}
-
 function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
