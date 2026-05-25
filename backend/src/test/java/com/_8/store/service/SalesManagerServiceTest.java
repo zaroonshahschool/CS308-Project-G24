@@ -27,6 +27,7 @@ class SalesManagerServiceTest {
     @Mock private OrderRepository orderRepository;
     @Mock private InvoicePdfService invoicePdfService;
     @Mock private EmailService emailService;
+    @Mock private NotificationService notificationService;
 
     private SalesManagerService salesManagerService;
 
@@ -37,7 +38,8 @@ class SalesManagerServiceTest {
                 userRepository,
                 orderRepository,
                 invoicePdfService,
-                emailService
+                emailService,
+                notificationService
         );
     }
 
