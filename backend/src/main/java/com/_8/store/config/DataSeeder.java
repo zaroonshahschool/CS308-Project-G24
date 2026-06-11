@@ -117,7 +117,7 @@ public class DataSeeder {
             ));
 
             // Product C — high stock, description-searchable on "humankind"
-            Product sapiens = productRepository.save(new Product(
+            productRepository.save(new Product(
                     "Sapiens: A Brief History of Humankind",
                     "Yuval Noah Harari",
                     "A sweeping tour through the cognitive, agricultural, and scientific revolutions that shaped humankind, from the savannas of Africa to the algorithm-driven present.",
@@ -142,7 +142,7 @@ public class DataSeeder {
 
             // ── Supporting Fiction ─────────────────────────────────────────────
 
-            productRepository.save(new Product(
+            Product midnightLibrary = productRepository.save(new Product(
                     "The Midnight Library",
                     "Matt Haig",
                     "Between life and death stands a library of infinite alternate lives, each volume a chance for Nora Seed to undo her regrets and discover what truly makes a life worth living.",
@@ -213,7 +213,7 @@ public class DataSeeder {
                     nonFiction
             ));
 
-            productRepository.save(new Product(
+            Product atomicHabits = productRepository.save(new Product(
                     "Atomic Habits",
                     "James Clear",
                     "An evidence-led system for building tiny daily routines whose compounding effect quietly rewires identity, performance, and the trajectory of an ordinary life.",
@@ -380,37 +380,57 @@ public class DataSeeder {
                     history
             ));
 
-            // ── Pre-seeded delivered orders so popularity sort has signal ──────
-            // Without these, all three popularity tiebreakers (purchase volume,
-            // avg rating, high-rating count) resolve to 0 and the query falls
-            // through to created_at, making "sort by popularity" visually
-            // identical to the default catalogue order.
+            // ── Demo customer purchase history (Products E / F / G / H) ─────────
+            // The final-demo prep requires the customer account to already own at
+            // least four purchased products spanning every order status:
+            //   E — delivered, > 1 month ago  (outside the 30-day return window)
+            //   F — delivered, < 1 month ago  (inside the return window, returnable)
+            //   G — processing, purchased recently
+            //   H — in-transit, purchased recently
+            // The two delivered orders (E, F) also give the popularity sort real
+            // signal; without any delivered/partially-returned purchases the
+            // popularity tiebreakers resolve to 0 and the query falls through to
+            // created_at, making "sort by popularity" identical to the default.
 
             User customer = userRepository.findByEmailIgnoreCase("customer@aurelia.local").orElse(null);
 
             if (customer != null) {
-                orderRepository.save(buildDeliveredOrder(customer, sapiens, 5, LocalDateTime.now().minusDays(10)));
-                sapiens.setStock(sapiens.getStock() - 5);
-                productRepository.save(sapiens);
+                // E — Dune, delivered 40 days ago (cannot be returned: > 30 days)
+                placeSeedOrder(orderRepository, productRepository, customer, dune, 5,
+                        OrderStatus.DELIVERED, LocalDateTime.now().minusDays(40));
 
-                orderRepository.save(buildDeliveredOrder(customer, dune, 3, LocalDateTime.now().minusDays(7)));
-                dune.setStock(dune.getStock() - 3);
-                productRepository.save(dune);
+                // F — Educated, delivered 15 days ago (still returnable: < 30 days)
+                placeSeedOrder(orderRepository, productRepository, customer, educated, 3,
+                        OrderStatus.DELIVERED, LocalDateTime.now().minusDays(15));
 
-                orderRepository.save(buildDeliveredOrder(customer, educated, 2, LocalDateTime.now().minusDays(3)));
-                educated.setStock(educated.getStock() - 2);
-                productRepository.save(educated);
+                // G — Atomic Habits, processing (purchased 2 days ago)
+                placeSeedOrder(orderRepository, productRepository, customer, atomicHabits, 1,
+                        OrderStatus.PROCESSING, LocalDateTime.now().minusDays(2));
 
-                ratingRepository.save(new Rating(customer, educated, 5, LocalDateTime.now().minusDays(2)));
+                // H — The Midnight Library, in-transit (purchased 3 days ago)
+                placeSeedOrder(orderRepository, productRepository, customer, midnightLibrary, 1,
+                        OrderStatus.IN_TRANSIT, LocalDateTime.now().minusDays(3));
+
+                // A pre-existing 5-star rating on a delivered product so the
+                // average-rating display and popularity tiebreak have data to show.
+                ratingRepository.save(new Rating(customer, dune, 5, LocalDateTime.now().minusDays(38)));
             }
         };
     }
 
-    private static Order buildDeliveredOrder(User user, Product product, int quantity, LocalDateTime placedAt) {
+    private static void placeSeedOrder(
+            OrderRepository orderRepository,
+            ProductRepository productRepository,
+            User user,
+            Product product,
+            int quantity,
+            OrderStatus status,
+            LocalDateTime placedAt
+    ) {
         Order order = new Order();
         order.setUser(user);
         order.setCreatedAt(placedAt);
-        order.setStatus(OrderStatus.DELIVERED);
+        order.setStatus(status);
         order.setShippingStreet("1 Aurelia Lane");
         order.setShippingCity("Istanbul");
         order.setShippingPostalCode("34000");
@@ -427,6 +447,11 @@ public class DataSeeder {
         order.addItem(item);
         order.setTotalPrice(lineTotal);
 
-        return order;
+        orderRepository.save(order);
+
+        // Stock is decremented at order placement in the real flow regardless of
+        // the later delivery status, so mirror that here.
+        product.setStock(product.getStock() - quantity);
+        productRepository.save(product);
     }
 }
