@@ -36,19 +36,22 @@ public class ReturnRequestService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final RefundService refundService;
+    private final NotificationService notificationService;
 
     public ReturnRequestService(
             ReturnRequestRepository returnRequestRepository,
             OrderRepository orderRepository,
             UserRepository userRepository,
             ProductRepository productRepository,
-            RefundService refundService
+            RefundService refundService,
+            NotificationService notificationService
     ) {
         this.returnRequestRepository = returnRequestRepository;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.refundService = refundService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -121,7 +124,12 @@ public class ReturnRequestService {
         returnRequest.setStatus(ReturnRequestStatus.APPROVED);
         returnRequest.setResolvedAt(LocalDateTime.now());
 
-        return toResponse(returnRequestRepository.save(returnRequest), refundAmount);
+        ReturnRequest saved = returnRequestRepository.save(returnRequest);
+        notificationService.createNotification(
+                returnRequest.getCustomer(),
+                "Your return request for \"" + returnRequest.getProduct().getName() + "\" has been approved. Refund of $" + refundAmount + " will be processed."
+        );
+        return toResponse(saved, refundAmount);
     }
 
     @Transactional
@@ -136,7 +144,12 @@ public class ReturnRequestService {
         returnRequest.setRejectionReason(trimmedReason);
         returnRequest.setResolvedAt(LocalDateTime.now());
 
-        return toResponse(returnRequestRepository.save(returnRequest), refundService.calculateRefundTotal(returnRequest.getOrderItem()));
+        ReturnRequest saved = returnRequestRepository.save(returnRequest);
+        notificationService.createNotification(
+                returnRequest.getCustomer(),
+                "Your return request for \"" + returnRequest.getProduct().getName() + "\" has been rejected. Reason: " + trimmedReason
+        );
+        return toResponse(saved, refundService.calculateRefundTotal(returnRequest.getOrderItem()));
     }
 
     private ReturnRequest getPendingReturnRequest(Long id) {
