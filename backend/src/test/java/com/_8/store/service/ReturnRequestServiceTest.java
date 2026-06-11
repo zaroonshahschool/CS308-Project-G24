@@ -14,6 +14,7 @@ import com._8.store.repository.OrderRepository;
 import com._8.store.repository.ProductRepository;
 import com._8.store.repository.ReturnRequestRepository;
 import com._8.store.repository.UserRepository;
+import com._8.store.service.NotificationService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,7 @@ class ReturnRequestServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private ProductRepository productRepository;
     @Mock private RefundService refundService;
+    @Mock private NotificationService notificationService;
     @Mock private Authentication authentication;
     @Mock private SecurityContext securityContext;
 
@@ -62,7 +64,8 @@ class ReturnRequestServiceTest {
                 orderRepository,
                 userRepository,
                 productRepository,
-                refundService
+                refundService,
+                notificationService
         );
 
         customer = new User("Ada Reader", "ada@example.com", "pass", Role.CUSTOMER, "1234567890");
